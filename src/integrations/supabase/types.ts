@@ -14,16 +14,183 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      categories: {
+        Row: {
+          created_at: string
+          dre_type: Database["public"]["Enums"]["dre_type"]
+          id: string
+          is_default: boolean
+          name: string
+          parent_id: string | null
+          sort_order: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dre_type: Database["public"]["Enums"]["dre_type"]
+          id?: string
+          is_default?: boolean
+          name: string
+          parent_id?: string | null
+          sort_order?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dre_type?: Database["public"]["Enums"]["dre_type"]
+          id?: string
+          is_default?: boolean
+          name?: string
+          parent_id?: string | null
+          sort_order?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      projections: {
+        Row: {
+          amount: number
+          category_id: string
+          created_at: string
+          id: string
+          month: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category_id: string
+          created_at?: string
+          id?: string
+          month: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string
+          created_at?: string
+          id?: string
+          month?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projections_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transactions: {
+        Row: {
+          amount: number
+          category_id: string
+          comment: string | null
+          created_at: string
+          date: string
+          id: string
+          installment_group: string | null
+          installment_number: number | null
+          is_installment: boolean
+          total_installments: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category_id: string
+          comment?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          installment_group?: string | null
+          installment_number?: number | null
+          is_installment?: boolean
+          total_installments?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string
+          comment?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          installment_group?: string | null
+          installment_number?: number | null
+          is_installment?: boolean
+          total_installments?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      seed_default_categories: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
-      [_ in never]: never
+      dre_type:
+        | "receita"
+        | "desconto"
+        | "custo"
+        | "despesa"
+        | "depreciacao"
+        | "resultado_financeiro"
+        | "outras_receitas"
+        | "impostos"
+        | "investimento"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +317,18 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      dre_type: [
+        "receita",
+        "desconto",
+        "custo",
+        "despesa",
+        "depreciacao",
+        "resultado_financeiro",
+        "outras_receitas",
+        "impostos",
+        "investimento",
+      ],
+    },
   },
 } as const
