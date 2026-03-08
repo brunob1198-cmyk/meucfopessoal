@@ -273,8 +273,7 @@ export default function Dashboard() {
                   <Tooltip formatter={(v: number) => formatBRL(v)} />
                 </PieChart>
               </ResponsiveContainer>
-            )}
-          </CardContent>
+              </div>
         </Card>
 
         <Card>
