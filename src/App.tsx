@@ -12,6 +12,7 @@ import DREAjustado from "./pages/DREAjustado";
 import Planejador from "./pages/Planejador";
 import Dashboard from "./pages/Dashboard";
 import Inteligencia from "./pages/Inteligencia";
+import Compromissos from "./pages/Compromissos";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
