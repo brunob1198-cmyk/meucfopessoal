@@ -243,6 +243,7 @@ export default function Dashboard() {
           title={`Dashboard — ${periodLabel}`}
           getData={() => detailedTableData}
           chartRefs={[pieChartRef, lineChartRef, barChartRef]}
+          screenshotRef={dashboardRef}
         />
       </div>
 
