@@ -1,0 +1,1 @@
+DELETE FROM transactions WHERE date >= '2026-03-01' AND date <= '2026-03-31'
