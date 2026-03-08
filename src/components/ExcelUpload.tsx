@@ -52,9 +52,9 @@ export function ExcelUpload() {
 
         let dateStr = '';
         if (rawDate instanceof Date && !isNaN(rawDate.getTime())) {
-          const y = rawDate.getFullYear();
-          const m = String(rawDate.getMonth() + 1).padStart(2, '0');
-          const d = String(rawDate.getDate()).padStart(2, '0');
+          const y = rawDate.getUTCFullYear();
+          const m = String(rawDate.getUTCMonth() + 1).padStart(2, '0');
+          const d = String(rawDate.getUTCDate()).padStart(2, '0');
           dateStr = `${y}-${m}-${d}`;
         } else if (typeof rawDate === 'number') {
           const d = new Date((rawDate - 25569) * 86400 * 1000);
