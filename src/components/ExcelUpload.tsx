@@ -40,25 +40,43 @@ export function ExcelUpload() {
 
     const reader = new FileReader();
     reader.onload = (evt) => {
-      const wb = read(evt.target?.result, { type: 'binary' });
+      const wb = read(evt.target?.result, { type: 'binary', cellDates: true });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const json = utils.sheet_to_json<any>(ws, { defval: '' });
+      const json = utils.sheet_to_json<any>(ws, { defval: '', raw: false });
 
       const parsed: ParsedRow[] = json.map((row: any) => {
         const rawDate = row['Data'] || row['data'] || '';
         const rawCat = String(row['Categoria'] || row['categoria'] || '').trim();
-        const rawAmount = Number(row['Valor'] || row['valor'] || 0);
+        const rawAmount = Number(String(row['Valor'] || row['valor'] || 0).replace(/,/g, ''));
         const rawComment = String(row['Comentário'] || row['Comentario'] || row['comentario'] || row['comentário'] || '');
 
         let dateStr = '';
-        if (typeof rawDate === 'number') {
-          // Excel serial date
+        if (rawDate instanceof Date && !isNaN(rawDate.getTime())) {
+          // Native Date object from cellDates:true
+          const y = rawDate.getFullYear();
+          const m = String(rawDate.getMonth() + 1).padStart(2, '0');
+          const d = String(rawDate.getDate()).padStart(2, '0');
+          dateStr = `${y}-${m}-${d}`;
+        } else if (typeof rawDate === 'number') {
+          // Excel serial date fallback
           const d = new Date((rawDate - 25569) * 86400 * 1000);
           dateStr = d.toISOString().split('T')[0];
         } else if (typeof rawDate === 'string' && rawDate.includes('/')) {
           const parts = rawDate.split('/');
           if (parts.length === 3) {
-            dateStr = `${parts[2].length === 2 ? '20' + parts[2] : parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            // Try to detect format: if first part > 12, it's dd/mm/yyyy
+            const p0 = parseInt(parts[0]);
+            const p1 = parseInt(parts[1]);
+            if (p0 > 12) {
+              // dd/mm/yyyy
+              dateStr = `${parts[2].length === 2 ? '20' + parts[2] : parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            } else if (p1 > 12) {
+              // mm/dd/yyyy
+              dateStr = `${parts[2].length === 2 ? '20' + parts[2] : parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+            } else {
+              // Ambiguous - assume dd/mm/yyyy (Brazilian format)
+              dateStr = `${parts[2].length === 2 ? '20' + parts[2] : parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            }
           }
         } else if (typeof rawDate === 'string') {
           dateStr = rawDate;
