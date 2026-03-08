@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { ImageDown } from 'lucide-react';
 import { exportChartAsPNG } from '@/lib/exportChart';
 import { formatBRL } from '@/lib/dre';
-import { Category } from '@/hooks/useCategories';
+import { Category, useCategories } from '@/hooks/useCategories';
+import { useTransactions } from '@/hooks/useTransactions';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
@@ -20,7 +21,7 @@ const COLORS = [
 type ViewOption = {
   label: string;
   dreTypes: string[];
-  parentFilter?: string; // specific parent category name
+  parentFilter?: string;
 };
 
 const VIEW_OPTIONS: ViewOption[] = [
@@ -39,78 +40,72 @@ const VIEW_OPTIONS: ViewOption[] = [
   { label: 'Descontos', dreTypes: ['desconto'] },
 ];
 
-interface YearlyEvolutionProps {
-  transactions: any[];
-  categories: Category[];
+function generateYearRange(): number[] {
+  const current = new Date().getFullYear();
+  const years: number[] = [];
+  for (let y = current; y >= current - 15; y--) years.push(y);
+  return years;
 }
 
-export function YearlyEvolution({ transactions, categories }: YearlyEvolutionProps) {
+const ALL_YEARS = generateYearRange();
+
+export function YearlyEvolution() {
+  const currentYear = new Date().getFullYear();
   const [viewIndex, setViewIndex] = useState(0);
+  const [startYear, setStartYear] = useState(currentYear - 4);
+  const [endYear, setEndYear] = useState(currentYear);
   const chartRef = useRef<HTMLDivElement>(null);
   const view = VIEW_OPTIONS[viewIndex];
 
-  // Get all years from transactions
-  const years = useMemo(() => {
-    const yearSet = new Set<number>();
-    (transactions || []).forEach((t: any) => {
-      const y = Number(t.date?.substring(0, 4));
-      if (y) yearSet.add(y);
-    });
-    return Array.from(yearSet).sort((a, b) => b - a); // descending
-  }, [transactions]);
+  // Own data fetching with full date range
+  const startDate = `${startYear}-01-01`;
+  const endDate = `${endYear}-12-31`;
+  const { data: transactions } = useTransactions(startDate, endDate);
+  const { data: categories } = useCategories();
 
-  // Build category map
-  const catMap = useMemo(() => {
-    const m = new Map<string, Category>();
-    (categories || []).forEach(c => m.set(c.id, c));
-    return m;
-  }, [categories]);
+  // Selected years range
+  const years = useMemo(() => {
+    const result: number[] = [];
+    for (let y = endYear; y >= startYear; y--) result.push(y);
+    return result;
+  }, [startYear, endYear]);
 
   // Determine which rows to show based on view
-  const { rows, rowNames } = useMemo(() => {
-    if (!categories || categories.length === 0) return { rows: [] as any[], rowNames: [] as string[] };
+  const rows = useMemo(() => {
+    if (!categories || categories.length === 0) return [];
 
     const isSpecificParent = !!view.parentFilter;
 
     if (isSpecificParent) {
-      // Show children of the specific parent
       const parent = categories.find(c => !c.parent_id && c.name.toUpperCase() === view.parentFilter!.toUpperCase());
-      if (!parent) return { rows: [], rowNames: [] };
+      if (!parent) return [];
       const children = categories.filter(c => c.parent_id === parent.id);
-      const names = children.map(c => c.name);
-      const rowData = children.map(child => {
+      return children.map(child => {
         const yearTotals: Record<string, number> = {};
         years.forEach(y => {
-          const total = (transactions || [])
+          yearTotals[String(y)] = (transactions || [])
             .filter((t: any) => t.category_id === child.id && t.date?.startsWith(String(y)))
             .reduce((s: number, t: any) => s + Number(t.amount), 0);
-          yearTotals[String(y)] = total;
         });
         return { name: child.name, ...yearTotals };
       });
-      return { rows: rowData, rowNames: names };
     }
 
-    // Show parent-level clusters
     const parentCats = categories.filter(c => !c.parent_id && view.dreTypes.includes(c.dre_type));
-    const names = parentCats.map(c => c.name);
-    const rowData = parentCats.map(parent => {
+    return parentCats.map(parent => {
       const childIds = new Set(categories.filter(c => c.parent_id === parent.id).map(c => c.id));
-      // Also include the parent itself if it has direct transactions
       childIds.add(parent.id);
       const yearTotals: Record<string, number> = {};
       years.forEach(y => {
-        const total = (transactions || [])
+        yearTotals[String(y)] = (transactions || [])
           .filter((t: any) => childIds.has(t.category_id) && t.date?.startsWith(String(y)))
           .reduce((s: number, t: any) => s + Number(t.amount), 0);
-        yearTotals[String(y)] = total;
       });
       return { name: parent.name, ...yearTotals };
-    });
-    return { rows: rowData.filter(r => years.some(y => r[String(y)] > 0)), rowNames: names };
+    }).filter(r => years.some(y => r[String(y)] > 0));
   }, [categories, transactions, years, view]);
 
-  // Compute year-over-year percentages for header
+  // Year-over-year percentages
   const yearPercentages = useMemo(() => {
     const pcts: Record<string, string> = {};
     for (let i = 0; i < years.length - 1; i++) {
@@ -125,36 +120,58 @@ export function YearlyEvolution({ transactions, categories }: YearlyEvolutionPro
     return pcts;
   }, [rows, years]);
 
-  // Chart data: years as X axis, each row as a stacked bar
+  // Chart data
   const chartData = useMemo(() => {
     return [...years].reverse().map(y => {
       const entry: any = { ano: String(y) };
-      rows.forEach(r => {
-        entry[r.name] = r[String(y)] || 0;
-      });
+      rows.forEach(r => { entry[r.name] = r[String(y)] || 0; });
       return entry;
     });
   }, [years, rows]);
 
   const chartKeys = rows.map(r => r.name).filter(name => chartData.some(d => d[name] > 0));
 
-  if (years.length === 0) return null;
-
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 gap-4 flex-wrap">
           <CardTitle className="text-base">Evolução Anual por Categoria</CardTitle>
-          <Select value={String(viewIndex)} onValueChange={(v) => setViewIndex(Number(v))}>
-            <SelectTrigger className="w-[220px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {VIEW_OPTIONS.map((opt, i) => (
-                <SelectItem key={i} value={String(i)}>{opt.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <span>De</span>
+              <Select value={String(startYear)} onValueChange={(v) => setStartYear(Number(v))}>
+                <SelectTrigger className="w-[90px] h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ALL_YEARS.filter(y => y <= endYear).map(y => (
+                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span>até</span>
+              <Select value={String(endYear)} onValueChange={(v) => setEndYear(Number(v))}>
+                <SelectTrigger className="w-[90px] h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ALL_YEARS.filter(y => y >= startYear).map(y => (
+                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Select value={String(viewIndex)} onValueChange={(v) => setViewIndex(Number(v))}>
+              <SelectTrigger className="w-[200px] h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {VIEW_OPTIONS.map((opt, i) => (
+                  <SelectItem key={i} value={String(i)}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           {rows.length === 0 ? (
@@ -185,7 +202,6 @@ export function YearlyEvolution({ transactions, categories }: YearlyEvolutionPro
                     ))}
                   </tr>
                 ))}
-                {/* Totals row */}
                 <tr className="border-t-2 border-primary/30 font-bold">
                   <td className="py-2 px-3 text-foreground sticky left-0 bg-card z-10">TOTAL</td>
                   {years.map(y => {
@@ -203,7 +219,6 @@ export function YearlyEvolution({ transactions, categories }: YearlyEvolutionPro
         </CardContent>
       </Card>
 
-      {/* Stacked bar chart for yearly data */}
       {chartKeys.length > 0 && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
