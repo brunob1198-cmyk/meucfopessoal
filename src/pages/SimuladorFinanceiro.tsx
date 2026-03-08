@@ -184,21 +184,32 @@ export default function SimuladorFinanceiro() {
   const [scenarios, setScenarios] = useState<Scenario[]>(() => {
     try {
       const saved = localStorage.getItem('simulador-scenarios');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
     } catch {}
-    return [{
-      id: '1',
-      name: 'Cenário Atual',
-      color: SCENARIO_COLORS[0],
-      currentAge: 30,
-      targetAge: 55,
-      returnRate: 8,
-      currentInvestment: 0,
-      monthlyInvestment: 0,
-      incomeGrowth: 3,
-      expenseGrowth: 4,
-    }];
+    return [];
   });
+
+  // Initialize default scenario from live data when no saved scenarios exist
+  const hasInitialized = scenarios.length > 0;
+  useEffect(() => {
+    if (!hasInitialized) {
+      setScenarios([{
+        id: '1',
+        name: 'Cenário Atual',
+        color: SCENARIO_COLORS[0],
+        currentAge: 30,
+        targetAge: 55,
+        returnRate: 8,
+        currentInvestment: Math.max(netWorth, 0),
+        monthlyInvestment: Math.max(avgMonthlySavings, 0),
+        incomeGrowth: 3,
+        expenseGrowth: 4,
+      }]);
+    }
+  }, [hasInitialized, netWorth, avgMonthlySavings]);
 
   const [activeScenario, setActiveScenario] = useState(() => {
     try {
