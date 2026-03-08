@@ -182,7 +182,29 @@ export function computeDRE(
   lines.push({ label: '(=) EBITDA', value: ebitda, percent: pct(ebitda), isTotal: true, indent: 0 });
   lines.push({ label: '(-) DEPRECIAÇÃO', value: depreciacao, percent: pct(depreciacao), isTotal: false, indent: 0 });
   lines.push({ label: '(=) EBIT', value: ebit, percent: pct(ebit), isTotal: true, indent: 0 });
-  lines.push({ label: '(+/-) RESULTADO FINANCEIRO', value: resultadoFinanceiro, percent: pct(resultadoFinanceiro), isTotal: false, indent: 0 });
+  // Resultado Financeiro (with subcategories)
+  lines.push({
+    label: '(+/-) RESULTADO FINANCEIRO',
+    value: resultadoFinanceiro,
+    percent: pct(resultadoFinanceiro),
+    isTotal: false,
+    indent: 0,
+    type: 'resultado_financeiro',
+  });
+  parentCategories
+    .filter((p) => p.dre_type === 'resultado_financeiro')
+    .forEach((p) => {
+      lines.push({
+        label: p.name,
+        value: sumByParentId(p.id),
+        percent: pct(sumByParentId(p.id)),
+        isTotal: false,
+        indent: 1,
+        isGroupHeader: true,
+        groupId: p.id,
+      });
+      detailByParentId(p.id).forEach((d) => lines.push(d));
+    });
   lines.push({ label: '(+) OUTRAS RECEITAS', value: outrasReceitas, percent: pct(outrasReceitas), isTotal: false, indent: 0 });
   lines.push({ label: '(=) LAIR', value: lair, percent: pct(lair), isTotal: true, indent: 0 });
   lines.push({ label: '(-) IMPOSTOS', value: impostos, percent: pct(impostos), isTotal: false, indent: 0 });
