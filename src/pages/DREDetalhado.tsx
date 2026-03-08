@@ -89,10 +89,21 @@ export default function DREDetalhado() {
     });
   };
 
-  const [auditCategory, setAuditCategory] = useState<{ id: string; name: string } | null>(null);
+  // Audit: global or per-month
+  const [auditCategory, setAuditCategory] = useState<{ id: string; name: string; month?: string } | null>(null);
+
   const auditTransactions = useMemo(() => {
     if (!auditCategory || !transactions) return [];
-    return (transactions as any[]).filter(t => t.category_id === auditCategory.id).sort((a, b) => a.date.localeCompare(b.date));
+    let filtered = (transactions as any[]).filter(t => t.category_id === auditCategory.id);
+    if (auditCategory.month) {
+      const ms = startOfMonth(new Date(Number(auditCategory.month.split('-')[0]), Number(auditCategory.month.split('-')[1]) - 1, 1));
+      const me = endOfMonth(ms);
+      filtered = filtered.filter(t => {
+        const d = new Date(t.date);
+        return !isBefore(d, ms) && !isAfter(d, me);
+      });
+    }
+    return filtered.sort((a, b) => a.date.localeCompare(b.date));
   }, [auditCategory, transactions]);
 
   const periodLabel = filter.startMonth === filter.endMonth
@@ -125,7 +136,7 @@ export default function DREDetalhado() {
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-foreground/10 border border-border" /> Real</span>
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-primary/20 border border-primary/30" /> Projetado</span>
         <span className="flex items-center gap-1 ml-2 text-muted-foreground">
-          Clique nas categorias para expandir. Clique em <Search className="h-3 w-3 inline" /> para ver lançamentos.
+          Clique nas categorias para expandir. Clique em <Search className="h-3 w-3 inline" /> para ver lançamentos (geral ou por mês).
         </span>
       </div>
 
@@ -161,7 +172,7 @@ export default function DREDetalhado() {
                             )}
                             <span>{row.label}</span>
                             {row.isSubcategory && row.categoryId && (
-                              <button onClick={() => setAuditCategory({ id: row.categoryId!, name: row.label })} className="p-0.5 hover:bg-muted rounded ml-1 opacity-50 hover:opacity-100" title="Ver lançamentos">
+                              <button onClick={() => setAuditCategory({ id: row.categoryId!, name: row.label })} className="p-0.5 hover:bg-muted rounded ml-1 opacity-50 hover:opacity-100" title="Ver todos os lançamentos">
                                 <Search className="h-3 w-3 text-muted-foreground" />
                               </button>
                             )}
@@ -172,8 +183,17 @@ export default function DREDetalhado() {
                           const val = line?.value ?? 0;
                           const isMargem = row.type === 'margem';
                           return (
-                            <td key={md.month} className={cn('text-right py-2 px-3 tabular-nums', row.isTotal && getTotalColorClass(val), !row.isTotal && val < 0 && 'text-destructive', md.isProjected && !row.isTotal && 'text-primary/80 bg-primary/5')}>
+                            <td key={md.month} className={cn('text-right py-2 px-3 tabular-nums relative group/cell', row.isTotal && getTotalColorClass(val), !row.isTotal && val < 0 && 'text-destructive', md.isProjected && !row.isTotal && 'text-primary/80 bg-primary/5')}>
                               {line ? (isMargem ? `${val.toFixed(1)}%` : formatBRL(val)) : '-'}
+                              {row.isSubcategory && row.categoryId && val !== 0 && (
+                                <button
+                                  onClick={() => setAuditCategory({ id: row.categoryId!, name: row.label, month: md.month })}
+                                  className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-muted opacity-0 group-hover/cell:opacity-100 transition-opacity"
+                                  title={`Ver lançamentos de ${format(filter.parseMonth(md.month), 'MMM/yy', { locale: ptBR })}`}
+                                >
+                                  <Search className="h-3 w-3 text-muted-foreground" />
+                                </button>
+                              )}
                             </td>
                           );
                         })}
@@ -189,7 +209,21 @@ export default function DREDetalhado() {
 
       <Dialog open={!!auditCategory} onOpenChange={() => setAuditCategory(null)}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>Lançamentos: {auditCategory?.name}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>
+              Lançamentos: {auditCategory?.name}
+              {auditCategory?.month && (
+                <span className="text-sm font-normal text-muted-foreground ml-2">
+                  ({format(filter.parseMonth(auditCategory.month), 'MMMM/yyyy', { locale: ptBR })})
+                </span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          {auditCategory?.month && (
+            <Button variant="ghost" size="sm" className="text-xs w-fit" onClick={() => setAuditCategory(prev => prev ? { ...prev, month: undefined } : null)}>
+              Ver todos os meses
+            </Button>
+          )}
           <div className="space-y-1 max-h-[400px] overflow-y-auto">
             {auditTransactions.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">Nenhum lançamento encontrado.</p>

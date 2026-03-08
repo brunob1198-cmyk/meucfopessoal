@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ChevronDown, ChevronRight, Plus, Loader2, FolderPlus, X } from 'lucide-react';
+import { ExcelUpload } from '@/components/ExcelUpload';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -298,7 +299,10 @@ export default function Lancamentos() {
           <h1 className="text-xl font-bold text-foreground">Lançamentos</h1>
           <p className="text-sm text-muted-foreground">Clique na subcategoria para lançar rapidamente</p>
         </div>
-        <AddCategoryDialog />
+        <div className="flex items-center gap-2">
+          <ExcelUpload />
+          <AddCategoryDialog />
+        </div>
       </div>
       {tree.map((cat) => (
         <CategoryGroup key={cat.id} cat={cat} onSubmit={handleSubmit} />
