@@ -89,7 +89,7 @@ export default function DREAjustado() {
 
       <div className="flex gap-3 mb-3 text-xs">
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-foreground/10 border border-border" /> Real</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-primary/20 border border-primary/30" /> Projetado</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-200 border border-emerald-300" /> Projetado</span>
       </div>
 
       <Card className="overflow-hidden">
