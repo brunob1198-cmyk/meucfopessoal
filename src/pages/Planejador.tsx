@@ -328,13 +328,13 @@ export default function Planejador() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-card z-10">
-                  <tr className="border-b border-border">
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground min-w-[200px]">Categoria</th>
+                <thead className="sticky top-0 z-10">
+                  <tr className="bg-[hsl(var(--table-total-bg))] text-[hsl(var(--table-total-fg))]">
+                    <th className="text-left py-3 px-4 font-semibold min-w-[200px] sticky left-0 bg-[hsl(var(--table-total-bg))] z-20">Categoria</th>
                     {months.map(m => {
                       const editable = isMonthEditable(m);
                       return (
-                        <th key={m} className={`text-center py-3 px-2 font-medium min-w-[100px] capitalize ${!editable ? 'text-muted-foreground/50' : 'text-muted-foreground'}`}>
+                        <th key={m} className={`text-center py-3 px-2 font-semibold min-w-[100px] capitalize ${!editable ? 'opacity-50' : ''}`}>
                           <div className="flex items-center justify-center gap-1">
                             {!editable && <Lock className="h-3 w-3" />}
                             {format(filter.parseMonth(m), 'MMM/yy', { locale: ptBR })}
@@ -395,22 +395,22 @@ function CategoryRowMultiMonth({
 
   return (
     <>
-      <tr className="bg-muted/30 font-semibold border-b border-border/50">
-        <td className="py-2 px-4 flex items-center gap-1">
+      <tr className="bg-[hsl(var(--table-cat-bg))] text-[hsl(var(--table-cat-fg))] font-semibold border-b border-border/30">
+        <td className="py-2.5 px-4 flex items-center gap-1">
           {hasChildren && (
             <button onClick={onToggle} className="p-0.5">
-              {expanded ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+              {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
             </button>
           )}
           {cat.name}
         </td>
         {monthTotals.map((total, i) => (
-          <td key={months[i]} className="text-center py-2 px-2 tabular-nums text-sm">{formatBRL(total)}</td>
+          <td key={months[i]} className="text-center py-2.5 px-2 tabular-nums text-sm">{formatBRL(total)}</td>
         ))}
         <td />
       </tr>
       {expanded && cat.children?.map((sub) => (
-        <tr key={sub.id} className="border-b border-border/50">
+        <tr key={sub.id} className="border-b border-border/30 bg-[hsl(var(--table-subcat-bg))] text-[hsl(var(--table-subcat-fg))]">
           <td className="py-1.5 px-4 pl-10 text-sm">{sub.name}</td>
           {months.map(m => {
             const val = getDraftValue(sub.id, m);
