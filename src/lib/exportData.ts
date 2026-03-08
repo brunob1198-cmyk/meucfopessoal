@@ -27,7 +27,7 @@ export function exportToExcel(data: ExportRow[], filename: string) {
   XLSX.writeFile(wb, `${filename}.xlsx`);
 }
 
-export function exportToPDF(data: ExportRow[], filename: string, title: string, options?: { colorRows?: boolean }) {
+export function exportToPDF(data: ExportRow[], filename: string, title: string, options?: { colorRows?: boolean; chartImages?: string[] }) {
   if (data.length === 0) return;
   const headers = Object.keys(data[0]);
   const useColors = options?.colorRows ?? false;
@@ -64,6 +64,10 @@ export function exportToPDF(data: ExportRow[], filename: string, title: string, 
     </tr>`;
   }).join('');
 
+  const chartsHtml = (options?.chartImages || []).map((src, i) =>
+    `<div style="page-break-inside:avoid;margin:20px 0;text-align:center;"><img src="${src}" style="max-width:100%;height:auto;border:1px solid #e2e8f0;border-radius:6px;" /></div>`
+  ).join('');
+
   const html = `
     <!DOCTYPE html>
     <html><head><meta charset="utf-8"><title>${title}</title>
@@ -82,6 +86,7 @@ export function exportToPDF(data: ExportRow[], filename: string, title: string, 
       <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
       <tbody>${rowHtml}</tbody>
     </table>
+    ${chartsHtml}
     </body></html>
   `;
 
@@ -92,7 +97,6 @@ export function exportToPDF(data: ExportRow[], filename: string, title: string, 
     setTimeout(() => printWindow.print(), 500);
   }
 }
-
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
