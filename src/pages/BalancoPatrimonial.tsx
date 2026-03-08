@@ -3,7 +3,7 @@ import { format, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Plus, Trash2, Edit2, TrendingUp, TrendingDown, Minus,
-  Landmark, CreditCard, PiggyBank, ChevronDown, ChevronRight, Save
+  Landmark, CreditCard, PiggyBank, ChevronDown, ChevronRight, Save, Wallet, ArrowUpRight
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,15 +13,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, BarChart, Bar, Legend } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, BarChart, Bar, Legend, ComposedChart } from 'recharts';
 import {
   useAssets, useLiabilities, useNetWorthHistory,
   ASSET_CATEGORY_LABELS, LIABILITY_CATEGORY_LABELS,
   ASSET_GROUPS, LIABILITY_GROUPS,
   type Asset, type Liability, type AssetCategory, type LiabilityCategory
 } from '@/hooks/useBalanceSheet';
-import { useTransactions } from '@/hooks/useTransactions';
-import { useCategories } from '@/hooks/useCategories';
+import { useDREIntegration } from '@/hooks/useDREIntegration';
 import { cn } from '@/lib/utils';
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -268,6 +267,14 @@ export default function BalancoPatrimonial() {
   const { data: assets = [], upsert: upsertAsset, remove: removeAsset } = useAssets();
   const { data: liabilities = [], upsert: upsertLiability, remove: removeLiability } = useLiabilities();
   const { data: history = [], saveSnapshot } = useNetWorthHistory();
+  const {
+    currentMonthProfit,
+    previousMonthProfit,
+    yearToDateProfit,
+    accumulatedProfit,
+    monthlyProfits,
+    isLoading: dreLoading,
+  } = useDREIntegration();
 
   const [assetDialogOpen, setAssetDialogOpen] = useState(false);
   const [liabilityDialogOpen, setLiabilityDialogOpen] = useState(false);
@@ -276,7 +283,10 @@ export default function BalancoPatrimonial() {
 
   const totalAssets = useMemo(() => assets.reduce((s, a) => s + Number(a.current_value), 0), [assets]);
   const totalLiabilities = useMemo(() => liabilities.reduce((s, l) => s + Number(l.current_balance), 0), [liabilities]);
-  const netWorth = totalAssets - totalLiabilities;
+  
+  // Net worth now includes accumulated DRE profit (lucros retidos)
+  const netWorthBase = totalAssets - totalLiabilities;
+  const netWorth = netWorthBase + accumulatedProfit;
 
   // Calculate trends from history
   const monthlyTrend = useMemo(() => {
@@ -288,7 +298,7 @@ export default function BalancoPatrimonial() {
 
   // Auto-save snapshot for current month
   useEffect(() => {
-    if (assets.length > 0 || liabilities.length > 0) {
+    if (assets.length > 0 || liabilities.length > 0 || accumulatedProfit !== 0) {
       const currentMonth = format(startOfMonth(new Date()), 'yyyy-MM-dd');
       saveSnapshot.mutate({
         month: currentMonth,
@@ -297,7 +307,7 @@ export default function BalancoPatrimonial() {
         net_worth: netWorth,
       });
     }
-  }, [totalAssets, totalLiabilities]);
+  }, [totalAssets, totalLiabilities, accumulatedProfit]);
 
   const chartData = useMemo(() => {
     const historyData = history.map(h => ({
@@ -306,13 +316,21 @@ export default function BalancoPatrimonial() {
       passivos: Number(h.total_liabilities),
       patrimonio: Number(h.net_worth),
     }));
-    // Add current if not in history yet
     const currentMonth = format(startOfMonth(new Date()), 'MMM/yy', { locale: ptBR });
     if (!historyData.find(d => d.month === currentMonth)) {
       historyData.push({ month: currentMonth, ativos: totalAssets, passivos: totalLiabilities, patrimonio: netWorth });
     }
     return historyData;
   }, [history, totalAssets, totalLiabilities, netWorth]);
+
+  const profitChartData = useMemo(() => {
+    return monthlyProfits.map(p => ({
+      month: format(new Date(p.month + '-01'), 'MMM/yy', { locale: ptBR }),
+      lucro: p.lucroLiquido,
+      receita: p.receita,
+      despesas: p.despesas,
+    }));
+  }, [monthlyProfits]);
 
   const assetDistribution = useMemo(() => {
     return Object.entries(ASSET_GROUPS).map(([group, cats]) => {
@@ -353,6 +371,104 @@ export default function BalancoPatrimonial() {
           trendLabel="vs mês anterior"
         />
       </div>
+
+      {/* DRE Integration - Lucros Retidos */}
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <Wallet className="h-5 w-5 text-primary" />
+            <CardTitle className="text-lg">Integração DRE → Patrimônio</CardTitle>
+          </div>
+          <CardDescription>
+            O lucro líquido acumulado do DRE é automaticamente somado ao seu patrimônio líquido
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">Lucro Mês Atual</p>
+              <p className={cn('text-lg font-bold', currentMonthProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+                {fmt(currentMonthProfit)}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">Lucro Mês Anterior</p>
+              <p className={cn('text-lg font-bold', previousMonthProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+                {fmt(previousMonthProfit)}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">Acumulado no Ano</p>
+              <p className={cn('text-lg font-bold', yearToDateProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+                {fmt(yearToDateProfit)}
+              </p>
+            </div>
+            <div className="space-y-1 p-3 rounded-lg bg-primary/5 border border-primary/20">
+              <div className="flex items-center gap-1">
+                <ArrowUpRight className="h-3 w-3 text-primary" />
+                <p className="text-xs font-medium text-primary">Lucros Retidos (Total)</p>
+              </div>
+              <p className={cn('text-lg font-bold', accumulatedProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+                {fmt(accumulatedProfit)}
+              </p>
+              <p className="text-[10px] text-muted-foreground">Somado ao patrimônio líquido</p>
+            </div>
+          </div>
+
+          {/* Composição do Patrimônio Líquido */}
+          <div className="mt-4 pt-4 border-t border-border">
+            <p className="text-xs font-medium text-muted-foreground mb-2">Composição do Patrimônio Líquido</p>
+            <div className="space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span>Total de Ativos</span>
+                <span className="font-medium">{fmt(totalAssets)}</span>
+              </div>
+              <div className="flex justify-between text-red-600 dark:text-red-400">
+                <span>(-) Total de Passivos</span>
+                <span className="font-medium">{fmt(totalLiabilities)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>(=) Patrimônio Base</span>
+                <span className="font-medium">{fmt(netWorthBase)}</span>
+              </div>
+              <div className="flex justify-between text-primary">
+                <span>(+) Lucros Retidos (DRE)</span>
+                <span className="font-medium">{fmt(accumulatedProfit)}</span>
+              </div>
+              <div className="flex justify-between pt-1 border-t border-border font-bold">
+                <span>(=) Patrimônio Líquido</span>
+                <span>{fmt(netWorth)}</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Lucro Líquido Mensal Chart */}
+      {profitChartData.some(d => d.receita > 0 || d.despesas > 0) && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Lucro Líquido Mensal (DRE)</CardTitle>
+            <CardDescription>Impacto mensal no patrimônio líquido</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[250px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={profitChartData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="month" className="text-xs" />
+                  <YAxis tickFormatter={v => `${(v / 1000).toFixed(0)}k`} className="text-xs" />
+                  <Tooltip formatter={(v: number) => fmt(v)} />
+                  <Legend />
+                  <Bar dataKey="receita" fill="hsl(152, 60%, 40%)" name="Receita" opacity={0.6} />
+                  <Bar dataKey="despesas" fill="hsl(0, 72%, 51%)" name="Despesas" opacity={0.6} />
+                  <Line type="monotone" dataKey="lucro" stroke="hsl(220, 70%, 45%)" strokeWidth={2} name="Lucro Líquido" dot={{ r: 3 }} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Chart */}
       {chartData.length > 1 && (
