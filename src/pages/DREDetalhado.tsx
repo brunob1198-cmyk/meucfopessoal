@@ -159,7 +159,7 @@ export default function DREDetalhado() {
 
       <div className="flex gap-3 mb-3 text-xs">
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-foreground/10 border border-border" /> Real</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-primary/20 border border-primary/30" /> Projetado</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-200 border border-emerald-300" /> Projetado</span>
         <span className="flex items-center gap-1 ml-2 text-muted-foreground">
           Clique nas categorias para expandir. Clique em <Search className="h-3 w-3 inline" /> para ver lançamentos.
         </span>
