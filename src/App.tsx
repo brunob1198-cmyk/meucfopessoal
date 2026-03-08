@@ -44,6 +44,7 @@ const App = () => (
             <Route path="/dre-ajustado" element={<ProtectedRoute><DREAjustado /></ProtectedRoute>} />
             <Route path="/planejador" element={<ProtectedRoute><Planejador /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/inteligencia" element={<ProtectedRoute><Inteligencia /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
