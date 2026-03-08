@@ -8,7 +8,8 @@ import {
   TrendingUp,
   Sparkles,
   CalendarRange,
-  UserCircle } from
+  UserCircle,
+  Scale } from
 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
