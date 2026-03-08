@@ -36,6 +36,7 @@ const items = [
 { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
 { title: 'CFO Digital', url: '/inteligencia', icon: Sparkles },
 { title: 'Compromissos', url: '/compromissos', icon: CalendarRange },
+{ title: 'Balanço Patrimonial', url: '/balanco', icon: Scale },
 { title: 'Meu Perfil', url: '/perfil', icon: UserCircle }];
 
 
