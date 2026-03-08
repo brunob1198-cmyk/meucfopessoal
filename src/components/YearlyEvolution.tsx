@@ -13,25 +13,39 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList,
 } from 'recharts';
 
-/* 3D stacked bar shape */
+/* Parse HSL string into components */
+const parseHSL = (hsl: string) => {
+  const m = hsl.match(/hsl\(\s*([\d.]+)\s*,\s*([\d.]+)%?\s*,\s*([\d.]+)%?\s*\)/);
+  if (!m) return { h: 0, s: 50, l: 50 };
+  return { h: parseFloat(m[1]), s: parseFloat(m[2]), l: parseFloat(m[3]) };
+};
+
+/* 3D stacked bar shape with enhanced depth */
 const Bar3DShape = (color: string) => (props: any) => {
   const { x, y, width, height } = props;
   if (!height || height <= 0) return null;
-  const depth = Math.min(width * 0.35, 14);
-  const topColor = color;
-  // lighter shade for top face
-  const sideColor = color.replace(/[\d.]+\)$/, (m: string) => `${Math.max(0, parseFloat(m) - 15)}%)`);
-  const topFaceColor = color.replace(/[\d.]+\)$/, (m: string) => `${Math.min(100, parseFloat(m) + 12)}%)`);
+  const depth = Math.min(width * 0.3, 10);
+  const { h, s, l } = parseHSL(color);
+  const frontColor = `hsl(${h}, ${s}%, ${l}%)`;
+  const topColor = `hsl(${h}, ${s}%, ${Math.min(100, l + 18)}%)`;
+  const sideColor = `hsl(${h}, ${s}%, ${Math.max(0, l - 18)}%)`;
+  const frontId = `grad-${h}-${s}-${l}-${y}`.replace(/\./g, '_');
   return (
     <g>
-      {/* front face */}
-      <rect x={x} y={y} width={width} height={height} fill={topColor} />
-      {/* top face */}
+      <defs>
+        <linearGradient id={frontId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={`hsl(${h}, ${s}%, ${Math.min(100, l + 6)}%)`} />
+          <stop offset="100%" stopColor={`hsl(${h}, ${s}%, ${Math.max(0, l - 6)}%)`} />
+        </linearGradient>
+      </defs>
+      {/* front face with gradient */}
+      <rect x={x} y={y} width={width} height={height} fill={`url(#${frontId})`} />
+      {/* top face – lighter */}
       <polygon
         points={`${x},${y} ${x + depth},${y - depth} ${x + width + depth},${y - depth} ${x + width},${y}`}
-        fill={topFaceColor}
+        fill={topColor}
       />
-      {/* right side face */}
+      {/* right side face – darker */}
       <polygon
         points={`${x + width},${y} ${x + width + depth},${y - depth} ${x + width + depth},${y + height - depth} ${x + width},${y + height}`}
         fill={sideColor}
@@ -319,7 +333,7 @@ export function YearlyEvolution() {
           <CardContent>
             <div ref={chartRef}>
               <ResponsiveContainer width="100%" height={380}>
-                <BarChart data={chartData} barCategoryGap="20%" barGap={1} margin={{ top: 20, right: 20, bottom: 5, left: 5 }}>
+                <BarChart data={chartData} barCategoryGap="35%" barGap={1} maxBarSize={50} margin={{ top: 20, right: 25, bottom: 5, left: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="ano" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
