@@ -190,6 +190,7 @@ export function YearlyEvolution() {
   };
 
   const selectAll = () => setSelectedCategories(new Set());
+  const deselectAll = () => setSelectedCategories(new Set(['__none__'])); // special empty state
 
   // Year-over-year percentages
   const yearPercentages = useMemo(() => {
