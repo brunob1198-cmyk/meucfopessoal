@@ -2,13 +2,15 @@ import { useMemo, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { ImageDown } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ImageDown, Filter } from 'lucide-react';
 import { exportChartAsPNG } from '@/lib/exportChart';
 import { formatBRL } from '@/lib/dre';
 import { Category, useCategories } from '@/hooks/useCategories';
 import { useTransactions } from '@/hooks/useTransactions';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList,
 } from 'recharts';
 
 const COLORS = [
@@ -54,29 +56,26 @@ export function YearlyEvolution() {
   const [viewIndex, setViewIndex] = useState(0);
   const [startYear, setStartYear] = useState(currentYear - 4);
   const [endYear, setEndYear] = useState(currentYear);
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set()); // empty = all
   const chartRef = useRef<HTMLDivElement>(null);
   const view = VIEW_OPTIONS[viewIndex];
 
-  // Own data fetching with full date range
   const startDate = `${startYear}-01-01`;
   const endDate = `${endYear}-12-31`;
   const { data: transactions } = useTransactions(startDate, endDate);
   const { data: categories } = useCategories();
 
-  // Selected years range
   const years = useMemo(() => {
     const result: number[] = [];
     for (let y = endYear; y >= startYear; y--) result.push(y);
     return result;
   }, [startYear, endYear]);
 
-  // Determine which rows to show based on view
-  const rows = useMemo(() => {
+  // All rows (unfiltered by category selection)
+  const allRows = useMemo(() => {
     if (!categories || categories.length === 0) return [];
 
-    const isSpecificParent = !!view.parentFilter;
-
-    if (isSpecificParent) {
+    if (view.parentFilter) {
       const parent = categories.find(c => !c.parent_id && c.name.toUpperCase() === view.parentFilter!.toUpperCase());
       if (!parent) return [];
       const children = categories.filter(c => c.parent_id === parent.id);
@@ -104,6 +103,30 @@ export function YearlyEvolution() {
       return { name: parent.name, ...yearTotals };
     }).filter(r => years.some(y => r[String(y)] > 0));
   }, [categories, transactions, years, view]);
+
+  // Reset category selection when view changes
+  const prevViewRef = useRef(viewIndex);
+  if (prevViewRef.current !== viewIndex) {
+    prevViewRef.current = viewIndex;
+    setSelectedCategories(new Set());
+  }
+
+  // Filtered rows
+  const rows = useMemo(() => {
+    if (selectedCategories.size === 0) return allRows;
+    return allRows.filter(r => selectedCategories.has(r.name));
+  }, [allRows, selectedCategories]);
+
+  const toggleCategory = (name: string) => {
+    setSelectedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
+
+  const selectAll = () => setSelectedCategories(new Set());
 
   // Year-over-year percentages
   const yearPercentages = useMemo(() => {
@@ -134,13 +157,13 @@ export function YearlyEvolution() {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 gap-4 flex-wrap">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 gap-3 flex-wrap">
           <CardTitle className="text-base">Evolução Anual por Categoria</CardTitle>
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <span>De</span>
               <Select value={String(startYear)} onValueChange={(v) => setStartYear(Number(v))}>
-                <SelectTrigger className="w-[90px] h-8">
+                <SelectTrigger className="w-[82px] h-8">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -151,7 +174,7 @@ export function YearlyEvolution() {
               </Select>
               <span>até</span>
               <Select value={String(endYear)} onValueChange={(v) => setEndYear(Number(v))}>
-                <SelectTrigger className="w-[90px] h-8">
+                <SelectTrigger className="w-[82px] h-8">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -162,7 +185,7 @@ export function YearlyEvolution() {
               </Select>
             </div>
             <Select value={String(viewIndex)} onValueChange={(v) => setViewIndex(Number(v))}>
-              <SelectTrigger className="w-[200px] h-8">
+              <SelectTrigger className="w-[180px] h-8">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -171,6 +194,45 @@ export function YearlyEvolution() {
                 ))}
               </SelectContent>
             </Select>
+            {/* Category multi-select filter */}
+            {allRows.length > 0 && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 gap-1.5">
+                    <Filter className="h-3.5 w-3.5" />
+                    {selectedCategories.size === 0 ? 'Todas' : `${selectedCategories.size} selecionadas`}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-3 pointer-events-auto" align="end">
+                  <div className="space-y-2">
+                    <Button variant="ghost" size="sm" className="w-full justify-start h-7 text-xs" onClick={selectAll}>
+                      Mostrar todas
+                    </Button>
+                    <div className="border-t border-border pt-2 space-y-1.5 max-h-60 overflow-y-auto">
+                      {allRows.map((r, i) => (
+                        <label key={r.name} className="flex items-center gap-2 cursor-pointer text-sm hover:bg-muted/50 rounded px-1 py-0.5">
+                          <Checkbox
+                            checked={selectedCategories.size === 0 || selectedCategories.has(r.name)}
+                            onCheckedChange={() => {
+                              if (selectedCategories.size === 0) {
+                                // Switching from "all" to specific: select all except this one
+                                const allExcept = new Set(allRows.map(x => x.name));
+                                allExcept.delete(r.name);
+                                setSelectedCategories(allExcept);
+                              } else {
+                                toggleCategory(r.name);
+                              }
+                            }}
+                          />
+                          <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                          <span className="truncate">{r.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
           </div>
         </CardHeader>
         <CardContent className="overflow-x-auto">
@@ -180,12 +242,12 @@ export function YearlyEvolution() {
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left py-2 px-3 font-semibold text-muted-foreground sticky left-0 bg-card z-10 min-w-[180px]">CLUSTER</th>
+                  <th className="text-left py-1.5 px-2 font-semibold text-muted-foreground sticky left-0 bg-card z-10 min-w-[160px]">CLUSTER</th>
                   {years.map(y => (
-                    <th key={y} className="text-right py-2 px-3 font-semibold text-muted-foreground min-w-[110px]">
+                    <th key={y} className="text-right py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap">
                       <div>{y}</div>
                       {yearPercentages[String(y)] && (
-                        <div className="text-xs font-normal text-primary">{yearPercentages[String(y)]}</div>
+                        <div className="text-[10px] font-normal text-primary">{yearPercentages[String(y)]}</div>
                       )}
                     </th>
                   ))}
@@ -194,20 +256,20 @@ export function YearlyEvolution() {
               <tbody>
                 {rows.map((row, idx) => (
                   <tr key={idx} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                    <td className="py-2 px-3 font-medium text-foreground sticky left-0 bg-card z-10">{row.name}</td>
+                    <td className="py-1 px-2 font-medium text-foreground sticky left-0 bg-card z-10 text-xs">{row.name}</td>
                     {years.map(y => (
-                      <td key={y} className="py-2 px-3 text-right tabular-nums text-foreground">
+                      <td key={y} className="py-1 px-2 text-right tabular-nums text-foreground text-xs whitespace-nowrap">
                         {row[String(y)] > 0 ? formatBRL(row[String(y)]) : '–'}
                       </td>
                     ))}
                   </tr>
                 ))}
                 <tr className="border-t-2 border-primary/30 font-bold">
-                  <td className="py-2 px-3 text-foreground sticky left-0 bg-card z-10">TOTAL</td>
+                  <td className="py-1.5 px-2 text-foreground sticky left-0 bg-card z-10 text-xs">TOTAL</td>
                   {years.map(y => {
                     const total = rows.reduce((s, r) => s + (r[String(y)] || 0), 0);
                     return (
-                      <td key={y} className="py-2 px-3 text-right tabular-nums text-foreground">
+                      <td key={y} className="py-1.5 px-2 text-right tabular-nums text-foreground text-xs whitespace-nowrap">
                         {total > 0 ? formatBRL(total) : '–'}
                       </td>
                     );
@@ -229,15 +291,22 @@ export function YearlyEvolution() {
           </CardHeader>
           <CardContent>
             <div ref={chartRef}>
-              <ResponsiveContainer width="100%" height={360}>
-                <BarChart data={chartData}>
+              <ResponsiveContainer width="100%" height={380}>
+                <BarChart data={chartData} barCategoryGap="20%" barGap={1}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="ano" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                  <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                   <Tooltip formatter={(v: number) => formatBRL(v)} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
                   {chartKeys.map((key, i) => (
-                    <Bar key={key} dataKey={key} stackId="yearly" fill={COLORS[i % COLORS.length]} />
+                    <Bar key={key} dataKey={key} stackId="yearly" fill={COLORS[i % COLORS.length]}>
+                      <LabelList
+                        dataKey={key}
+                        position="inside"
+                        style={{ fontSize: 9, fill: '#fff', fontWeight: 500 }}
+                        formatter={(v: number) => v > 0 ? `${(v / 1000).toFixed(1)}k` : ''}
+                      />
+                    </Bar>
                   ))}
                 </BarChart>
               </ResponsiveContainer>
