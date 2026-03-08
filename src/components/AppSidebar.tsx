@@ -36,7 +36,7 @@ const items = [
 { title: 'Planejador', url: '/planejador', icon: Target },
 { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
 { title: 'CFO Digital IA', url: '/inteligencia', icon: Sparkles },
-{ title: 'Compromissos', url: '/compromissos', icon: CalendarRange },
+{ title: 'Mapa de Compromissos', url: '/compromissos', icon: CalendarRange },
 { title: 'Balanço Patrimonial', url: '/balanco', icon: Scale },
 { title: 'Simulador de Futuro Financeiro', url: '/simulador', icon: Calculator },
 { title: 'Meu Perfil', url: '/perfil', icon: UserCircle }];
