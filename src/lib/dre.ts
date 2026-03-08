@@ -233,22 +233,6 @@ export function computeDRE(
   lines.push({ label: '(=) LUCRO LÍQUIDO', value: lucroLiquido, percent: pct(lucroLiquido), isTotal: true, indent: 0 });
   lines.push({ label: '% MARGEM LÍQUIDA', value: pct(lucroLiquido), percent: pct(lucroLiquido), isTotal: true, indent: 0, type: 'margem' });
 
-  // Investimentos
-  parentCategories
-    .filter((p) => p.dre_type === 'investimento')
-    .forEach((p) => {
-      lines.push({
-        label: p.name,
-        value: sumByParentId(p.id),
-        percent: pct(sumByParentId(p.id)),
-        isTotal: false,
-        indent: 0,
-        type: 'investimento',
-        isGroupHeader: true,
-        groupId: p.id,
-      });
-      detailByParentId(p.id).forEach((d) => lines.push(d));
-    });
 
   return lines;
 }
