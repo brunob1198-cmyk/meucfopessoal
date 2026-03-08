@@ -339,6 +339,14 @@ export default function Dashboard() {
           )}
         </CardContent>
       </Card>
+
+      {/* Yearly Evolution */}
+      {categories && (
+        <YearlyEvolution
+          transactions={[...(transactions || [])]}
+          categories={categories}
+        />
+      )}
     </div>
   );
 }
