@@ -337,13 +337,43 @@ Tela de configurações pessoais da sua conta no sistema.`,
   },
 ];
 
+const CHAT_HISTORY_KEY = 'tutorial-chat-history';
+
+function loadChatHistory(): Msg[] {
+  try {
+    const raw = localStorage.getItem(CHAT_HISTORY_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return [];
+}
+
+function saveChatHistory(msgs: Msg[]) {
+  try {
+    // Keep last 50 messages to avoid localStorage bloat
+    const toSave = msgs.slice(-50);
+    localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(toSave));
+  } catch {}
+}
+
 export default function Tutorial() {
   const [expandedSection, setExpandedSection] = useState<number | null>(null);
-  const [messages, setMessages] = useState<Msg[]>([]);
+  const [messages, setMessages] = useState<Msg[]>(() => loadChatHistory());
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Persist chat history on change
+  useEffect(() => {
+    if (messages.length > 0) {
+      saveChatHistory(messages);
+    }
+  }, [messages]);
+
+  const clearHistory = () => {
+    setMessages([]);
+    localStorage.removeItem(CHAT_HISTORY_KEY);
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -440,6 +470,11 @@ export default function Tutorial() {
           <CardTitle className="flex items-center gap-2 text-lg">
             <MessageCircleQuestion className="h-5 w-5 text-primary" />
             Pergunte ao Assistente
+            {messages.length > 0 && (
+              <Button variant="ghost" size="sm" className="ml-auto text-xs text-muted-foreground h-7" onClick={clearHistory}>
+                Limpar histórico
+              </Button>
+            )}
           </CardTitle>
           <p className="text-sm text-muted-foreground">Tire suas dúvidas sobre qualquer funcionalidade do sistema.</p>
         </CardHeader>
