@@ -23,15 +23,34 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) throw new Error("Unauthorized");
 
-    // Fetch last 12 months of transactions
-    const twelveMonthsAgo = new Date();
-    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-    const startDate = `${twelveMonthsAgo.getFullYear()}-${String(twelveMonthsAgo.getMonth() + 1).padStart(2, "0")}-01`;
+    // Accept optional period filter from request body
+    let periodStart: string | null = null;
+    let periodEnd: string | null = null;
+    try {
+      const body = await req.json();
+      periodStart = body.periodStart || null;
+      periodEnd = body.periodEnd || null;
+    } catch {
+      // No body or invalid JSON, use defaults
+    }
+
+    // Default to last 12 months if no period specified
+    const startDate = periodStart || (() => {
+      const d = new Date();
+      d.setMonth(d.getMonth() - 12);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+    })();
+
+    const endDate = periodEnd || (() => {
+      const d = new Date();
+      d.setFullYear(d.getFullYear() + 1);
+      return `${d.getFullYear()}-12-31`;
+    })();
 
     const [txRes, catRes, projRes] = await Promise.all([
-      supabase.from("transactions").select("*, categories(name, dre_type, parent_id)").gte("date", startDate).order("date"),
+      supabase.from("transactions").select("*, categories(name, dre_type, parent_id)").gte("date", startDate).lte("date", endDate).order("date"),
       supabase.from("categories").select("*").order("sort_order"),
-      supabase.from("projections").select("*, categories(name, dre_type, parent_id)").gte("month", startDate).order("month"),
+      supabase.from("projections").select("*, categories(name, dre_type, parent_id)").gte("month", startDate).lte("month", endDate).order("month"),
     ]);
 
     if (txRes.error) throw txRes.error;
@@ -42,28 +61,29 @@ serve(async (req) => {
     const categories = catRes.data || [];
     const projections = projRes.data || [];
 
-    if (transactions.length === 0) {
-      return new Response(
-        JSON.stringify({
-          insights: ["Ainda não há lançamentos suficientes para gerar análises. Comece adicionando seus lançamentos financeiros."],
-          alerts: [],
-          suggestions: ["Cadastre seus lançamentos de receitas e despesas para que a IA possa analisar seus dados."],
-          forecast: null,
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (transactions.length === 0 && projections.length === 0) {
+      const emptyResult = {
+        insights: ["Ainda não há lançamentos suficientes para gerar análises. Comece adicionando seus lançamentos financeiros."],
+        alerts: [],
+        suggestions: ["Cadastre seus lançamentos de receitas e despesas para que a IA possa analisar seus dados."],
+        forecast: null,
+      };
+
+      // Save to history
+      await supabase.from("analysis_history").insert({
+        user_id: user.id,
+        period_start: periodStart,
+        period_end: periodEnd,
+        result: emptyResult,
+      });
+
+      return new Response(JSON.stringify(emptyResult), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Build a financial summary for the AI
     const now = new Date();
-    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const prevMonth = (() => {
-      const d = new Date(now);
-      d.setMonth(d.getMonth() - 1);
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    })();
-
-    // Group transactions by month and category
     const monthlyData: Record<string, Record<string, number>> = {};
     const categorySpending: Record<string, { name: string; type: string; total: number; months: Record<string, number> }> = {};
 
@@ -82,7 +102,6 @@ serve(async (req) => {
       categorySpending[tx.category_id].months[m] = (categorySpending[tx.category_id].months[m] || 0) + Number(tx.amount);
     }
 
-    // Compute monthly totals by type
     const monthlyTotals: Record<string, { receita: number; despesa: number; custo: number; desconto: number }> = {};
     for (const tx of transactions) {
       const m = tx.date.substring(0, 7);
@@ -96,11 +115,12 @@ serve(async (req) => {
 
     const sortedMonths = Object.keys(monthlyTotals).sort();
 
-    // Build summary text
-    let summaryText = `DADOS FINANCEIROS DO USUÁRIO (últimos 12 meses):\n\n`;
-    summaryText += `Data atual: ${now.toISOString().split("T")[0]}\n\n`;
-
-    summaryText += `RESUMO MENSAL:\n`;
+    let summaryText = `DADOS FINANCEIROS DO USUÁRIO:\n\n`;
+    summaryText += `Data atual: ${now.toISOString().split("T")[0]}\n`;
+    if (periodStart || periodEnd) {
+      summaryText += `Período analisado: ${periodStart || "início"} a ${periodEnd || "fim"}\n`;
+    }
+    summaryText += `\nRESUMO MENSAL:\n`;
     for (const m of sortedMonths) {
       const t = monthlyTotals[m];
       const liquido = t.receita - t.desconto - t.custo - t.despesa;
@@ -122,7 +142,6 @@ serve(async (req) => {
       summaryText += `\n`;
     }
 
-    // Add projections info
     if (projections.length > 0) {
       summaryText += `\nPROJEÇÕES FUTURAS:\n`;
       for (const p of projections.slice(0, 30)) {
@@ -171,10 +190,7 @@ Regras:
 - Seja específico com nomes de categorias e valores.
 - Tom profissional mas acessível.`,
           },
-          {
-            role: "user",
-            content: summaryText,
-          },
+          { role: "user", content: summaryText },
         ],
       }),
     });
@@ -200,10 +216,8 @@ Regras:
     const aiData = await aiResponse.json();
     const content = aiData.choices?.[0]?.message?.content || "";
 
-    // Parse AI response
     let result;
     try {
-      // Remove markdown code blocks if present
       const cleaned = content.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
       result = JSON.parse(cleaned);
     } catch {
@@ -215,6 +229,14 @@ Regras:
         forecast: { summary: "Dados insuficientes para previsão detalhada.", projected_savings: 0, trend: "estável", details: [] },
       };
     }
+
+    // Save to history
+    await supabase.from("analysis_history").insert({
+      user_id: user.id,
+      period_start: periodStart,
+      period_end: periodEnd,
+      result,
+    });
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

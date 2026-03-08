@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import { useProjections } from '@/hooks/useProjections';
@@ -19,13 +19,10 @@ interface MonthData {
 
 export default function DREAjustado() {
   const filter = usePersistedFilter('dre-ajustado');
-
   const { data: transactions, isLoading: txLoading } = useTransactions(filter.startDate, filter.endDate);
   const { data: categories, isLoading: catLoading } = useCategories();
   const { data: projections } = useProjections(filter.startDate, filter.endDate);
-
   const loading = txLoading || catLoading;
-
   const now = new Date();
   const currentMonthEnd = endOfMonth(now);
 
@@ -37,51 +34,31 @@ export default function DREAjustado() {
 
   const monthsData = useMemo<MonthData[]>(() => {
     if (!categories) return [];
-
     return months.map(m => {
       const monthDate = filter.parseMonth(m);
       const monthStart = startOfMonth(monthDate);
       const monthEnd = endOfMonth(monthDate);
       const isFuture = isAfter(monthStart, currentMonthEnd);
-
       const monthTx = (transactions || []).filter((t: any) => {
         const txDate = new Date(t.date);
         return !isBefore(txDate, monthStart) && !isAfter(txDate, monthEnd);
       });
-
       if (isFuture) {
         const monthProjections = (projections || []).filter(
           (p: any) => typeof p.month === 'string' && p.month.substring(0, 7) === m
         );
         const projTx = monthProjections.map((p: any) => ({
-          amount: p.amount,
-          category_id: p.category_id,
-          categories: p.categories,
+          amount: p.amount, category_id: p.category_id, categories: p.categories,
         }));
-
-        const allTx = [...projTx, ...monthTx];
-        return {
-          month: m,
-          lines: computeDREAjustado(allTx, categories),
-          isProjected: true,
-        };
+        return { month: m, lines: computeDREAjustado([...projTx, ...monthTx], categories), isProjected: true };
       }
-
-      return {
-        month: m,
-        lines: computeDREAjustado(monthTx as any, categories),
-        isProjected: false,
-      };
+      return { month: m, lines: computeDREAjustado(monthTx as any, categories), isProjected: false };
     });
   }, [transactions, categories, projections, months, currentMonthEnd]);
 
   const rowLabels = useMemo(() => {
     if (monthsData.length === 0) return [];
-    return monthsData[0].lines.map(l => ({
-      label: l.label,
-      isTotal: l.isTotal,
-      type: l.type,
-    }));
+    return monthsData[0].lines.map(l => ({ label: l.label, isTotal: l.isTotal, type: l.type }));
   }, [monthsData]);
 
   const periodLabel = filter.startMonth === filter.endMonth
@@ -89,11 +66,7 @@ export default function DREAjustado() {
     : `${format(filter.parseMonth(filter.startMonth), 'MMM/yy', { locale: ptBR })} a ${format(filter.parseMonth(filter.endMonth), 'MMM/yy', { locale: ptBR })}`;
 
   const showMultipleMonths = months.length > 1;
-
-  const getTotalColorClass = (value: number) => {
-    if (value >= 0) return 'text-primary';
-    return 'text-destructive';
-  };
+  const getTotalColorClass = (value: number) => value >= 0 ? 'text-primary' : 'text-destructive';
 
   return (
     <div className="max-w-full mx-auto">
@@ -103,79 +76,45 @@ export default function DREAjustado() {
           <p className="text-sm text-muted-foreground capitalize">{periodLabel}</p>
         </div>
         <MonthRangePicker
-          startMonth={filter.startMonth}
-          endMonth={filter.endMonth}
-          onStartChange={filter.setStartMonth}
-          onEndChange={filter.setEndMonth}
+          startMonth={filter.startMonth} endMonth={filter.endMonth}
+          onStartChange={filter.setStartMonth} onEndChange={filter.setEndMonth}
           onYearClick={() => filter.setFullYear()}
         />
       </div>
 
       <div className="flex gap-3 mb-3 text-xs">
-        <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded bg-foreground/10 border border-border" /> Real
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded bg-primary/20 border border-primary/30" /> Projetado
-        </span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-foreground/10 border border-border" /> Real</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-primary/20 border border-primary/30" /> Projetado</span>
       </div>
 
       <Card>
         <CardContent className="p-0">
           {loading ? (
-            <div className="flex items-center justify-center h-64">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
+            <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
           ) : showMultipleMonths ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-card z-10">
                   <tr className="border-b border-border">
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground min-w-[200px] sticky left-0 bg-card z-20">
-                      Descrição
-                    </th>
+                    <th className="text-left py-3 px-4 font-medium text-muted-foreground min-w-[200px] sticky left-0 bg-card z-20">Descrição</th>
                     {monthsData.map(md => (
-                      <th
-                        key={md.month}
-                        className={cn(
-                          'text-right py-3 px-3 font-medium min-w-[110px] capitalize',
-                          md.isProjected ? 'text-primary bg-primary/5' : 'text-muted-foreground'
-                        )}
-                      >
+                      <th key={md.month} className={cn('text-right py-3 px-3 font-medium min-w-[110px] capitalize', md.isProjected ? 'text-primary bg-primary/5' : 'text-muted-foreground')}>
                         {format(filter.parseMonth(md.month), 'MMM/yy', { locale: ptBR })}
-                        {md.isProjected && (
-                          <span className="block text-[9px] font-normal opacity-70">projetado</span>
-                        )}
+                        {md.isProjected && <span className="block text-[9px] font-normal opacity-70">projetado</span>}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {rowLabels.map((row, rowIdx) => (
-                    <tr
-                      key={rowIdx}
-                      className={cn(
-                        'border-b border-border/50',
-                        row.isTotal && 'bg-muted/40 font-semibold'
-                      )}
-                    >
-                      <td className="py-3 px-4 sticky left-0 bg-inherit z-10">
-                        {row.label}
-                      </td>
+                    <tr key={rowIdx} className={cn('border-b border-border/50', row.isTotal && 'bg-muted/40 font-semibold')}>
+                      <td className="py-3 px-4 sticky left-0 bg-inherit z-10">{row.label}</td>
                       {monthsData.map(md => {
                         const line = md.lines[rowIdx];
                         const val = line?.value ?? 0;
                         const isMargem = row.type === 'margem';
                         return (
-                          <td
-                            key={md.month}
-                            className={cn(
-                              'text-right py-3 px-3 tabular-nums',
-                              row.isTotal && getTotalColorClass(val),
-                              !row.isTotal && val < 0 && 'text-destructive',
-                              md.isProjected && !row.isTotal && 'text-primary/80 bg-primary/5'
-                            )}
-                          >
+                          <td key={md.month} className={cn('text-right py-3 px-3 tabular-nums', row.isTotal && getTotalColorClass(val), !row.isTotal && val < 0 && 'text-destructive', md.isProjected && !row.isTotal && 'text-primary/80 bg-primary/5')}>
                             {line ? (isMargem ? `${val.toFixed(1)}%` : formatBRL(val)) : '-'}
                           </td>
                         );
@@ -198,33 +137,15 @@ export default function DREAjustado() {
                 {(monthsData[0]?.lines || []).map((line, i) => {
                   const isMargem = line.type === 'margem';
                   return (
-                    <tr
-                      key={i}
-                      className={cn(
-                        'border-b border-border/50',
-                        line.isTotal && 'bg-muted/40 font-semibold',
-                        monthsData[0]?.isProjected && !line.isTotal && 'bg-primary/5'
-                      )}
-                    >
+                    <tr key={i} className={cn('border-b border-border/50', line.isTotal && 'bg-muted/40 font-semibold', monthsData[0]?.isProjected && !line.isTotal && 'bg-primary/5')}>
                       <td className="py-3 px-4">
                         {line.label}
-                        {monthsData[0]?.isProjected && i === 0 && (
-                          <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-                            projetado
-                          </span>
-                        )}
+                        {monthsData[0]?.isProjected && i === 0 && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">projetado</span>}
                       </td>
-                      <td className={cn(
-                        'text-right py-3 px-4 tabular-nums',
-                        line.isTotal && (line.value >= 0 ? 'text-primary' : 'text-destructive'),
-                        !line.isTotal && line.value < 0 && 'text-destructive',
-                        monthsData[0]?.isProjected && !line.isTotal && 'text-primary/80'
-                      )}>
+                      <td className={cn('text-right py-3 px-4 tabular-nums', line.isTotal && (line.value >= 0 ? 'text-primary' : 'text-destructive'), !line.isTotal && line.value < 0 && 'text-destructive', monthsData[0]?.isProjected && !line.isTotal && 'text-primary/80')}>
                         {isMargem ? `${line.value.toFixed(1)}%` : formatBRL(line.value)}
                       </td>
-                      <td className="text-right py-3 px-4 tabular-nums text-muted-foreground">
-                        {line.percent.toFixed(1)}%
-                      </td>
+                      <td className="text-right py-3 px-4 tabular-nums text-muted-foreground">{line.percent.toFixed(1)}%</td>
                     </tr>
                   );
                 })}
