@@ -175,7 +175,7 @@ export function computeDRE(
     type: 'despesa',
   });
   parentCategories
-    .filter((p) => p.dre_type === 'despesa')
+    .filter((p) => p.dre_type === 'despesa' || p.dre_type === 'investimento')
     .forEach((p) => {
       lines.push({
         label: p.name,
