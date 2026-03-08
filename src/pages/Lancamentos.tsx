@@ -326,7 +326,7 @@ function CategoryGroup({ cat, onSubmit, parentCategories }: { cat: Category; onS
       {expanded && (
         <div className="border-t border-border divide-y divide-border/50">
           {cat.children?.map((sub) => (
-            <SubcategoryRow key={sub.id} cat={sub} onSubmit={onSubmit} />
+            <SubcategoryRow key={sub.id} cat={sub} onSubmit={onSubmit} parentCategories={parentCategories} />
           ))}
           {addingSub ? (
             <AddSubcategoryForm parentId={cat.id} onDone={() => setAddingSub(false)} />
