@@ -21,45 +21,72 @@ const tutorialSections = [
     route: '/',
     description: 'Tela principal para registrar todas as suas movimentações financeiras.',
     details: [
-      `### Visão Geral
-Esta é a tela central do sistema. Aqui você registra **todas** as suas receitas, despesas, custos e investimentos. A organização é feita por **categorias pai** (grupos como HABITAÇÃO, SAÚDE, AUTOMÓVEL) e **subcategorias** (itens específicos como Aluguel, Plano de Saúde, Combustível).`,
+      `### Para que serve?
+A tela de **Lançamentos** é o coração do sistema. É aqui que você registra **todas** as suas movimentações financeiras — receitas, despesas, custos, investimentos e descontos. Todos os relatórios (DRE, Dashboard, CFO Digital) se alimentam dos dados inseridos aqui. Sem lançamentos, as demais telas ficam vazias.`,
 
-      `### Estrutura de Categorias
-- **Categoria Pai**: Grupo principal que aparece como um cartão com borda colorida à esquerda. Cada cor representa um tipo DRE diferente (verde = receita, vermelho = despesa, etc.).
-- **Subcategoria**: Itens dentro de cada categoria pai. É na subcategoria que você faz os lançamentos.
-- **Botão "Nova Categoria"** (canto superior direito): Cria uma nova categoria pai. Você define o nome e o tipo DRE (Receita, Despesa, Custo, Desconto, Investimento, etc.).
-- **Botão "+" dentro de uma categoria**: Cria uma nova subcategoria dentro daquela categoria pai.`,
+      `### Estrutura: Categorias e Subcategorias
+O sistema organiza seus lançamentos em dois níveis:
+- **Categoria Pai** (grupo): Ex: HABITAÇÃO, SAÚDE, AUTOMÓVEL. Aparece como um cartão com borda colorida à esquerda. Cada cor representa o tipo DRE (verde = receita, vermelho = despesa, azul = investimento, etc.).
+- **Subcategoria** (item): Ex: Aluguel, Plano de Saúde, Combustível. É na subcategoria que você registra os valores.
 
-      `### Como Fazer um Lançamento
-1. Clique no nome da **subcategoria** desejada para abrir o formulário.
-2. **Valor (R$)**: Digite o valor. Use valor **negativo** para estornos ou correções.
-3. **Data**: Selecione a data do lançamento (padrão: data atual).
-4. **Comentário** (opcional): Adicione uma observação para identificar o lançamento depois.
-5. **Parcelado**: Ative o switch para dividir o valor em parcelas. Informe o número de parcelas (2 a 60). O sistema cria automaticamente um lançamento por mês, dividindo o valor total igualmente.
-6. Clique em **SALVAR** para confirmar.`,
+**Exemplo prático:** Dentro da categoria pai "AUTOMÓVEL" você encontra subcategorias como Combustível, Seguro, IPVA, Mecânico, etc.`,
 
-      `### Ações nas Subcategorias (ícones à direita)
-- **✏️ Lápis**: Renomeia a subcategoria inline.
-- **↔️ Setas**: Move a subcategoria para outra categoria pai. Um diálogo permite escolher o novo destino — o tipo DRE é atualizado automaticamente e todos os lançamentos são mantidos.
-- **🗑️ Lixeira**: Exclui a subcategoria. **Atenção**: todos os lançamentos vinculados também são excluídos permanentemente (cascata).
-- **➕ Plus**: Abre o formulário de lançamento rápido.`,
+      `### Como criar categorias e subcategorias
+- **Nova Categoria Pai**: Clique no botão **"Nova Categoria"** no canto superior direito. Informe o nome (ex: "EDUCAÇÃO DOS FILHOS") e selecione o tipo DRE (Receita, Despesa, Custo, Desconto, Investimento, Depreciação, Resultado Financeiro, Outras Receitas ou Impostos). O tipo DRE define onde essa categoria aparecerá no relatório DRE.
+- **Nova Subcategoria**: Dentro de uma categoria pai, clique no botão **"+"**. Informe o nome (ex: "Escola particular"). A subcategoria herda automaticamente o tipo DRE da categoria pai.`,
 
-      `### Ações nas Categorias Pai
-- **✏️ Lápis**: Renomeia a categoria.
-- **🗑️ Lixeira**: Exclui a categoria e **todas** as suas subcategorias e lançamentos.
-- **Expandir/Recolher**: Clique no nome para mostrar ou esconder as subcategorias.`,
+      `### Como fazer um lançamento (passo a passo)
+1. Localize a **subcategoria** desejada (ex: Combustível, dentro de AUTOMÓVEL).
+2. Clique no **"+"** à direita da subcategoria para abrir o formulário.
+3. Preencha os campos:
+   - **Valor (R$)**: Digite o valor. Exemplo: \`650.00\`. Use valores **negativos** para estornos ou correções (ex: \`-50.00\` se precisar corrigir um lançamento a mais).
+   - **Data**: Selecione a data do gasto/receita. O padrão é a data de hoje.
+   - **Comentário** (opcional): Adicione uma nota para lembrar depois. Ex: "Abastecimento posto Shell BR-101".
+4. Clique em **SALVAR**.
+
+**Exemplo completo:** Você abasteceu o carro por R$ 280,00 no dia 05/03. Vá em AUTOMÓVEL → Combustível → "+", digite 280, selecione 05/03, comente "Posto Shell" e salve.`,
+
+      `### Lançamentos parcelados
+Para compras parceladas:
+1. No formulário de lançamento, ative o switch **"Parcelado"**.
+2. Informe o **valor total** da compra (ex: R$ 3.600,00).
+3. Informe o **número de parcelas** (ex: 12).
+4. O sistema divide automaticamente: R$ 3.600 ÷ 12 = R$ 300,00 por mês.
+5. São criados 12 lançamentos automáticos, um para cada mês consecutivo, todos vinculados (com indicação de parcela: 1/12, 2/12, etc.).
+
+**Importante:** O valor informado é o **total**, não o valor da parcela. O sistema faz a divisão.`,
+
+      `### Ícones e ações nas subcategorias
+Ao lado de cada subcategoria, você encontra ícones de ação:
+- **✏️ Lápis**: Renomeia a subcategoria. Clique, edite o nome e confirme com Enter.
+- **↔️ Setas (mover)**: Move a subcategoria para outra categoria pai. Um diálogo mostra as categorias disponíveis. Ao mover, o tipo DRE é atualizado automaticamente e todos os lançamentos existentes são preservados. Exemplo: mover "Farmácia" de HABITAÇÃO para SAÚDE.
+- **🗑️ Lixeira**: Exclui a subcategoria **e todos os seus lançamentos permanentemente**. Use com cuidado — não há como desfazer.
+- **➕ Plus**: Abre o formulário de lançamento rápido para aquela subcategoria.`,
+
+      `### Ações nas categorias pai
+- **✏️ Lápis**: Renomeia a categoria pai.
+- **🗑️ Lixeira**: Exclui a categoria pai, **todas** as subcategorias dentro dela e **todos** os lançamentos vinculados. Ação irreversível.
+- **Expandir/Recolher**: Clique no nome da categoria para mostrar ou ocultar suas subcategorias.`,
 
       `### Importação via Excel
-- Clique no botão **"Importar Excel"** no canto superior direito.
-- **Baixe o modelo** disponibilizado para garantir o formato correto.
-- Preencha: **Data** (dd/mm/aaaa), **Categoria** (nome exato da subcategoria), **Valor** (número) e **Comentário** (opcional).
-- Consulte a aba "Categorias" do modelo para ver os nomes exatos disponíveis.
-- Faça upload do arquivo preenchido. O sistema valida e importa todos os lançamentos de uma vez.`,
+Para importar múltiplos lançamentos de uma vez:
+1. Clique em **"Importar Excel"** no canto superior direito.
+2. **Baixe o modelo** clicando no link disponibilizado — ele já vem com o formato correto e uma aba com os nomes das categorias.
+3. Preencha a planilha com:
+   - **Data**: formato dd/mm/aaaa (ex: 05/03/2026)
+   - **Categoria**: nome **exato** da subcategoria (ex: "Combustível", não "combustível" ou "Combustivel")
+   - **Valor**: número (ex: 650.00)
+   - **Comentário**: texto livre (opcional)
+4. Faça upload do arquivo preenchido. O sistema valida os dados e importa tudo de uma vez.
 
-      `### Limite do Plano Gratuito
-- Usuários no plano gratuito têm um limite mensal de lançamentos.
-- O contador aparece abaixo do título (ex: "45/100 lançamentos este mês").
-- Ao atingir o limite, novos lançamentos são bloqueados até o próximo mês ou upgrade para Premium.`,
+**Dica:** Consulte a aba "Categorias" do modelo para copiar os nomes exatos e evitar erros de digitação.`,
+
+      `### Limite do plano gratuito
+- Usuários no plano gratuito têm um **limite mensal de lançamentos** (ex: 100/mês).
+- O contador aparece abaixo do título: "45/100 lançamentos este mês".
+- Ao atingir o limite, novos lançamentos são bloqueados até o próximo mês ou até fazer upgrade para Premium.
+
+**Dica do Especialista:** Registre seus lançamentos semanalmente para não acumular e perder detalhes. Quanto mais lançamentos registrados, mais precisa será a análise do CFO Digital IA.`,
     ],
   },
   {
@@ -68,49 +95,62 @@ Esta é a tela central do sistema. Aqui você registra **todas** as suas receita
     route: '/dre',
     description: 'Demonstrativo de Resultado do Exercício completo, mês a mês.',
     details: [
-      `### Visão Geral
-O DRE (Demonstrativo de Resultado do Exercício) é um relatório financeiro que mostra sua "saúde financeira" mês a mês. Ele organiza suas receitas e despesas em uma estrutura hierárquica padronizada para calcular indicadores como Lucro Bruto, EBITDA e Resultado Líquido.`,
+      `### Para que serve?
+O **DRE (Demonstrativo de Resultado do Exercício)** é o relatório financeiro mais importante do sistema. Ele organiza todas as suas receitas e despesas numa estrutura hierárquica padronizada — a mesma usada por empresas — para calcular indicadores como **Lucro Bruto**, **EBITDA** e **Resultado Líquido**. Com ele, você entende exatamente para onde seu dinheiro vai e quanto sobra (ou falta) no final de cada mês.`,
 
-      `### Estrutura Completa do DRE
-A tabela segue esta ordem de cima para baixo:
-1. **RECEITA BRUTA** — Soma de todas as receitas (salário, benefícios, rendas extras).
-2. **(-) DESCONTOS INCIDENTES** — IR, INSS, descontos obrigatórios.
-3. **= RECEITA LÍQUIDA** — Receita Bruta menos Descontos.
-4. **(-) CUSTOS** — Custos diretamente ligados à geração de receita.
-5. **= LUCRO BRUTO** — Receita Líquida menos Custos.
-6. **(-) DESPESAS** — Todas as despesas operacionais (habitação, saúde, automóvel, pessoais, restaurante, lazer, estudos) e investimentos.
-7. **= EBITDA** — Lucro Bruto menos Despesas. Indicador-chave da sua capacidade de gerar caixa.
-8. **(-) DEPRECIAÇÃO** — Perda de valor de bens ao longo do tempo.
+      `### Estrutura completa do DRE (de cima para baixo)
+O relatório segue esta ordem fixa:
+1. **RECEITA BRUTA** — Soma de todos os ganhos (salário, benefícios, rendas extras, freelances).
+2. **(–) DESCONTOS INCIDENTES** — IR, INSS, ISS, descontos obrigatórios no contracheque.
+3. **= RECEITA LÍQUIDA** — Receita Bruta menos Descontos. É o que efetivamente entra na sua conta.
+4. **(–) CUSTOS** — Gastos diretamente ligados à geração de receita (ex: venda de VA com desconto).
+5. **= LUCRO BRUTO** — Receita Líquida menos Custos. Quanto sobra antes das despesas do dia a dia.
+6. **(–) DESPESAS** — Todas as despesas operacionais: habitação, saúde, automóvel, pessoais, restaurante, lazer, estudos. Investimentos também aparecem aqui.
+7. **= EBITDA** — Lucro Bruto menos Despesas. Indicador-chave: mostra sua **capacidade real de gerar caixa** antes de depreciação e impostos sobre resultado.
+8. **(–) DEPRECIAÇÃO** — Perda de valor de bens ao longo do tempo (ex: carro, equipamentos).
 9. **= EBIT** — EBITDA menos Depreciação.
-10. **(+/-) RESULTADO FINANCEIRO** — Juros, taxas bancárias, rendimentos financeiros.
-11. **(+) OUTRAS RECEITAS** — Receitas não operacionais.
-12. **(-) IMPOSTOS** — Impostos sobre resultado.
-13. **= RESULTADO LÍQUIDO** — O quanto sobrou (ou faltou) no final.`,
+10. **(+/–) RESULTADO FINANCEIRO** — Juros pagos, taxas bancárias, rendimentos de investimentos.
+11. **(+) OUTRAS RECEITAS** — Receitas não operacionais (venda de um bem, cashback).
+12. **(–) IMPOSTOS** — Impostos sobre resultado.
+13. **= RESULTADO LÍQUIDO** — O quanto **efetivamente** sobrou (ou faltou) no final. Se positivo, você está no azul; se negativo, gastou mais do que ganhou.
 
-      `### Filtro de Período
-- No topo da tela, selecione o **mês inicial** e **mês final** para definir o intervalo exibido.
-- A tabela mostra uma coluna por mês dentro do período selecionado.`,
+**Exemplo:** Se sua Receita Bruta é R$ 10.000, Descontos R$ 2.500, Custos R$ 200, Despesas R$ 5.800 → EBITDA = R$ 1.500. Isso significa que você gerou R$ 1.500 de caixa no mês.`,
 
-      `### Navegação na Tabela
-- **Categorias pai** (linhas com fundo colorido): Clique para expandir e ver as subcategorias.
-- **Botão ↕️**: Expande ou recolhe todas as categorias de uma vez.
-- **Subcategorias**: Aparecem indentadas dentro de cada categoria pai.`,
+      `### Como usar o filtro de período
+- No topo da tela, selecione o **mês inicial** e o **mês final**.
+- A tabela mostra uma **coluna por mês** dentro do intervalo selecionado.
+- Para ver o ano inteiro, selecione Jan a Dez do ano desejado.
+- **Dica:** Para análise de tendência, use pelo menos 6 meses consecutivos.`,
 
-      `### Detalhamento de Lançamentos (Lupa 🔍)
-- Em cada **subcategoria**, aparece um ícone de lupa (🔍).
-- **Lupa no nome** (coluna esquerda): Mostra **todos** os lançamentos daquela subcategoria no período inteiro.
-- **Lupa no valor** (coluna do mês): Mostra apenas os lançamentos daquele **mês específico**.
-- No modal de detalhamento você vê: Data, Comentário e Valor de cada lançamento.
-- **Editar comentário**: Passe o mouse sobre um lançamento e clique no ícone de lápis para editar o comentário inline. Confirme com Enter ou ✓, cancele com Esc ou ✕.
-- O total dos lançamentos é exibido na última linha.`,
+      `### Navegação na tabela
+- **Categorias pai** (linhas com fundo colorido): Clique na seta para expandir e ver as subcategorias com seus valores mensais.
+- **Botão ↕️ (Expandir/Recolher Todos)**: No canto superior, expande ou recolhe todas as categorias de uma vez — útil para ter uma visão geral ou detalhada rapidamente.
+- **Subcategorias**: Aparecem indentadas dentro de cada categoria pai, mostrando o valor real de cada item por mês.`,
+
+      `### Detalhamento de lançamentos (Lupa 🔍)
+Este é um recurso poderoso para investigar de onde vem cada valor:
+- **Lupa no nome da subcategoria** (coluna esquerda): Mostra **todos** os lançamentos daquela subcategoria no **período inteiro** selecionado.
+- **Lupa no valor** (coluna de um mês específico): Mostra apenas os lançamentos daquele **mês específico**.
+- No modal de detalhamento você vê: Data, Comentário e Valor de cada lançamento individual.
+- **Editar comentário**: Passe o mouse sobre um lançamento e clique no ícone de lápis ✏️ para editar o comentário inline. Confirme com Enter ou ✓, cancele com Esc ou ✕.
+- O **total** dos lançamentos aparece na última linha do modal.
+
+**Exemplo:** Você vê que Combustível em março foi R$ 950 (acima do normal). Clique na lupa do valor de março para ver os 4 abastecimentos individuais e identificar qual foi o gasto extra.`,
 
       `### Projeções (valores em verde)
 - Meses **futuros** que possuem projeções cadastradas no Planejador aparecem com valores em **cor verde**.
-- Isso permite comparar visualmente o que foi realizado (preto) com o que foi planejado (verde).`,
+- Meses passados/atuais com dados reais aparecem em cor padrão (preto/branco).
+- Isso permite **comparar visualmente** o realizado com o planejado no mesmo relatório.
+
+**Exemplo:** Se você projetou R$ 650 de Combustível para abril no Planejador, esse valor aparece em verde na coluna de abril do DRE.`,
 
       `### Exportação
-- Use o **menu de exportação** para gerar arquivos Excel (.xlsx) ou PDF com os dados da tabela.
-- O arquivo exportado mantém a mesma estrutura visual do DRE.`,
+- Clique no **menu de exportação** (ícone no canto superior) para gerar:
+  - **Excel (.xlsx)**: Planilha com todos os dados, ideal para análises customizadas.
+  - **PDF**: Relatório formatado, ideal para impressão ou envio.
+- O arquivo exportado mantém a mesma estrutura visual do DRE.
+
+**Dica do Especialista:** Use o DRE Detalhado mensalmente para identificar categorias que estão crescendo acima do esperado. Compare pelo menos 3 meses consecutivos para identificar tendências reais (e não variações pontuais).`,
     ],
   },
   {
@@ -119,20 +159,32 @@ A tabela segue esta ordem de cima para baixo:
     route: '/dre-ajustado',
     description: 'Versão simplificada e consolidada do DRE para visão executiva.',
     details: [
-      `### Visão Geral
-O DRE Ajustado é uma versão **resumida** do DRE Detalhado. Ele mostra apenas as linhas totais (Receita Bruta, Descontos, Receita Líquida, etc.) sem abrir por subcategoria. Ideal para uma **visão executiva rápida**.`,
+      `### Para que serve?
+O **DRE Ajustado** é uma versão **resumida e executiva** do DRE Detalhado. Enquanto o Detalhado abre cada subcategoria, o Ajustado mostra apenas as **linhas totais** (Receita Bruta, Descontos, Receita Líquida, EBITDA, Resultado Líquido). É ideal para quem quer uma **visão rápida** da saúde financeira sem se perder nos detalhes.`,
 
-      `### Diferenças do DRE Detalhado
-- **Sem subcategorias**: Mostra apenas os totais de cada grupo.
-- **Margens percentuais**: Cada linha de total mostra o percentual em relação à Receita Bruta, facilitando análise de proporção.
-- **Comparativo Realizado vs Projetado**: Quando há projeções, exibe ambos os valores lado a lado.`,
+      `### Diferenças em relação ao DRE Detalhado
+| Característica | DRE Detalhado | DRE Ajustado |
+|---|---|---|
+| Subcategorias | Sim, expandíveis | Não, apenas totais |
+| Margens percentuais | Não | Sim, em relação à Receita Bruta |
+| Comparativo Real vs Projetado | Valores em verde | Lado a lado |
+| Melhor para | Investigar detalhes | Visão executiva rápida |`,
 
-      `### Filtro de Período
-- Funciona igual ao DRE Detalhado: selecione mês inicial e final.
-- A tabela mostra uma coluna por mês.`,
+      `### Como ler as margens percentuais
+Cada linha de total mostra o **percentual em relação à Receita Bruta**:
+- **Receita Líquida 75%** → Significa que 25% da sua receita bruta é consumida por descontos.
+- **EBITDA 15%** → De cada R$ 100 que você ganha, R$ 15 viram caixa livre.
+- **Resultado Líquido -5%** → Você está gastando 5% a mais do que ganha.
 
-      `### Exportação
-- Também possui menu de exportação para Excel e PDF.`,
+**Exemplo:** Receita Bruta R$ 10.000, EBITDA R$ 1.500 → Margem EBITDA = 15%. Se no mês seguinte cair para 10%, é um alerta de que seus gastos estão crescendo mais que sua receita.`,
+
+      `### Comparativo Realizado vs Projetado
+Quando há projeções cadastradas no Planejador, o DRE Ajustado exibe **dois valores lado a lado** para cada mês futuro:
+- **Realizado**: O que efetivamente aconteceu (baseado nos lançamentos).
+- **Projetado**: O que foi planejado.
+- Desvios significativos ficam visualmente evidentes, permitindo ajuste rápido do planejamento.
+
+**Dica do Especialista:** Acompanhe a margem EBITDA mês a mês. Se ela cair por 2-3 meses consecutivos, é hora de revisar seus gastos no DRE Detalhado para encontrar a causa.`,
     ],
   },
   {
@@ -141,24 +193,49 @@ O DRE Ajustado é uma versão **resumida** do DRE Detalhado. Ele mostra apenas a
     route: '/planejador',
     description: 'Defina orçamentos e metas financeiras por categoria para meses futuros.',
     details: [
-      `### Visão Geral
-O Planejador permite definir **orçamentos e projeções** para cada subcategoria em cada mês futuro. É a ferramenta de planejamento financeiro que alimenta os valores "projetados" que aparecem no DRE.`,
+      `### Para que serve?
+O **Planejador** é a ferramenta de **orçamento e projeção mensal**. Aqui você define quanto pretende gastar (ou receber) em cada subcategoria para cada mês futuro. Esses valores alimentam as projeções que aparecem em verde no DRE e no comparativo do Dashboard.
 
-      `### Como Usar
-1. Selecione o **período** desejado (mês inicial e final).
-2. A tabela mostra todas as suas subcategorias na vertical e os meses na horizontal.
-3. **Clique em uma célula** para inserir ou editar o valor projetado para aquela subcategoria naquele mês.
-4. Os valores são salvos automaticamente.`,
+Diferente do Simulador (que projeta cenários de longo prazo), o Planejador foca no **orçamento operacional mês a mês**.`,
 
-      `### Integração com Outras Telas
-- Os valores definidos aqui aparecem **em verde** no DRE Detalhado para meses futuros.
-- O Dashboard usa esses dados para o gráfico **Realizado vs Projetado**.
-- O CFO Digital IA leva em conta as projeções na sua análise de cenário.`,
+      `### Como preencher (passo a passo)
+1. Selecione o **período** desejado usando o seletor de meses no canto superior (ex: Abr/2026 a Dez/2026).
+2. A tabela mostra todas as suas subcategorias na **vertical** e os meses na **horizontal**.
+3. **Clique em uma célula** para inserir ou editar o valor projetado.
+4. O campo aceita qualquer valor numérico (ex: 650.00).
+5. Para **remover** uma projeção, digite 0 (zero) — o registro é excluído.
+6. As alterações ficam em **modo rascunho** (fundo destacado) até você clicar em **"Salvar"**.
 
-      `### Dicas de Uso
-- Projete pelo menos 3-6 meses à frente para ter uma boa visão de planejamento.
-- Use os valores médios dos últimos meses como base para suas projeções.
-- Revise mensalmente e ajuste conforme a realidade.`,
+**Exemplo:** Você quer projetar R$ 650 de Combustível para todos os meses do segundo semestre. Preencha a célula de Combustível × Jul com 650, e use o botão de replicar para copiar para Ago-Dez.`,
+
+      `### Botão Replicar (ícone de copiar 📋)
+Para evitar digitar o mesmo valor 12 vezes:
+1. Clique no ícone de **copiar** ao lado da subcategoria.
+2. Informe o **valor** a ser replicado (ex: 650).
+3. Selecione o **período** (mês inicial e final).
+4. Marque/desmarque meses individuais se necessário.
+5. Clique em **"Replicar"**.
+6. O sistema preenche todas as células selecionadas com o valor informado.
+
+**Importante:** Se já havia valores anteriores (ex: 600), eles são **substituídos** pelo novo valor (650). Não há duplicação.`,
+
+      `### Meses bloqueados (cadeado 🔒)
+- Meses **passados e o mês atual** aparecem com ícone de cadeado e não podem ser editados.
+- Apenas meses **futuros** são editáveis, já que o objetivo é planejar à frente.
+- Se você precisa corrigir dados de meses passados, faça isso na tela de Lançamentos.`,
+
+      `### Expandir/Recolher categorias
+- Use as setas ao lado de cada categoria pai para expandir/recolher subcategorias.
+- O botão **↕️** no topo expande ou recolhe todas de uma vez.
+- O estado de expansão é **salvo automaticamente** — ao voltar à tela, as categorias que estavam abertas continuam abertas.`,
+
+      `### O que o sistema entrega
+- **Totais por categoria**: Cada linha de categoria pai soma automaticamente os valores das subcategorias.
+- **Integração com DRE**: Os valores projetados aparecem em **verde** no DRE Detalhado para meses futuros.
+- **Integração com Dashboard**: O gráfico "Realizado vs Projetado" usa esses dados.
+- **Integração com CFO Digital**: A IA considera suas projeções na análise.
+
+**Dica do Especialista:** Projete pelo menos 6 meses à frente. Use como base a **média dos últimos 3 meses** de cada subcategoria (visível no DRE Detalhado). Revise mensalmente após fechar o mês real e ajuste as projeções dos meses seguintes.`,
     ],
   },
   {
@@ -167,29 +244,37 @@ O Planejador permite definir **orçamentos e projeções** para cada subcategori
     route: '/dashboard',
     description: 'Painel visual com gráficos e indicadores financeiros.',
     details: [
-      `### Visão Geral
-O Dashboard apresenta seus dados financeiros em formato **visual e interativo**. Gráficos, indicadores e comparativos permitem entender rapidamente sua situação financeira.`,
+      `### Para que serve?
+O **Dashboard** é o painel de controle visual do sistema. Transforma seus dados financeiros em **gráficos e indicadores** que permitem entender sua situação financeira em segundos, sem precisar analisar tabelas. É a primeira tela que você deve consultar para ter uma visão geral.`,
+
+      `### KPIs (Indicadores-Chave) no topo
+Os cards no topo mostram os números mais importantes do período selecionado:
+- **Receita Total**: Soma de todas as receitas brutas. Exemplo: R$ 12.500,00.
+- **Despesa Total**: Soma de todos os gastos (despesas + custos). Exemplo: R$ 9.800,00.
+- **Resultado Líquido**: Receita menos todos os gastos. Se positivo (verde), você está no azul. Se negativo (vermelho), gastou mais do que ganhou.
+- **Taxa de Economia**: Percentual da receita que sobrou. Exemplo: R$ 2.700 de R$ 12.500 = 21,6% de economia.
+
+**Meta ideal:** Especialistas recomendam uma taxa de economia de pelo menos **20%** da receita líquida.`,
 
       `### Gráfico de Evolução Mensal
-- Mostra a **evolução ao longo do tempo** de receitas, despesas e resultado líquido.
-- Cada mês é um ponto no gráfico, permitindo identificar tendências de melhora ou piora.`,
+- Mostra a **evolução ao longo do tempo** de receitas, despesas e resultado líquido em linhas.
+- Cada mês é um ponto no gráfico.
+- **Como interpretar:** Se a linha de despesas está subindo enquanto a de receita está estável, você precisa agir. Se o resultado líquido está caindo mês a mês, é um alerta vermelho.
+
+**Exemplo:** Jan +R$ 1.200, Fev +R$ 800, Mar +R$ 300, Abr –R$ 200 → Tendência clara de piora. Investigue no DRE Detalhado qual categoria está crescendo.`,
 
       `### Distribuição de Gastos por Categoria
-- Gráfico de pizza ou barras mostrando **onde seu dinheiro é gasto**.
-- Cada fatia representa uma categoria de despesa (Habitação, Saúde, etc.) com seu percentual.`,
+- Gráfico que mostra **onde seu dinheiro é gasto**, com cada fatia representando uma categoria (Habitação 35%, Saúde 12%, Automóvel 15%, etc.).
+- **Como interpretar:** Se uma categoria ocupa mais de 30-40% dos gastos totais, vale investigar se há espaço para redução.
+
+**Exemplo:** Se Habitação consome 45% dos gastos, está acima do recomendado (ideal: até 30%). Analise no DRE Detalhado se há subcategorias que podem ser otimizadas.`,
 
       `### Comparativo Realizado vs Projetado
-- Se você cadastrou projeções no Planejador, o Dashboard exibe um gráfico comparando o que foi **planejado** com o que foi **realizado**.
-- Desvios significativos ficam visualmente evidentes.`,
+- Disponível quando há projeções cadastradas no Planejador.
+- Mostra barras comparando o **planejado** com o **realizado** para cada mês.
+- **Como interpretar:** Se o realizado supera o projetado consistentemente, suas projeções estão subestimadas e precisam de ajuste.
 
-      `### KPIs (Indicadores-Chave)
-- **Receita Total**: Soma de todas as receitas no período.
-- **Despesa Total**: Soma de todas as despesas.
-- **Resultado Líquido**: Quanto sobrou (ou faltou).
-- **Taxa de Economia**: Percentual da receita que foi poupada.`,
-
-      `### Filtro de Período
-- Selecione o intervalo de meses para ajustar todos os gráficos e indicadores.`,
+**Dica do Especialista:** Consulte o Dashboard no início de cada semana para manter o controle. Use o filtro de período para comparar o mês atual com os anteriores e identificar rapidamente se está dentro do orçamento planejado.`,
     ],
   },
   {
@@ -198,30 +283,39 @@ O Dashboard apresenta seus dados financeiros em formato **visual e interativo**.
     route: '/inteligencia',
     description: 'Análise inteligente dos seus dados financeiros por inteligência artificial.',
     details: [
-      `### Visão Geral
-O CFO Digital usa **inteligência artificial** para analisar automaticamente todos os seus dados financeiros e gerar recomendações personalizadas. Funciona como um consultor financeiro pessoal.`,
+      `### Para que serve?
+O **CFO Digital** usa **inteligência artificial** para analisar automaticamente todos os seus dados financeiros e gerar recomendações personalizadas. Funciona como um **consultor financeiro pessoal** que conhece cada detalhe dos seus gastos, receitas e projeções.`,
 
-      `### Como Funciona
-1. Selecione o **período** que deseja analisar (ou use o padrão dos últimos 12 meses).
+      `### Como usar (passo a passo)
+1. Selecione o **período** que deseja analisar (padrão: últimos 12 meses). Quanto maior o período, mais contexto a IA tem para identificar tendências.
 2. Clique em **"Gerar Análise"**.
-3. A IA processa seus lançamentos, categorias e projeções.
-4. O resultado é apresentado em 4 seções:`,
+3. Aguarde o processamento (a IA analisa seus lançamentos, categorias, projeções e indicadores).
+4. O resultado aparece organizado em 4 seções:`,
 
-      `### Seções da Análise
-- **💡 Insights**: 3-5 análises sobre tendências, categorias que mais crescem, variações mensais e padrões de consumo. Inclui números e percentuais concretos dos seus dados.
-- **⚠️ Alertas**: 1-3 avisos sobre gastos acima da média, categorias fora do padrão ou redução de receita. Só aparecem se houver algo relevante.
-- **✅ Sugestões**: 3-4 recomendações acionáveis — como reduzir despesas específicas, redistribuir orçamento ou melhorar o fluxo de caixa.
-- **📈 Previsão**: Projeção para os próximos 3 meses baseada no comportamento histórico, incluindo tendência (positiva/negativa/estável) e economia estimada se seguir as sugestões.`,
+      `### Seções da análise
+- **💡 Insights** (3-5 itens): Análises sobre tendências, categorias que mais crescem, variações mensais e padrões de consumo. Incluem **números e percentuais concretos** dos seus dados reais. Exemplo: "Seus gastos com AUTOMÓVEL cresceram 23% nos últimos 3 meses, passando de R$ 1.200 para R$ 1.476."
 
-      `### Histórico de Análises
+- **⚠️ Alertas** (1-3 itens): Avisos sobre situações que requerem atenção. Só aparecem quando há algo relevante. Exemplo: "Sua taxa de economia caiu de 18% para 8% nos últimos 2 meses. Se a tendência continuar, você terá resultado negativo em maio."
+
+- **✅ Sugestões** (3-4 itens): Recomendações acionáveis e específicas. Não são genéricas — são baseadas nos seus números. Exemplo: "Reduza gastos com LAZER em R$ 400/mês (de R$ 1.200 para R$ 800) para recuperar a meta de 20% de economia."
+
+- **📈 Previsão** (próximos 3 meses): Projeção baseada no comportamento histórico, incluindo tendência (positiva/negativa/estável) e economia estimada se seguir as sugestões. Exemplo: "Seguindo as sugestões, você economizará R$ 4.800 adicionais nos próximos 6 meses."`,
+
+      `### Histórico de análises
 - Cada análise gerada é **salva automaticamente** no histórico.
-- Você pode consultar análises anteriores para comparar a evolução das recomendações ao longo do tempo.
-- O histórico mostra data, período analisado e o resultado completo.`,
+- Você pode consultar análises anteriores clicando nelas na lista.
+- O histórico mostra: data da geração, período analisado e resultado completo.
+- **Compare análises** de meses diferentes para verificar se está evoluindo.
 
-      `### Dicas
-- Quanto mais lançamentos registrados, mais precisa será a análise.
-- Gere análises mensalmente para acompanhar a evolução.
-- Compare as sugestões com as análises anteriores para verificar progresso.`,
+**Exemplo:** Na análise de janeiro a IA sugeriu reduzir Restaurante. Na análise de março, verifique se essa categoria efetivamente diminuiu.`,
+
+      `### Dicas para melhores resultados
+- **Quanto mais lançamentos**, mais precisa a análise. Registre tudo, inclusive gastos pequenos.
+- **Gere análises mensalmente** para acompanhar evolução.
+- **Cadastre projeções** no Planejador — a IA compara realizado vs projetado e avisa sobre desvios.
+- Analise pelo menos **6 meses** para que a IA identifique tendências significativas (e não variações pontuais).
+
+**Dica do Especialista:** Gere uma análise no início de cada mês, após fechar os lançamentos do mês anterior. Compare com a análise do mês passado para verificar se você seguiu as recomendações e qual foi o impacto real.`,
     ],
   },
   {
@@ -230,18 +324,27 @@ O CFO Digital usa **inteligência artificial** para analisar automaticamente tod
     route: '/compromissos',
     description: 'Visão dos seus compromissos financeiros futuros.',
     details: [
-      `### Visão Geral
-O Mapa de Compromissos mostra todos os seus **compromissos financeiros futuros** — principalmente parcelas de compras parceladas. É essencial para planejar seu fluxo de caixa nos próximos meses.`,
+      `### Para que serve?
+O **Mapa de Compromissos** mostra todos os seus **compromissos financeiros futuros** — principalmente parcelas de compras parceladas. É essencial para planejar seu fluxo de caixa e evitar surpresas nos próximos meses. Antes de fazer uma nova compra parcelada, consulte esta tela para ver se cabe no orçamento.`,
 
-      `### Como Funciona
-- O sistema identifica automaticamente todos os lançamentos marcados como **"Parcelado"** que possuem parcelas futuras.
-- Organiza por mês, mostrando quanto você precisará desembolsar em cada período.
-- Cada compromisso mostra: subcategoria, valor da parcela, número da parcela (ex: 3/12) e comentário.`,
+      `### Como funciona
+O sistema identifica automaticamente todos os lançamentos marcados como **"Parcelado"** que possuem parcelas futuras pendentes e organiza em uma visão mensal.
 
-      `### Planejamento de Fluxo
-- Use esta tela para **antecipar** os meses com maior volume de compromissos.
-- Compare com sua receita projetada para identificar meses apertados.
-- Considere renegociar parcelas ou adiantar pagamentos quando possível.`,
+Para cada compromisso, você vê:
+- **Subcategoria**: De onde vem o gasto (ex: Compras de itens).
+- **Valor da parcela**: Quanto será desembolsado (ex: R$ 300,00).
+- **Número da parcela**: Em qual parcela está (ex: 3/12 — terceira de doze).
+- **Comentário**: A nota que você adicionou ao criar o lançamento (ex: "Geladeira nova").
+
+**Exemplo:** Você parcelou uma geladeira em 12x de R$ 300 e um celular em 10x de R$ 250. O Mapa mostra que em julho você terá R$ 550 de compromissos fixos (parcela 5/12 da geladeira + parcela 3/10 do celular).`,
+
+      `### Como usar para planejamento
+1. **Identifique meses pesados**: Veja quais meses têm maior volume de compromissos acumulados.
+2. **Compare com a receita**: Se os compromissos de um mês somam R$ 2.000 e sua receita líquida é R$ 7.500, sobram R$ 5.500 para despesas variáveis.
+3. **Evite acumular**: Antes de parcelar uma nova compra, veja quanto já está comprometido nos próximos meses.
+4. **Antecipe quando possível**: Se identificar um mês muito apertado no futuro, considere antecipar parcelas agora.
+
+**Dica do Especialista:** Uma regra prática é que seus compromissos fixos (parcelas + aluguel + contas fixas) não devem ultrapassar **50% da receita líquida**. Use o Mapa de Compromissos junto com o Planejador para garantir que novos parcelamentos cabem no orçamento.`,
     ],
   },
   {
@@ -250,38 +353,53 @@ O Mapa de Compromissos mostra todos os seus **compromissos financeiros futuros**
     route: '/balanco',
     description: 'Controle de ativos, passivos e patrimônio líquido.',
     details: [
-      `### Visão Geral
-O Balanço Patrimonial é uma "fotografia" do seu patrimônio em um dado momento. Ele registra tudo que você **possui** (ativos), tudo que você **deve** (passivos) e calcula seu **patrimônio líquido** (a diferença).`,
+      `### Para que serve?
+O **Balanço Patrimonial** é uma "fotografia" do seu patrimônio em um dado momento. Enquanto o DRE mostra o **fluxo** mensal (quanto entra e sai), o Balanço mostra o **estoque** acumulado: tudo que você **possui** (ativos), tudo que você **deve** (passivos) e a diferença entre eles (**patrimônio líquido**).`,
 
-      `### Ativos (o que você possui)
-Registre bens e direitos organizados por categoria:
-- **Conta Corrente / Poupança / Dinheiro em Caixa**: Saldos em contas bancárias e dinheiro físico.
-- **Renda Fixa / Ações / Fundos / Criptomoedas**: Investimentos financeiros com valor atualizado.
-- **Imóveis**: Valor de mercado estimado de propriedades.
-- **Veículos**: Valor atual de carros, motos, etc.
-- **Participações**: Cotas em empresas ou sociedades.
-- **Outros Bens**: Qualquer outro ativo de valor.
-Para cada ativo, informe: **Nome**, **Categoria**, **Valor Atual**, **Data de Aquisição** (opcional) e **Observações** (opcional).`,
+      `### Como cadastrar ativos (o que você possui)
+Clique em **"Novo Ativo"** e preencha:
+- **Nome**: Identificação do bem. Ex: "Apartamento Centro", "Carro Civic 2023", "CDB Banco Inter".
+- **Categoria**: Selecione entre:
+  - Conta Corrente / Poupança / Dinheiro em Caixa (liquidez imediata)
+  - Renda Fixa / Ações / Fundos / Criptomoedas (investimentos financeiros)
+  - Imóveis / Veículos (bens físicos)
+  - Participações (cotas em empresas)
+  - Outros Bens
+- **Valor Atual (R$)**: Valor de mercado estimado hoje. Ex: R$ 450.000 para um imóvel.
+- **Data de Aquisição** (opcional): Quando comprou/adquiriu.
+- **Observações** (opcional): Notas livres. Ex: "Financiado, saldo devedor no passivo".
 
-      `### Passivos (o que você deve)
-Registre dívidas e obrigações por categoria:
-- **Cartão de Crédito**: Fatura atual do cartão.
-- **Empréstimo**: Empréstimos pessoais ou consignados.
-- **Financiamento Imobiliário / Veicular**: Saldo devedor de financiamentos.
-- **Parcelamento**: Compras parceladas em aberto.
-- **Impostos a Pagar**: Tributos pendentes.
-- **Outros Passivos**: Outras dívidas.
-Para cada passivo, informe: **Nome**, **Categoria**, **Valor Total**, **Saldo Atual**, **Parcela Mensal**, **Taxa de Juros**, **Data Início/Fim** e **Observações**.`,
+**Exemplo completo:** Ativo "CDB Banco Inter", categoria "Renda Fixa", valor R$ 25.000, data 15/01/2025, obs "Vencimento em 2027, taxa 13% ao ano".`,
+
+      `### Como cadastrar passivos (o que você deve)
+Clique em **"Novo Passivo"** e preencha:
+- **Nome**: Identificação da dívida. Ex: "Financiamento Apto", "Cartão Nubank".
+- **Categoria**: Selecione entre:
+  - Cartão de Crédito / Empréstimo / Financiamento Imobiliário / Financiamento Veicular / Parcelamento / Impostos a Pagar / Outros Passivos
+- **Valor Total (R$)**: Valor total original da dívida. Ex: R$ 350.000.
+- **Saldo Atual (R$)**: Quanto ainda falta pagar hoje. Ex: R$ 280.000.
+- **Parcela Mensal (R$)**: Valor mensal. Ex: R$ 2.800.
+- **Taxa de Juros (%)**: Taxa mensal ou anual. Ex: 0.75% ao mês.
+- **Data Início / Data Fim**: Período do financiamento.
+- **Observações** (opcional): Ex: "Sistema SAC, parcelas decrescentes".
+
+**Exemplo completo:** Passivo "Financiamento Apto Centro", categoria "Financiamento Imobiliário", total R$ 350.000, saldo atual R$ 280.000, parcela R$ 2.800, juros 0.75%/mês, início 03/2022, fim 03/2052.`,
 
       `### Patrimônio Líquido
-- Calculado automaticamente: **Total de Ativos - Total de Passivos**.
-- Se positivo, significa que você possui mais do que deve.
-- Se negativo, indica que suas dívidas superam seus bens.`,
+Calculado automaticamente: **Total de Ativos – Total de Passivos**.
+- **Positivo**: Você possui mais do que deve. Ex: Ativos R$ 500.000 – Passivos R$ 280.000 = PL R$ 220.000.
+- **Negativo**: Suas dívidas superam seus bens. Foco em quitação de passivos.
+- **Acompanhe a evolução**: O objetivo é que o PL cresça mês a mês.`,
 
-      `### Histórico de Evolução
-- O sistema salva um **snapshot mensal** do seu patrimônio.
-- Um gráfico mostra a **evolução ao longo dos meses** de: Total de Ativos, Total de Passivos e Patrimônio Líquido.
-- Permite identificar se seu patrimônio está crescendo ou diminuindo.`,
+      `### Gráfico de evolução histórica
+O sistema salva um **snapshot mensal** automático do seu patrimônio e exibe um gráfico com 3 linhas:
+- **Total de Ativos** (azul): Deve crescer com aportes e valorização.
+- **Total de Passivos** (vermelho): Deve diminuir com pagamentos.
+- **Patrimônio Líquido** (verde): A diferença — deve subir consistentemente.
+
+**Como interpretar:** Se o PL está caindo, significa que ou seus ativos estão desvalorizando ou seus passivos estão crescendo (novas dívidas). Investigue qual dos dois está causando a queda.
+
+**Dica do Especialista:** Atualize os valores dos ativos e passivos pelo menos **uma vez por mês** (idealmente no mesmo dia, ex: dia 1). Para investimentos, atualize com o saldo real da corretora. Para imóveis, revise o valor estimado a cada 6 meses.`,
     ],
   },
   {
@@ -290,23 +408,37 @@ Para cada passivo, informe: **Nome**, **Categoria**, **Valor Total**, **Saldo At
     route: '/simulador',
     description: 'Simulador de cenários financeiros futuros.',
     details: [
-      `### Visão Geral
-O Simulador Financeiro permite projetar **cenários futuros** com base nos seus dados atuais. Você pode alterar variáveis como receita, despesas e investimentos para ver o impacto no seu resultado.`,
+      `### Para que serve?
+A ferramenta **Visão Futuro Financeiro** foi desenhada para ajudar você a projetar cenários e entender como suas decisões de hoje impactarão seu patrimônio e caixa nos próximos meses ou anos.
 
-      `### Como Usar
-1. O simulador carrega seus **dados médios** recentes como ponto de partida.
-2. Ajuste os valores de receita, despesas ou investimentos conforme o cenário desejado.
-3. O sistema recalcula automaticamente os resultados projetados.`,
+Diferente do Planejador (que foca em orçamento mensal), o Simulador é voltado para **projeções de longo prazo**.`,
 
-      `### Cenários
-- **Otimista**: Aumento de receita e/ou redução de despesas.
-- **Realista**: Manutenção dos padrões atuais.
-- **Pessimista**: Redução de receita e/ou aumento de despesas.
-Compare os três para entender sua faixa de possibilidades financeiras.`,
+      `### Como preencher os campos
+Para realizar uma simulação precisa, configure os seguintes pilares:
 
-      `### Dicas
-- Use o simulador antes de tomar decisões financeiras importantes (mudança de emprego, compra de imóvel, etc.).
-- Teste diferentes cenários de investimento para encontrar o equilíbrio ideal.`,
+**Cenário de Receita:**
+- O que preencher: Informe sua estimativa de ganhos mensais (salários, pró-labore, rendas extras).
+- Como: Você pode definir um valor fixo ou aplicar uma taxa de crescimento anual (ex: reajuste salarial esperado de 5%).
+
+**Cenário de Despesas e Custos:**
+- O que preencher: Seus gastos fixos (aluguel, internet) e variáveis (lazer, compras).
+- Como: Pode-se projetar a manutenção do padrão atual ou simular aumentos de gastos (inflação pessoal) e reduções estratégicas.
+
+**Investimentos e Aportes:**
+- O que preencher: Quanto você pretende poupar/investir mensalmente.
+- Como: Defina o valor do aporte mensal e a taxa de retorno esperada (ex: 0,8% ao mês ou 10% ao ano).
+
+**Período da Projeção:**
+- O que preencher: Escolha o horizonte de tempo (ex: 12 meses, 5 anos, 10 anos).`,
+
+      `### O que o sistema entrega
+- **Gráfico de Evolução**: Uma linha que mostra o crescimento (ou diminuição) do seu saldo e patrimônio ao longo do tempo.
+- **Análise de Sustentabilidade**: O sistema indica se, com base nos gastos atuais e rentabilidade, seus investimentos serão suficientes para cobrir seu custo de vida no futuro (independência financeira).
+- **Comparação de Cenários**: Você pode criar um "Cenário Otimista" (ganhando mais e gastando menos) e um "Cenário Conservador" para comparar os resultados.
+
+**Exemplo:** Com receita de R$ 10.000, despesas de R$ 7.000 e aporte de R$ 2.500/mês a 1% ao mês, em 10 anos você acumula aproximadamente R$ 575.000 em investimentos.`,
+
+      `**Dica do Especialista:** Use a Visão Futuro em conjunto com o **CFO Digital IA** para validar se as suas projeções são realistas com base no seu histórico real de gastos registrados na tela de Lançamentos. Simule pelo menos 3 cenários: pessimista, realista e otimista.`,
     ],
   },
   {
@@ -315,24 +447,34 @@ Compare os três para entender sua faixa de possibilidades financeiras.`,
     route: '/perfil',
     description: 'Configurações da sua conta e compartilhamento.',
     details: [
-      `### Visão Geral
-Tela de configurações pessoais da sua conta no sistema.`,
+      `### Para que serve?
+A tela **Meu Perfil** é onde você configura suas preferências pessoais, personaliza a aparência do sistema e gerencia o compartilhamento dos seus dados com outras pessoas (cônjuge, contador, consultor financeiro).`,
 
       `### Nome de Exibição
-- Altere o nome que aparece no sistema e nos relatórios.
-- Clique no campo, edite e salve.`,
+- O nome que aparece no cabeçalho do sistema e nos relatórios exportados.
+- **Como alterar:** Clique no campo de nome, edite e clique em "Salvar".
+- **Exemplo:** Alterar de "joao@email.com" para "João Silva" para que os relatórios PDF fiquem com seu nome.`,
 
       `### Logo Personalizado
-- Faça **upload de uma imagem** (logo) para personalizar a aparência do sistema.
-- A logo aparece no cabeçalho e nos relatórios exportados.
-- Formatos aceitos: PNG, JPG, SVG.`,
+- Faça **upload de uma imagem** para personalizar o sistema com sua identidade visual.
+- A logo aparece no **cabeçalho** (ao lado do nome) e nos **relatórios exportados** (PDF/Excel).
+- **Formatos aceitos:** PNG, JPG, SVG.
+- **Tamanho recomendado:** Imagem quadrada, mínimo 200x200 pixels.
+- **Como fazer:** Clique na área de upload, selecione o arquivo e aguarde o processamento.`,
 
       `### Compartilhamento de Acesso
-- Convide outros usuários (por e-mail) para **visualizar ou editar** seus dados financeiros.
-- **Permissão de Visualização**: O convidado pode ver seus relatórios, mas não pode alterar nada.
-- **Permissão de Edição**: O convidado pode criar lançamentos e modificar dados.
-- Gerencie convites pendentes e acesso ativo nesta seção.
-- Você pode revogar o acesso a qualquer momento.`,
+Convide outras pessoas para acessar seus dados financeiros:
+1. Clique em **"Convidar"**.
+2. Informe o **e-mail** da pessoa (ela precisa ter conta no sistema).
+3. Selecione a **permissão**:
+   - **Visualização**: O convidado pode ver todos os seus relatórios e lançamentos, mas **não pode alterar nada**. Ideal para: cônjuge que quer acompanhar, contador que precisa consultar.
+   - **Edição**: O convidado pode criar lançamentos e modificar dados. Ideal para: cônjuge que também registra gastos, assistente financeiro.
+4. O convite fica como **"Pendente"** até a pessoa aceitar.
+5. Você pode **revogar** o acesso a qualquer momento clicando no ícone de lixeira ao lado do convite.
+
+**Exemplo:** Você compartilha com seu cônjuge com permissão de edição. Ambos registram lançamentos na mesma base, e os relatórios consolidam tudo automaticamente.
+
+**Dica do Especialista:** Se você usa um contador, compartilhe com permissão de **visualização**. Assim ele pode gerar relatórios e análises sem risco de alterar seus dados acidentalmente.`,
     ],
   },
 ];
