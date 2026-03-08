@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Loader2, ChevronDown, ChevronRight, Search, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ExportMenu } from '@/components/ExportMenu';
 
 interface MonthData {
   month: string;
@@ -128,6 +129,25 @@ export default function DREDetalhado() {
             startMonth={filter.startMonth} endMonth={filter.endMonth}
             onStartChange={filter.setStartMonth} onEndChange={filter.setEndMonth}
             onYearClick={() => filter.setFullYear()}
+          />
+          <ExportMenu
+            filename={`dre-detalhado-${filter.startMonth}-${filter.endMonth}`}
+            title={`DRE Detalhado — ${periodLabel}`}
+            getData={() => {
+              const rows: { [key: string]: string | number }[] = [];
+              rowLabels.forEach((row, idx) => {
+                if (row.isSubcategory && row.parentGroupId && !expandedGroups.has(row.parentGroupId)) return;
+                const r: any = { Descrição: row.label };
+                monthsData.forEach(md => {
+                  const line = md.lines[idx];
+                  const val = line?.value ?? 0;
+                  const label = format(filter.parseMonth(md.month), 'MMM/yy', { locale: ptBR });
+                  r[label] = row.type === 'margem' ? `${val.toFixed(1)}%` : formatBRL(val);
+                });
+                rows.push(r);
+              });
+              return rows;
+            }}
           />
         </div>
       </div>

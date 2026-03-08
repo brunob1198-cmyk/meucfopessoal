@@ -7,7 +7,8 @@ import {
   LogOut,
   TrendingUp,
   Sparkles,
-  CalendarRange } from
+  CalendarRange,
+  UserCircle } from
 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
@@ -33,7 +34,8 @@ const items = [
 { title: 'Planejador', url: '/planejador', icon: Target },
 { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
 { title: 'CFO Digital', url: '/inteligencia', icon: Sparkles },
-{ title: 'Compromissos', url: '/compromissos', icon: CalendarRange }];
+{ title: 'Compromissos', url: '/compromissos', icon: CalendarRange },
+{ title: 'Meu Perfil', url: '/perfil', icon: UserCircle }];
 
 
 export function AppSidebar() {

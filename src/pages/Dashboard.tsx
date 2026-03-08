@@ -9,6 +9,7 @@ import { format, eachMonthOfInterval, startOfMonth, endOfMonth, isAfter, isBefor
 import { ptBR } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { ExportMenu } from '@/components/ExportMenu';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, LineChart, Line,
@@ -180,6 +181,16 @@ export default function Dashboard() {
           onStartChange={filter.setStartMonth}
           onEndChange={filter.setEndMonth}
           onYearClick={() => filter.setFullYear()}
+        />
+        <ExportMenu
+          filename={`dashboard-${filter.startMonth}-${filter.endMonth}`}
+          title={`Dashboard — ${periodLabel}`}
+          getData={() => lineData.map(d => ({
+            Mês: d.mes,
+            'Receita Bruta': formatBRL(d['Receita Bruta']),
+            'Despesas + Custos': formatBRL(d['Despesas + Custos']),
+            'Lucro Líquido': formatBRL(d['Lucro Líquido']),
+          }))}
         />
       </div>
 
