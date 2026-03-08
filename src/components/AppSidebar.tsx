@@ -34,7 +34,8 @@ const items = [
 { title: 'Planejador', url: '/planejador', icon: Target },
 { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
 { title: 'CFO Digital', url: '/inteligencia', icon: Sparkles },
-{ title: 'Compromissos', url: '/compromissos', icon: CalendarRange }];
+{ title: 'Compromissos', url: '/compromissos', icon: CalendarRange },
+{ title: 'Meu Perfil', url: '/perfil', icon: UserCircle }];
 
 
 export function AppSidebar() {
