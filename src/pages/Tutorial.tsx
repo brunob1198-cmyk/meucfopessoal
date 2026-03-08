@@ -470,6 +470,11 @@ export default function Tutorial() {
           <CardTitle className="flex items-center gap-2 text-lg">
             <MessageCircleQuestion className="h-5 w-5 text-primary" />
             Pergunte ao Assistente
+            {messages.length > 0 && (
+              <Button variant="ghost" size="sm" className="ml-auto text-xs text-muted-foreground h-7" onClick={clearHistory}>
+                Limpar histórico
+              </Button>
+            )}
           </CardTitle>
           <p className="text-sm text-muted-foreground">Tire suas dúvidas sobre qualquer funcionalidade do sistema.</p>
         </CardHeader>
