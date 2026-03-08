@@ -42,35 +42,50 @@ export function ExcelUpload() {
     reader.onload = (evt) => {
       const wb = read(evt.target?.result, { type: 'binary' });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const json = utils.sheet_to_json<any>(ws, { defval: '', raw: true });
+      
+      // Get both raw (numbers) and formatted (strings) to handle dates properly
+      const jsonRaw = utils.sheet_to_json<any>(ws, { defval: '', raw: true });
+      const jsonFmt = utils.sheet_to_json<any>(ws, { defval: '', raw: false });
 
-      const parsed: ParsedRow[] = json.map((row: any, idx: number) => {
+      const parsed: ParsedRow[] = jsonRaw.map((row: any, idx: number) => {
         const rawDate = row['Data'] || row['data'] || '';
-        if (idx < 3) console.log('DEBUG ROW', idx, 'rawDate:', rawDate, 'type:', typeof rawDate, 'keys:', Object.keys(row));
+        const fmtDate = (jsonFmt[idx] || {})['Data'] || (jsonFmt[idx] || {})['data'] || '';
         const rawCat = String(row['Categoria'] || row['categoria'] || '').trim();
         const rawAmount = Number(String(row['Valor'] || row['valor'] || 0).replace(/,/g, ''));
         const rawComment = String(row['Comentário'] || row['Comentario'] || row['comentario'] || row['comentário'] || '');
 
+        console.log('DEBUG ROW', idx, 'rawDate:', rawDate, 'type:', typeof rawDate, 'fmtDate:', fmtDate);
+
         let dateStr = '';
-        if (typeof rawDate === 'number') {
-          // Excel serial date - add 12h to avoid timezone boundary issues
-          const utcMs = (rawDate - 25569) * 86400 * 1000 + 43200000;
-          const d = new Date(utcMs);
-          const y = d.getUTCFullYear();
-          const m = String(d.getUTCMonth() + 1).padStart(2, '0');
-          const day = String(d.getUTCDate()).padStart(2, '0');
-          dateStr = `${y}-${m}-${day}`;
-        } else if (typeof rawDate === 'string' && rawDate.includes('/')) {
-          const parts = rawDate.split('/');
+        
+        // First try the formatted string from xlsx (most reliable)
+        const dateText = String(fmtDate || rawDate || '');
+        
+        if (dateText.includes('/')) {
+          const parts = dateText.split('/');
           if (parts.length === 3) {
-            // Always DD/MM/YYYY (Brazilian format)
-            const day = parts[0].padStart(2, '0');
-            const month = parts[1].padStart(2, '0');
-            const year = parts[2].length === 2 ? '20' + parts[2] : parts[2];
-            dateStr = `${year}-${month}-${day}`;
+            const p0 = parseInt(parts[0]);
+            const p1 = parseInt(parts[1]);
+            const p2 = parts[2];
+            const year = p2.length === 2 ? '20' + p2 : p2;
+            
+            // If formatted as M/D/YY (US format from xlsx)
+            if (p0 <= 12 && p1 <= 31) {
+              // xlsx formats dates as M/D/YY in US locale
+              // So 2/1/25 means month=2, day=1 → Feb 1
+              dateStr = `${year}-${String(p0).padStart(2, '0')}-${String(p1).padStart(2, '0')}`;
+            } else {
+              // DD/MM/YYYY Brazilian format
+              dateStr = `${year}-${String(p1).padStart(2, '0')}-${String(p0).padStart(2, '0')}`;
+            }
           }
-        } else if (typeof rawDate === 'string' && rawDate.includes('-')) {
-          dateStr = rawDate;
+        } else if (dateText.includes('-')) {
+          dateStr = dateText;
+        } else if (typeof rawDate === 'number') {
+          // Fallback: Excel serial number
+          const utcMs = Math.round((rawDate - 25569) * 86400) * 1000;
+          const d = new Date(utcMs);
+          dateStr = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
         }
 
         const catId = categoryMap.get(rawCat.toLowerCase());
