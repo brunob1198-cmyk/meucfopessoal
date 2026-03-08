@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -146,27 +146,54 @@ export default function SimuladorFinanceiro() {
 
   const avgMonthlySavings = avgMonthlyIncome - avgMonthlyExpenses;
 
-  // Scenarios
-  const [scenarios, setScenarios] = useState<Scenario[]>([
-    {
+  // Scenarios - load from localStorage
+  const [scenarios, setScenarios] = useState<Scenario[]>(() => {
+    try {
+      const saved = localStorage.getItem('simulador-scenarios');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [{
       id: '1',
       name: 'Cenário Atual',
       color: SCENARIO_COLORS[0],
       currentAge: 30,
       targetAge: 55,
       returnRate: 8,
-      currentInvestment: Math.max(netWorth, 0),
-      monthlyInvestment: Math.max(avgMonthlySavings, 0),
+      currentInvestment: 0,
+      monthlyInvestment: 0,
       incomeGrowth: 3,
       expenseGrowth: 4,
-    },
-  ]);
+    }];
+  });
 
-  const [activeScenario, setActiveScenario] = useState('1');
+  const [activeScenario, setActiveScenario] = useState(() => {
+    try {
+      return localStorage.getItem('simulador-active-scenario') || '1';
+    } catch { return '1'; }
+  });
   const scenario = scenarios.find(s => s.id === activeScenario) || scenarios[0];
 
-  // Financial events
-  const [events, setEvents] = useState<FinancialEvent[]>([]);
+  // Financial events - load from localStorage
+  const [events, setEvents] = useState<FinancialEvent[]>(() => {
+    try {
+      const saved = localStorage.getItem('simulador-events');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [];
+  });
+
+  // Persist to localStorage
+  useEffect(() => {
+    localStorage.setItem('simulador-scenarios', JSON.stringify(scenarios));
+  }, [scenarios]);
+
+  useEffect(() => {
+    localStorage.setItem('simulador-active-scenario', activeScenario);
+  }, [activeScenario]);
+
+  useEffect(() => {
+    localStorage.setItem('simulador-events', JSON.stringify(events));
+  }, [events]);
   const [showEventDialog, setShowEventDialog] = useState(false);
   const [newEvent, setNewEvent] = useState<Partial<FinancialEvent>>({ type: 'imovel', yearFromNow: 5, amount: 0, monthlyImpact: 0 });
 
