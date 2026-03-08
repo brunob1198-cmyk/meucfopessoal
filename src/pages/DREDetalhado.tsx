@@ -209,7 +209,7 @@ export default function DREDetalhado() {
                           const val = line?.value ?? 0;
                           const isMargem = row.type === 'margem';
                           return (
-                            <td key={md.month} className={cn('text-right py-2 px-3 tabular-nums relative group/cell', md.isProjected && !row.isTotal && !row.isGroupHeader && 'opacity-80')}>
+                            <td key={md.month} className={cn('text-right py-2 px-3 tabular-nums relative group/cell', md.isProjected && !row.isTotal && !row.isGroupHeader && 'text-emerald-600')}>
                               {line ? (isMargem ? `${val.toFixed(1)}%` : formatBRL(val)) : '-'}
                               {row.isSubcategory && row.categoryId && val !== 0 && (
                                 <button
