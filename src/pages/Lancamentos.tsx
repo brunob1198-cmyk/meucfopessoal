@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUserPlan, useTransactionCount, FREE_TX_LIMIT } from '@/hooks/useUserPlan';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
-import { ChevronDown, ChevronRight, Plus, Loader2, FolderPlus, Trash2, AlertTriangle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Loader2, FolderPlus, Trash2, AlertTriangle, Pencil, Check, X } from 'lucide-react';
 import { ExcelUpload } from '@/components/ExcelUpload';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -37,13 +37,50 @@ const DRE_TYPE_LABELS: Record<string, string> = {
   investimento: 'Investimento',
 };
 
+function EditCategoryInline({ categoryId, currentName, onDone }: { categoryId: string; currentName: string; onDone: () => void }) {
+  const [name, setName] = useState(currentName);
+  const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleSave = async () => {
+    if (!name.trim() || name.trim() === currentName) { onDone(); return; }
+    setSaving(true);
+    const { error } = await supabase.from('categories').update({ name: name.trim() }).eq('id', categoryId);
+    if (error) {
+      toast.error('Erro ao renomear: ' + error.message);
+    } else {
+      toast.success('Categoria renomeada!');
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+    }
+    setSaving(false);
+    onDone();
+  };
+
+  return (
+    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+      <Input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        className="h-7 text-xs w-40"
+        autoFocus
+        onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') onDone(); }}
+      />
+      <button onClick={handleSave} disabled={saving} className="p-1 hover:bg-primary/10 rounded">
+        {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3 text-primary" />}
+      </button>
+      <button onClick={onDone} className="p-1 hover:bg-muted rounded">
+        <X className="h-3 w-3 text-muted-foreground" />
+      </button>
+    </div>
+  );
+}
+
 function DeleteCategoryButton({ categoryId, categoryName, hasChildren }: { categoryId: string; categoryName: string; hasChildren?: boolean }) {
   const [deleting, setDeleting] = useState(false);
   const queryClient = useQueryClient();
 
   const handleDelete = async () => {
     setDeleting(true);
-    // Delete children first if any
     if (hasChildren) {
       const { error: childError } = await supabase.from('categories').delete().eq('parent_id', categoryId);
       if (childError) {
@@ -95,6 +132,7 @@ function DeleteCategoryButton({ categoryId, categoryName, hasChildren }: { categ
 
 function SubcategoryRow({ cat, onSubmit }: { cat: Category; onSubmit: (data: any) => void }) {
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [comment, setComment] = useState('');
@@ -124,10 +162,17 @@ function SubcategoryRow({ cat, onSubmit }: { cat: Category; onSubmit: (data: any
   return (
     <div>
       <div className="w-full flex items-center justify-between py-2 px-3 text-sm hover:bg-muted/50 rounded transition-colors">
-        <button onClick={() => setOpen(!open)} className="flex-1 text-left flex items-center gap-1">
-          <span>{cat.name}</span>
-        </button>
+        {editing ? (
+          <EditCategoryInline categoryId={cat.id} currentName={cat.name} onDone={() => setEditing(false)} />
+        ) : (
+          <button onClick={() => setOpen(!open)} className="flex-1 text-left flex items-center gap-1">
+            <span>{cat.name}</span>
+          </button>
+        )}
         <div className="flex items-center gap-1">
+          <button onClick={() => setEditing(true)} className="p-1 hover:bg-muted rounded transition-colors" title="Editar">
+            <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+          </button>
           <DeleteCategoryButton categoryId={cat.id} categoryName={cat.name} />
           <Plus className="h-3.5 w-3.5 text-muted-foreground cursor-pointer" onClick={() => setOpen(!open)} />
         </div>
@@ -195,17 +240,25 @@ function AddSubcategoryForm({ parentId, onDone }: { parentId: string; onDone: ()
 function CategoryGroup({ cat, onSubmit }: { cat: Category; onSubmit: (data: any) => void }) {
   const [expanded, setExpanded] = useState(false);
   const [addingSub, setAddingSub] = useState(false);
+  const [editing, setEditing] = useState(false);
   const colorClass = DRE_TYPE_COLORS[cat.dre_type] || '';
 
   return (
     <Card className={`border-l-4 ${colorClass} overflow-hidden`}>
       <div className="w-full flex items-center justify-between p-3 text-left font-semibold text-sm hover:bg-muted/30 transition-colors">
-        <button onClick={() => setExpanded(!expanded)} className="flex-1 flex items-center gap-1">
-          {expanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-          <span>{cat.name}</span>
-        </button>
+        {editing ? (
+          <EditCategoryInline categoryId={cat.id} currentName={cat.name} onDone={() => setEditing(false)} />
+        ) : (
+          <button onClick={() => setExpanded(!expanded)} className="flex-1 flex items-center gap-1">
+            {expanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+            <span>{cat.name}</span>
+          </button>
+        )}
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground font-normal">{cat.children?.length || 0} sub</span>
+          <button onClick={() => setEditing(true)} className="p-1 hover:bg-muted rounded transition-colors" title="Editar">
+            <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+          </button>
           {!cat.is_default && (
             <DeleteCategoryButton categoryId={cat.id} categoryName={cat.name} hasChildren={(cat.children?.length || 0) > 0} />
           )}
