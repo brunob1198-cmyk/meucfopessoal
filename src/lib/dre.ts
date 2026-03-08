@@ -69,7 +69,26 @@ export function computeDRE(
   const ebitda = lucroBruto - despesas;
   const depreciacao = sumByType('depreciacao');
   const ebit = ebitda - depreciacao;
-  const resultadoFinanceiro = sumByType('resultado_financeiro');
+
+  // Resultado Financeiro: split into receitas and despesas financeiras
+  const rfParents = parentCategories.filter((c) => c.dre_type === 'resultado_financeiro');
+  const rfReceitaParents = rfParents.filter((p) => !p.name.toLowerCase().includes('despesa'));
+  const rfDespesaParents = rfParents.filter((p) => p.name.toLowerCase().includes('despesa'));
+
+  const receitasFinanceiras = rfReceitaParents.reduce((sum, p) => sum + sumByParentId(p.id), 0)
+    + transactions.filter((t) => {
+        const cat = categories.find((c) => c.id === t.category_id);
+        return cat && !cat.parent_id && cat.dre_type === 'resultado_financeiro' && !cat.name.toLowerCase().includes('despesa');
+      }).reduce((sum, t) => sum + Number(t.amount), 0);
+
+  const despesasFinanceiras = rfDespesaParents.reduce((sum, p) => sum + sumByParentId(p.id), 0)
+    + transactions.filter((t) => {
+        const cat = categories.find((c) => c.id === t.category_id);
+        return cat && !cat.parent_id && cat.dre_type === 'resultado_financeiro' && cat.name.toLowerCase().includes('despesa');
+      }).reduce((sum, t) => sum + Number(t.amount), 0);
+
+  const resultadoFinanceiro = receitasFinanceiras - despesasFinanceiras;
+
   const outrasReceitas = sumByType('outras_receitas');
   const lair = ebit + resultadoFinanceiro + outrasReceitas;
   const impostos = sumByType('impostos');
