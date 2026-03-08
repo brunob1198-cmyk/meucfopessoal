@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ChevronDown, ChevronRight, Plus, Loader2, FolderPlus, X } from 'lucide-react';
+import { ExcelUpload } from '@/components/ExcelUpload';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
