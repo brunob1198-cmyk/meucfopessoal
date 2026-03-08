@@ -27,8 +27,11 @@ export default function DREDetalhado() {
   const { data: transactions, isLoading: txLoading } = useTransactions(filter.startDate, filter.endDate);
   const { data: categories, isLoading: catLoading } = useCategories();
   const { data: projections } = useProjections(filter.startDate, filter.endDate);
+  const updateTransaction = useUpdateTransaction();
   const loading = txLoading || catLoading;
   const now = new Date();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editComment, setEditComment] = useState('');
   const currentMonthEnd = endOfMonth(now);
 
   const months = useMemo(() => {
