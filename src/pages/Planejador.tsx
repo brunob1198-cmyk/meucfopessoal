@@ -410,7 +410,7 @@ function CategoryRowMultiMonth({
         <td />
       </tr>
       {expanded && cat.children?.map((sub) => (
-        <tr key={sub.id} className="border-b border-border/50">
+        <tr key={sub.id} className="border-b border-border/30 bg-[hsl(var(--table-subcat-bg))] text-[hsl(var(--table-subcat-fg))]">
           <td className="py-1.5 px-4 pl-10 text-sm">{sub.name}</td>
           {months.map(m => {
             const val = getDraftValue(sub.id, m);
