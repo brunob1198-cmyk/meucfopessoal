@@ -13,6 +13,33 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList,
 } from 'recharts';
 
+/* 3D stacked bar shape */
+const Bar3DShape = (color: string) => (props: any) => {
+  const { x, y, width, height } = props;
+  if (!height || height <= 0) return null;
+  const depth = Math.min(width * 0.35, 14);
+  const topColor = color;
+  // lighter shade for top face
+  const sideColor = color.replace(/[\d.]+\)$/, (m: string) => `${Math.max(0, parseFloat(m) - 15)}%)`);
+  const topFaceColor = color.replace(/[\d.]+\)$/, (m: string) => `${Math.min(100, parseFloat(m) + 12)}%)`);
+  return (
+    <g>
+      {/* front face */}
+      <rect x={x} y={y} width={width} height={height} fill={topColor} />
+      {/* top face */}
+      <polygon
+        points={`${x},${y} ${x + depth},${y - depth} ${x + width + depth},${y - depth} ${x + width},${y}`}
+        fill={topFaceColor}
+      />
+      {/* right side face */}
+      <polygon
+        points={`${x + width},${y} ${x + width + depth},${y - depth} ${x + width + depth},${y + height - depth} ${x + width},${y + height}`}
+        fill={sideColor}
+      />
+    </g>
+  );
+};
+
 const COLORS = [
   'hsl(220, 70%, 45%)', 'hsl(152, 60%, 40%)', 'hsl(0, 72%, 51%)',
   'hsl(38, 92%, 50%)', 'hsl(280, 60%, 50%)', 'hsl(180, 60%, 40%)',
