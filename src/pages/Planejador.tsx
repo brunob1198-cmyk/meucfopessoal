@@ -1,10 +1,10 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { useCategories, buildCategoryTree, Category } from '@/hooks/useCategories';
 import { useProjections, useBulkReplicateProjection } from '@/hooks/useProjections';
 import { usePersistedFilter } from '@/hooks/usePersistedFilter';
 import { MonthRangePicker } from '@/components/MonthRangePicker';
 import { formatBRL } from '@/lib/dre';
-import { format, eachMonthOfInterval, startOfMonth, endOfMonth } from 'date-fns';
+import { format, eachMonthOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -129,19 +129,20 @@ export default function Planejador() {
 
   const tree = useMemo(() => (categories ? buildCategoryTree(categories) : []), [categories]);
 
-  // Generate list of months in the selected range
   const months = useMemo(() => {
     const start = filter.parseMonth(filter.startMonth);
     const end = filter.parseMonth(filter.endMonth);
     return eachMonthOfInterval({ start, end }).map(d => format(d, 'yyyy-MM'));
   }, [filter.startMonth, filter.endMonth]);
 
-  // Build map from projections: key = categoryId:month
+  // Build map from projections: key = categoryId:YYYY-MM
+  // FIX: normalize p.month from 'YYYY-MM-DD' to 'YYYY-MM'
   const savedMap = useMemo(() => {
     const map = new Map<string, number>();
     if (!projections) return map;
     projections.forEach((p: any) => {
-      const key = `${p.category_id}:${p.month}`;
+      const monthKey = typeof p.month === 'string' ? p.month.substring(0, 7) : p.month;
+      const key = `${p.category_id}:${monthKey}`;
       map.set(key, Number(p.amount));
     });
     return map;
@@ -170,7 +171,6 @@ export default function Planejador() {
   const handleSave = async () => {
     if (draft.size === 0) return;
 
-    // Group by category_id
     const grouped = new Map<string, { months: string[]; amount: number }[]>();
     draft.forEach((amount, key) => {
       const [catId, month] = key.split(':');
@@ -178,9 +178,7 @@ export default function Planejador() {
       grouped.get(catId)!.push({ months: [month], amount });
     });
 
-    // Save each category's projections
     for (const [catId, entries] of grouped) {
-      // Group entries by amount for efficiency
       const byAmount = new Map<number, string[]>();
       entries.forEach(e => {
         if (!byAmount.has(e.amount)) byAmount.set(e.amount, []);
@@ -303,7 +301,6 @@ function CategoryRowMultiMonth({
   const [expanded, setExpanded] = useState(true);
   const hasChildren = cat.children && cat.children.length > 0;
 
-  // Calculate totals per month for parent category
   const monthTotals = useMemo(() => {
     if (!cat.children) return months.map(() => 0);
     return months.map(m => {
