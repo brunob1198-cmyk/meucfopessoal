@@ -144,7 +144,7 @@ function MoveSubcategoryButton({ subcategory, parentCategories }: { subcategory:
     const targetParent = parentCategories.find(p => p.id === targetParentId);
     const { error } = await supabase.from('categories').update({
       parent_id: targetParentId,
-      dre_type: targetParent?.dre_type || subcategory.dre_type,
+      dre_type: (targetParent?.dre_type || subcategory.dre_type) as any,
     }).eq('id', subcategory.id);
     if (error) {
       toast.error('Erro ao mover: ' + error.message);
