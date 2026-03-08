@@ -1,4 +1,5 @@
 import { useMemo, useRef } from 'react';
+import { YearlyEvolution } from '@/components/YearlyEvolution';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import { useProjections } from '@/hooks/useProjections';
@@ -338,6 +339,14 @@ export default function Dashboard() {
           )}
         </CardContent>
       </Card>
+
+      {/* Yearly Evolution */}
+      {categories && (
+        <YearlyEvolution
+          transactions={[...(transactions || [])]}
+          categories={categories}
+        />
+      )}
     </div>
   );
 }
