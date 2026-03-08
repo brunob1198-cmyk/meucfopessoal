@@ -5,23 +5,16 @@ import { useProjections } from '@/hooks/useProjections';
 import { computeDRE, formatBRL, DRELine } from '@/lib/dre';
 import { usePersistedFilter } from '@/hooks/usePersistedFilter';
 import { MonthRangePicker } from '@/components/MonthRangePicker';
-import { format, eachMonthOfInterval, startOfMonth, endOfMonth, isAfter, isBefore, isSameMonth } from 'date-fns';
+import { format, eachMonthOfInterval, startOfMonth, endOfMonth, isAfter, isBefore } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, ChevronDown, ChevronRight } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Loader2, ChevronDown, ChevronRight, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-interface DRELineEx extends DRELine {
-  categoryId?: string;
-  parentId?: string;
-  children?: DRELineEx[];
-  isParentGroup?: boolean;
-  source?: 'real' | 'projetado';
-}
 
 interface MonthData {
   month: string;
-  lines: DRELineEx[];
+  lines: DRELine[];
   isProjected: boolean;
 }
 
@@ -37,7 +30,6 @@ export default function DREDetalhado() {
   const now = new Date();
   const currentMonthEnd = endOfMonth(now);
 
-  // Generate list of months in the selected range
   const months = useMemo(() => {
     const start = filter.parseMonth(filter.startMonth);
     const end = filter.parseMonth(filter.endMonth);
@@ -54,52 +46,92 @@ export default function DREDetalhado() {
       const monthEnd = endOfMonth(monthDate);
       const isFuture = isAfter(monthStart, currentMonthEnd);
 
-      if (isFuture && projections) {
-        // Use projections for future months
-        const monthProjections = projections.filter((p: any) => p.month === m);
-        const fakeTx = monthProjections.map((p: any) => ({
-          amount: p.amount,
-          category_id: p.category_id,
-          categories: p.categories,
-        }));
-        const dreLines = computeDRE(fakeTx, categories);
-        return {
-          month: m,
-          lines: dreLines.map(l => ({ ...l, source: 'projetado' as const })),
-          isProjected: true,
-        };
-      }
-
-      // Use real transactions for past/current months
+      // Get real transactions for this month
       const monthTx = (transactions || []).filter((t: any) => {
         const txDate = new Date(t.date);
         return !isBefore(txDate, monthStart) && !isAfter(txDate, monthEnd);
       });
 
+      if (isFuture) {
+        // Combine projections + real transactions (installments) for future months
+        const monthProjections = (projections || []).filter(
+          (p: any) => typeof p.month === 'string' && p.month.substring(0, 7) === m
+        );
+        const projTx = monthProjections.map((p: any) => ({
+          amount: p.amount,
+          category_id: p.category_id,
+          categories: p.categories,
+        }));
+
+        const allTx = [...projTx, ...monthTx];
+        const dreLines = computeDRE(allTx, categories);
+        return {
+          month: m,
+          lines: dreLines,
+          isProjected: true,
+        };
+      }
+
       const dreLines = computeDRE(monthTx as any, categories);
       return {
         month: m,
-        lines: dreLines.map(l => ({ ...l, source: 'real' as const })),
+        lines: dreLines,
         isProjected: false,
       };
     });
   }, [transactions, categories, projections, months, currentMonthEnd]);
 
-  // Get unified row labels from first month (all months should have same structure)
+  // Row structure from first month
   const rowLabels = useMemo(() => {
     if (monthsData.length === 0) return [];
     return monthsData[0].lines.map(l => ({
       label: l.label,
       indent: l.indent,
       isTotal: l.isTotal,
+      isGroupHeader: l.isGroupHeader,
+      isSubcategory: l.isSubcategory,
+      groupId: l.groupId,
+      parentGroupId: l.parentGroupId,
+      categoryId: l.categoryId,
+      type: l.type,
     }));
   }, [monthsData]);
+
+  // Expand/collapse state for groups
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const toggleGroup = (groupId: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  };
+
+  // Transaction audit dialog state
+  const [auditCategory, setAuditCategory] = useState<{ id: string; name: string } | null>(null);
+
+  const auditTransactions = useMemo(() => {
+    if (!auditCategory || !transactions) return [];
+    return (transactions as any[])
+      .filter(t => t.category_id === auditCategory.id)
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [auditCategory, transactions]);
 
   const periodLabel = filter.startMonth === filter.endMonth
     ? format(filter.parseMonth(filter.startMonth), "MMMM 'de' yyyy", { locale: ptBR })
     : `${format(filter.parseMonth(filter.startMonth), 'MMM/yy', { locale: ptBR })} a ${format(filter.parseMonth(filter.endMonth), 'MMM/yy', { locale: ptBR })}`;
 
-  const showMultipleMonths = months.length > 1;
+  const formatCellValue = (line: DRELine | undefined) => {
+    if (!line) return '-';
+    if (line.type === 'margem') return `${line.value.toFixed(1)}%`;
+    return formatBRL(line.value);
+  };
+
+  const getTotalColorClass = (value: number) => {
+    if (value >= 0) return 'text-primary';
+    return 'text-destructive';
+  };
 
   return (
     <div className="max-w-full mx-auto">
@@ -124,6 +156,9 @@ export default function DREDetalhado() {
         <span className="flex items-center gap-1">
           <span className="w-3 h-3 rounded bg-primary/20 border border-primary/30" /> Projetado
         </span>
+        <span className="flex items-center gap-1 ml-2 text-muted-foreground">
+          Clique nas categorias para expandir subcategorias. Clique em <Search className="h-3 w-3 inline" /> para ver lançamentos.
+        </span>
       </div>
 
       <Card>
@@ -132,12 +167,12 @@ export default function DREDetalhado() {
             <div className="flex items-center justify-center h-64">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          ) : showMultipleMonths ? (
+          ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-card z-10">
                   <tr className="border-b border-border">
-                    <th className="text-left py-2 px-3 font-medium text-muted-foreground min-w-[200px] sticky left-0 bg-card">
+                    <th className="text-left py-2 px-3 font-medium text-muted-foreground min-w-[220px] sticky left-0 bg-card z-20">
                       Descrição
                     </th>
                     {monthsData.map(md => (
@@ -157,118 +192,130 @@ export default function DREDetalhado() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rowLabels.map((row, rowIdx) => (
-                    <tr
-                      key={rowIdx}
-                      className={cn(
-                        'border-b border-border/50',
-                        row.isTotal && 'bg-muted/40 font-semibold'
-                      )}
-                    >
-                      <td
-                        className="py-2 px-3 sticky left-0 bg-card"
-                        style={{ paddingLeft: `${row.indent * 1.5 + 0.75}rem` }}
+                  {rowLabels.map((row, rowIdx) => {
+                    // Hide subcategory rows if parent group not expanded
+                    if (row.isSubcategory && row.parentGroupId && !expandedGroups.has(row.parentGroupId)) {
+                      return null;
+                    }
+
+                    return (
+                      <tr
+                        key={rowIdx}
+                        className={cn(
+                          'border-b border-border/50',
+                          row.isTotal && 'bg-muted/40 font-semibold',
+                          row.isGroupHeader && !row.isTotal && 'bg-muted/20',
+                          row.isSubcategory && 'bg-background'
+                        )}
                       >
-                        {row.label}
-                      </td>
-                      {monthsData.map(md => {
-                        const line = md.lines[rowIdx];
-                        return (
-                          <td
-                            key={md.month}
-                            className={cn(
-                              'text-right py-2 px-3 tabular-nums',
-                              line?.value < 0 && 'text-destructive',
-                              md.isProjected && 'text-primary bg-primary/5'
+                        <td
+                          className="py-2 px-3 sticky left-0 bg-inherit z-10"
+                          style={{ paddingLeft: `${row.indent * 1.5 + 0.75}rem` }}
+                        >
+                          <div className="flex items-center gap-1">
+                            {row.isGroupHeader && row.groupId && (
+                              <button
+                                onClick={() => toggleGroup(row.groupId!)}
+                                className="p-0.5 hover:bg-muted rounded"
+                              >
+                                {expandedGroups.has(row.groupId) ? (
+                                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                                ) : (
+                                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                                )}
+                              </button>
                             )}
-                          >
-                            {line ? formatBRL(line.value) : '-'}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            // Single month view with expandable rows
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left py-2 px-3 font-medium text-muted-foreground">Descrição</th>
-                    <th className="text-right py-2 px-3 font-medium text-muted-foreground">Valor (R$)</th>
-                    <th className="text-right py-2 px-3 font-medium text-muted-foreground">%</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(monthsData[0]?.lines || []).map((line, i) => (
-                    <DRERow key={i} line={line} />
-                  ))}
+                            <span>{row.label}</span>
+                            {row.isSubcategory && row.categoryId && (
+                              <button
+                                onClick={() => setAuditCategory({ id: row.categoryId!, name: row.label })}
+                                className="p-0.5 hover:bg-muted rounded ml-1 opacity-50 hover:opacity-100"
+                                title="Ver lançamentos"
+                              >
+                                <Search className="h-3 w-3 text-muted-foreground" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                        {monthsData.map(md => {
+                          const line = md.lines[rowIdx];
+                          const val = line?.value ?? 0;
+                          const isMargem = row.type === 'margem';
+                          return (
+                            <td
+                              key={md.month}
+                              className={cn(
+                                'text-right py-2 px-3 tabular-nums',
+                                row.isTotal && getTotalColorClass(val),
+                                !row.isTotal && val < 0 && 'text-destructive',
+                                md.isProjected && !row.isTotal && 'text-primary/80 bg-primary/5'
+                              )}
+                            >
+                              {line ? (isMargem ? `${val.toFixed(1)}%` : formatBRL(val)) : '-'}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Transaction Audit Dialog */}
+      <Dialog open={!!auditCategory} onOpenChange={() => setAuditCategory(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Lançamentos: {auditCategory?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1 max-h-[400px] overflow-y-auto">
+            {auditTransactions.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                Nenhum lançamento encontrado para esta subcategoria no período selecionado.
+              </p>
+            ) : (
+              <>
+                <div className="grid grid-cols-[80px_1fr_100px] gap-2 text-xs font-medium text-muted-foreground pb-1 border-b border-border">
+                  <span>Data</span>
+                  <span>Comentário</span>
+                  <span className="text-right">Valor</span>
+                </div>
+                {auditTransactions.map((t: any) => (
+                  <div
+                    key={t.id}
+                    className="grid grid-cols-[80px_1fr_100px] gap-2 text-sm py-1.5 border-b border-border/50"
+                  >
+                    <span className="text-muted-foreground tabular-nums">
+                      {format(new Date(t.date), 'dd/MM/yy')}
+                    </span>
+                    <span className="text-muted-foreground truncate">
+                      {t.comment || '—'}
+                      {t.is_installment && (
+                        <span className="ml-1 text-[10px] px-1 py-0.5 rounded bg-muted text-muted-foreground">
+                          {t.installment_number}/{t.total_installments}
+                        </span>
+                      )}
+                    </span>
+                    <span className={cn('text-right tabular-nums font-medium', Number(t.amount) < 0 && 'text-destructive')}>
+                      {formatBRL(Number(t.amount))}
+                    </span>
+                  </div>
+                ))}
+                <div className="grid grid-cols-[80px_1fr_100px] gap-2 text-sm py-2 font-semibold border-t border-border">
+                  <span />
+                  <span>Total</span>
+                  <span className="text-right tabular-nums">
+                    {formatBRL(auditTransactions.reduce((sum: number, t: any) => sum + Number(t.amount), 0))}
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
-  );
-}
-
-function DRERow({ line, depth = 0 }: { line: DRELineEx; depth?: number }) {
-  const [expanded, setExpanded] = useState(false);
-  const hasChildren = line.children && line.children.length > 0;
-  const isProjected = line.source === 'projetado';
-
-  return (
-    <>
-      <tr
-        className={cn(
-          'border-b border-border/50',
-          line.isTotal && 'bg-muted/40 font-semibold',
-          isProjected && 'bg-primary/5'
-        )}
-      >
-        <td
-          className="py-2 px-3 flex items-center gap-1"
-          style={{ paddingLeft: `${(line.indent + depth) * 1.5 + 0.75}rem` }}
-        >
-          {hasChildren && (
-            <button
-              onClick={() => setExpanded(!expanded)}
-              className="p-0.5 hover:bg-muted rounded"
-            >
-              {expanded ? (
-                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-              ) : (
-                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-              )}
-            </button>
-          )}
-          <span>{line.label}</span>
-          {isProjected && (
-            <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-normal">
-              projetado
-            </span>
-          )}
-        </td>
-        <td
-          className={cn(
-            'text-right py-2 px-3 tabular-nums',
-            line.value < 0 && 'text-destructive',
-            isProjected && 'text-primary'
-          )}
-        >
-          {formatBRL(line.value)}
-        </td>
-        <td className="text-right py-2 px-3 tabular-nums text-muted-foreground">
-          {line.percent.toFixed(1)}%
-        </td>
-      </tr>
-      {expanded && line.children?.map((child, i) => (
-        <DRERow key={i} line={child} depth={depth} />
-      ))}
-    </>
   );
 }
