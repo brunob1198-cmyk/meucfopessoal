@@ -69,15 +69,25 @@ export function computeDRE(
   const ebitda = lucroBruto - despesas;
   const depreciacao = sumByType('depreciacao');
   const ebit = ebitda - depreciacao;
-  const resultadoFinanceiro = sumByType('resultado_financeiro');
+
+  const pct = (v: number) => (receitaBruta > 0 ? (v / receitaBruta) * 100 : 0);
+
+  const parentCategories = categories.filter((c) => !c.parent_id);
+
+  // Resultado Financeiro: split into receitas and despesas financeiras
+  const rfParents = parentCategories.filter((c) => c.dre_type === 'resultado_financeiro');
+  const rfReceitaParents = rfParents.filter((p) => !p.name.toLowerCase().includes('despesa'));
+  const rfDespesaParents = rfParents.filter((p) => p.name.toLowerCase().includes('despesa'));
+
+  const receitasFinanceiras = rfReceitaParents.reduce((sum, p) => sum + sumByParentId(p.id), 0);
+  const despesasFinanceiras = rfDespesaParents.reduce((sum, p) => sum + sumByParentId(p.id), 0);
+  const resultadoFinanceiro = receitasFinanceiras - despesasFinanceiras;
+
   const outrasReceitas = sumByType('outras_receitas');
   const lair = ebit + resultadoFinanceiro + outrasReceitas;
   const impostos = sumByType('impostos');
   const lucroLiquido = lair - impostos;
 
-  const pct = (v: number) => (receitaBruta > 0 ? (v / receitaBruta) * 100 : 0);
-
-  const parentCategories = categories.filter((c) => !c.parent_id);
   const lines: DRELine[] = [];
 
   // Receita
@@ -182,29 +192,41 @@ export function computeDRE(
   lines.push({ label: '(=) EBITDA', value: ebitda, percent: pct(ebitda), isTotal: true, indent: 0 });
   lines.push({ label: '(-) DEPRECIAÇÃO', value: depreciacao, percent: pct(depreciacao), isTotal: false, indent: 0 });
   lines.push({ label: '(=) EBIT', value: ebit, percent: pct(ebit), isTotal: true, indent: 0 });
-  // Resultado Financeiro (with subcategories)
+  // Resultado Financeiro (receitas - despesas financeiras)
   lines.push({
     label: '(+/-) RESULTADO FINANCEIRO',
     value: resultadoFinanceiro,
     percent: pct(resultadoFinanceiro),
-    isTotal: false,
+    isTotal: true,
     indent: 0,
     type: 'resultado_financeiro',
   });
-  parentCategories
-    .filter((p) => p.dre_type === 'resultado_financeiro')
-    .forEach((p) => {
-      lines.push({
-        label: p.name,
-        value: sumByParentId(p.id),
-        percent: pct(sumByParentId(p.id)),
-        isTotal: false,
-        indent: 1,
-        isGroupHeader: true,
-        groupId: p.id,
-      });
-      detailByParentId(p.id).forEach((d) => lines.push(d));
+  // (+) Receitas Financeiras
+  rfReceitaParents.forEach((p) => {
+    lines.push({
+      label: '(+) ' + p.name,
+      value: sumByParentId(p.id),
+      percent: pct(sumByParentId(p.id)),
+      isTotal: false,
+      indent: 1,
+      isGroupHeader: true,
+      groupId: p.id,
     });
+    detailByParentId(p.id).forEach((d) => lines.push(d));
+  });
+  // (-) Despesas Financeiras
+  rfDespesaParents.forEach((p) => {
+    lines.push({
+      label: '(-) ' + p.name,
+      value: sumByParentId(p.id),
+      percent: pct(sumByParentId(p.id)),
+      isTotal: false,
+      indent: 1,
+      isGroupHeader: true,
+      groupId: p.id,
+    });
+    detailByParentId(p.id).forEach((d) => lines.push(d));
+  });
   lines.push({ label: '(+) OUTRAS RECEITAS', value: outrasReceitas, percent: pct(outrasReceitas), isTotal: false, indent: 0 });
   lines.push({ label: '(=) LAIR', value: lair, percent: pct(lair), isTotal: true, indent: 0 });
   lines.push({ label: '(-) IMPOSTOS', value: impostos, percent: pct(impostos), isTotal: false, indent: 0 });
@@ -240,6 +262,16 @@ export function computeDREAjustado(
       .filter((t) => t.categories?.dre_type === type)
       .reduce((sum, t) => sum + Number(t.amount), 0);
 
+  const sumByParentId = (parentId: string) =>
+    transactions
+      .filter((t) => {
+        const cat = categories.find((c) => c.id === t.category_id);
+        return cat?.parent_id === parentId;
+      })
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  const parentCategories = categories.filter((c) => !c.parent_id);
+
   const receitaBruta = sumByType('receita');
   const descontos = sumByType('desconto');
   const receitaLiquida = receitaBruta - descontos;
@@ -249,7 +281,14 @@ export function computeDREAjustado(
   const ebitda = lucroBruto - despesas;
   const depreciacao = sumByType('depreciacao');
   const ebit = ebitda - depreciacao;
-  const resultadoFinanceiro = sumByType('resultado_financeiro');
+
+  const rfParents = parentCategories.filter((c) => c.dre_type === 'resultado_financeiro');
+  const rfReceitaParents = rfParents.filter((p) => !p.name.toLowerCase().includes('despesa'));
+  const rfDespesaParents = rfParents.filter((p) => p.name.toLowerCase().includes('despesa'));
+  const receitasFinanceiras = rfReceitaParents.reduce((sum, p) => sum + sumByParentId(p.id), 0);
+  const despesasFinanceiras = rfDespesaParents.reduce((sum, p) => sum + sumByParentId(p.id), 0);
+  const resultadoFinanceiro = receitasFinanceiras - despesasFinanceiras;
+
   const outrasReceitas = sumByType('outras_receitas');
   const lair = ebit + resultadoFinanceiro + outrasReceitas;
   const impostos = sumByType('impostos');
