@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { addMonths, format } from 'date-fns';
+import { parseLocalDate } from '@/lib/utils';
 
 export function useTransactions(startDate?: string, endDate?: string) {
   const { user } = useAuth();
