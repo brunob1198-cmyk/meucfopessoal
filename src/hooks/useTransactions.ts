@@ -81,6 +81,24 @@ export function useCreateTransaction() {
   });
 }
 
+export function useUpdateTransaction() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: { comment?: string } }) => {
+      const { error } = await supabase.from('transactions').update(updates).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      toast.success('Lançamento atualizado');
+    },
+    onError: (err: Error) => {
+      toast.error('Erro ao atualizar: ' + err.message);
+    },
+  });
+}
+
 export function useDeleteTransaction() {
   const queryClient = useQueryClient();
 
