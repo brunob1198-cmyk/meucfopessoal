@@ -1,10 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
+import { usePersistedFilter } from '@/hooks/usePersistedFilter';
+import { MonthRangePicker } from '@/components/MonthRangePicker';
 import { formatBRL } from '@/lib/dre';
-import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 import {
@@ -33,16 +34,10 @@ const COLORS = [
 ];
 
 export default function Dashboard() {
-  const [month, setMonth] = useState(format(new Date(), 'yyyy-MM'));
-  const start = format(startOfMonth(new Date(month + '-01')), 'yyyy-MM-dd');
-  const end = format(endOfMonth(new Date(month + '-01')), 'yyyy-MM-dd');
+  const filter = usePersistedFilter('dashboard');
 
-  const { data: transactions, isLoading: txLoading } = useTransactions(start, end);
+  const { data: transactions, isLoading: txLoading } = useTransactions(filter.startDate, filter.endDate);
   const { data: categories, isLoading: catLoading } = useCategories();
-
-  // For monthly evolution, get last 6 months
-  const sixMonthsAgo = format(startOfMonth(subMonths(new Date(month + '-01'), 5)), 'yyyy-MM-dd');
-  const { data: allTransactions } = useTransactions(sixMonthsAgo, end);
 
   const loading = txLoading || catLoading;
 
@@ -60,7 +55,6 @@ export default function Dashboard() {
   const ebitda = lucroBruto - despesas;
   const lucroLiquido = ebitda - sumByType('depreciacao') + sumByType('resultado_financeiro') + sumByType('outras_receitas') - sumByType('impostos');
 
-  // Pie chart data - expenses by parent category
   const pieData = useMemo(() => {
     if (!transactions || !categories) return [];
     const parentCats = categories.filter((c) => !c.parent_id && c.dre_type === 'despesa');
@@ -77,11 +71,10 @@ export default function Dashboard() {
       .sort((a, b) => b.value - a.value);
   }, [transactions, categories]);
 
-  // Bar chart data - monthly evolution
   const barData = useMemo(() => {
-    if (!allTransactions) return [];
+    if (!transactions) return [];
     const monthMap = new Map<string, { receita: number; despesa: number }>();
-    (allTransactions as any[]).forEach((t) => {
+    (transactions as any[]).forEach((t) => {
       const m = t.date.substring(0, 7);
       if (!monthMap.has(m)) monthMap.set(m, { receita: 0, despesa: 0 });
       const entry = monthMap.get(m)!;
@@ -91,13 +84,17 @@ export default function Dashboard() {
     return Array.from(monthMap.entries())
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([m, v]) => ({
-        mes: format(new Date(m + '-01'), 'MMM', { locale: ptBR }),
+        mes: format(new Date(Number(m.split('-')[0]), Number(m.split('-')[1]) - 1, 1), 'MMM/yy', { locale: ptBR }),
         Receita: v.receita,
         Despesa: v.despesa,
       }));
-  }, [allTransactions]);
+  }, [transactions]);
 
-  const monthLabel = format(new Date(month + '-01'), "MMMM 'de' yyyy", { locale: ptBR });
+  const startLabel = format(filter.parseMonth(filter.startMonth), "MMM/yy", { locale: ptBR });
+  const endLabel = format(filter.parseMonth(filter.endMonth), "MMM/yy", { locale: ptBR });
+  const periodLabel = filter.startMonth === filter.endMonth
+    ? format(filter.parseMonth(filter.startMonth), "MMMM 'de' yyyy", { locale: ptBR })
+    : `${startLabel} a ${endLabel}`;
 
   if (loading) {
     return (
@@ -109,20 +106,20 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-sm text-muted-foreground capitalize">{monthLabel}</p>
+          <p className="text-sm text-muted-foreground capitalize">{periodLabel}</p>
         </div>
-        <Input
-          type="month"
-          value={month}
-          onChange={(e) => setMonth(e.target.value)}
-          className="w-44"
+        <MonthRangePicker
+          startMonth={filter.startMonth}
+          endMonth={filter.endMonth}
+          onStartChange={filter.setStartMonth}
+          onEndChange={filter.setEndMonth}
+          onYearClick={() => filter.setFullYear()}
         />
       </div>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
@@ -174,7 +171,6 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
