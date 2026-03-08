@@ -260,7 +260,7 @@ export default function DREDetalhado() {
                 </div>
                 {auditTransactions.map((t: any) => (
                   <div key={t.id} className="grid grid-cols-[80px_1fr_100px] gap-2 text-sm py-1.5 border-b border-border/50">
-                    <span className="text-muted-foreground tabular-nums">{format(new Date(t.date), 'dd/MM/yy')}</span>
+                    <span className="text-muted-foreground tabular-nums">{format(parseLocalDate(t.date), 'dd/MM/yy')}</span>
                     <span className="text-muted-foreground truncate">
                       {t.comment || '—'}
                       {t.is_installment && <span className="ml-1 text-[10px] px-1 py-0.5 rounded bg-muted text-muted-foreground">{t.installment_number}/{t.total_installments}</span>}

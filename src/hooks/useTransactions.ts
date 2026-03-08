@@ -49,7 +49,7 @@ export function useCreateTransaction() {
           user_id: user.id,
           category_id: input.category_id,
           amount: installmentAmount,
-          date: format(addMonths(new Date(input.date), i), 'yyyy-MM-dd'),
+          date: format(addMonths(parseLocalDate(input.date), i), 'yyyy-MM-dd'),
           comment: input.comment || null,
           is_installment: true,
           installment_group: installmentGroup,
