@@ -267,6 +267,14 @@ export default function BalancoPatrimonial() {
   const { data: assets = [], upsert: upsertAsset, remove: removeAsset } = useAssets();
   const { data: liabilities = [], upsert: upsertLiability, remove: removeLiability } = useLiabilities();
   const { data: history = [], saveSnapshot } = useNetWorthHistory();
+  const {
+    currentMonthProfit,
+    previousMonthProfit,
+    yearToDateProfit,
+    accumulatedProfit,
+    monthlyProfits,
+    isLoading: dreLoading,
+  } = useDREIntegration();
 
   const [assetDialogOpen, setAssetDialogOpen] = useState(false);
   const [liabilityDialogOpen, setLiabilityDialogOpen] = useState(false);
@@ -275,7 +283,10 @@ export default function BalancoPatrimonial() {
 
   const totalAssets = useMemo(() => assets.reduce((s, a) => s + Number(a.current_value), 0), [assets]);
   const totalLiabilities = useMemo(() => liabilities.reduce((s, l) => s + Number(l.current_balance), 0), [liabilities]);
-  const netWorth = totalAssets - totalLiabilities;
+  
+  // Net worth now includes accumulated DRE profit (lucros retidos)
+  const netWorthBase = totalAssets - totalLiabilities;
+  const netWorth = netWorthBase + accumulatedProfit;
 
   // Calculate trends from history
   const monthlyTrend = useMemo(() => {
@@ -287,7 +298,7 @@ export default function BalancoPatrimonial() {
 
   // Auto-save snapshot for current month
   useEffect(() => {
-    if (assets.length > 0 || liabilities.length > 0) {
+    if (assets.length > 0 || liabilities.length > 0 || accumulatedProfit !== 0) {
       const currentMonth = format(startOfMonth(new Date()), 'yyyy-MM-dd');
       saveSnapshot.mutate({
         month: currentMonth,
@@ -296,7 +307,7 @@ export default function BalancoPatrimonial() {
         net_worth: netWorth,
       });
     }
-  }, [totalAssets, totalLiabilities]);
+  }, [totalAssets, totalLiabilities, accumulatedProfit]);
 
   const chartData = useMemo(() => {
     const historyData = history.map(h => ({
@@ -305,13 +316,21 @@ export default function BalancoPatrimonial() {
       passivos: Number(h.total_liabilities),
       patrimonio: Number(h.net_worth),
     }));
-    // Add current if not in history yet
     const currentMonth = format(startOfMonth(new Date()), 'MMM/yy', { locale: ptBR });
     if (!historyData.find(d => d.month === currentMonth)) {
       historyData.push({ month: currentMonth, ativos: totalAssets, passivos: totalLiabilities, patrimonio: netWorth });
     }
     return historyData;
   }, [history, totalAssets, totalLiabilities, netWorth]);
+
+  const profitChartData = useMemo(() => {
+    return monthlyProfits.map(p => ({
+      month: format(new Date(p.month + '-01'), 'MMM/yy', { locale: ptBR }),
+      lucro: p.lucroLiquido,
+      receita: p.receita,
+      despesas: p.despesas,
+    }));
+  }, [monthlyProfits]);
 
   const assetDistribution = useMemo(() => {
     return Object.entries(ASSET_GROUPS).map(([group, cats]) => {
