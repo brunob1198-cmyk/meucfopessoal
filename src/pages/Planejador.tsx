@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useCategories, buildCategoryTree, Category } from '@/hooks/useCategories';
 import { useProjections, useBulkReplicateProjection } from '@/hooks/useProjections';
 import { usePersistedFilter } from '@/hooks/usePersistedFilter';
@@ -13,6 +13,20 @@ import { Loader2, ChevronDown, ChevronRight, Copy, Save, ChevronsUpDown } from '
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
+
+const STORAGE_KEY = 'planejador-expanded-groups';
+
+function loadExpandedGroups(): Set<string> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return new Set(JSON.parse(raw));
+  } catch {}
+  return new Set();
+}
+
+function saveExpandedGroups(groups: Set<string>) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify([...groups]));
+}
 
 function ReplicateDialog({
   categoryName,
@@ -122,7 +136,29 @@ export default function Planejador() {
 
   const [draft, setDraft] = useState<DraftMap>(new Map());
   const [isDirty, setIsDirty] = useState(false);
-  const [allExpanded, setAllExpanded] = useState(true);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => loadExpandedGroups());
+
+  // Persist expanded groups
+  useEffect(() => {
+    saveExpandedGroups(expandedGroups);
+  }, [expandedGroups]);
+
+  const allGroupIds = useMemo(() => tree.map(c => c.id), [tree]);
+
+  const toggleGroup = useCallback((id: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleAll = useCallback(() => {
+    setExpandedGroups(prev => {
+      if (prev.size === allGroupIds.length) return new Set();
+      return new Set(allGroupIds);
+    });
+  }, [allGroupIds]);
 
   const getDraftValue = (catId: string, month: string): number | undefined => {
     const key = `${catId}:${month}`;
@@ -173,6 +209,8 @@ export default function Planejador() {
     ? format(filter.parseMonth(filter.startMonth), "MMMM 'de' yyyy", { locale: ptBR })
     : `${format(filter.parseMonth(filter.startMonth), 'MMM/yy', { locale: ptBR })} a ${format(filter.parseMonth(filter.endMonth), 'MMM/yy', { locale: ptBR })}`;
 
+  const allExpanded = expandedGroups.size === allGroupIds.length;
+
   return (
     <div className="max-w-full mx-auto">
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
@@ -181,7 +219,7 @@ export default function Planejador() {
           <p className="text-sm text-muted-foreground capitalize">{periodLabel}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setAllExpanded(prev => !prev)} className="gap-1.5">
+          <Button variant="outline" size="sm" onClick={toggleAll} className="gap-1.5">
             <ChevronsUpDown className="h-4 w-4" />
             {allExpanded ? 'Recolher' : 'Expandir'}
           </Button>
@@ -227,7 +265,8 @@ export default function Planejador() {
                       months={months}
                       getDraftValue={getDraftValue}
                       setDraftValue={setDraftValue}
-                      forceExpanded={allExpanded}
+                      expanded={expandedGroups.has(cat.id)}
+                      onToggle={() => toggleGroup(cat.id)}
                     />
                   ))}
                 </tbody>
@@ -250,16 +289,15 @@ export default function Planejador() {
 }
 
 function CategoryRowMultiMonth({
-  cat, months, getDraftValue, setDraftValue, forceExpanded,
+  cat, months, getDraftValue, setDraftValue, expanded, onToggle,
 }: {
   cat: Category;
   months: string[];
   getDraftValue: (catId: string, month: string) => number | undefined;
   setDraftValue: (catId: string, month: string, value: number) => void;
-  forceExpanded: boolean;
+  expanded: boolean;
+  onToggle: () => void;
 }) {
-  const [localExpanded, setLocalExpanded] = useState(true);
-  const expanded = forceExpanded !== undefined ? forceExpanded : localExpanded;
   const hasChildren = cat.children && cat.children.length > 0;
 
   const monthTotals = useMemo(() => {
@@ -272,7 +310,7 @@ function CategoryRowMultiMonth({
       <tr className="bg-muted/30 font-semibold border-b border-border/50">
         <td className="py-2 px-4 flex items-center gap-1">
           {hasChildren && (
-            <button onClick={() => setLocalExpanded(!localExpanded)} className="p-0.5">
+            <button onClick={onToggle} className="p-0.5">
               {expanded ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
             </button>
           )}
