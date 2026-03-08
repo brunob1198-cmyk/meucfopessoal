@@ -447,7 +447,7 @@ export default function Lancamentos() {
         </div>
       </div>
       {tree.map((cat) => (
-        <CategoryGroup key={cat.id} cat={cat} onSubmit={handleSubmit} />
+        <CategoryGroup key={cat.id} cat={cat} onSubmit={handleSubmit} parentCategories={tree} />
       ))}
     </div>
   );
