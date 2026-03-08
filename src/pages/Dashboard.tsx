@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useCallback } from 'react';
 import { YearlyEvolution } from '@/components/YearlyEvolution';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
@@ -34,6 +34,7 @@ export default function Dashboard() {
   const pieChartRef = useRef<HTMLDivElement>(null);
   const lineChartRef = useRef<HTMLDivElement>(null);
   const barChartRef = useRef<HTMLDivElement>(null);
+  const dashboardRef = useRef<HTMLDivElement>(null);
 
   const now = new Date();
   const currentMonthEnd = endOfMonth(now);
@@ -224,7 +225,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div ref={dashboardRef} className="max-w-6xl mx-auto space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-xl font-bold text-foreground">Dashboard</h1>
@@ -242,6 +243,7 @@ export default function Dashboard() {
           title={`Dashboard — ${periodLabel}`}
           getData={() => detailedTableData}
           chartRefs={[pieChartRef, lineChartRef, barChartRef]}
+          screenshotRef={dashboardRef}
         />
       </div>
 
