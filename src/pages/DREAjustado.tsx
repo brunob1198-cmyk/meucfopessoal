@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { parseLocalDate } from '@/lib/utils';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import { useProjections } from '@/hooks/useProjections';
@@ -40,7 +41,7 @@ export default function DREAjustado() {
       const monthEnd = endOfMonth(monthDate);
       const isFuture = isAfter(monthStart, currentMonthEnd);
       const monthTx = (transactions || []).filter((t: any) => {
-        const txDate = new Date(t.date);
+        const txDate = parseLocalDate(t.date);
         return !isBefore(txDate, monthStart) && !isAfter(txDate, monthEnd);
       });
       if (isFuture) {

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { parseLocalDate } from '@/lib/utils';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import { useProjections } from '@/hooks/useProjections';
@@ -43,7 +44,7 @@ export default function DREDetalhado() {
       const monthEnd = endOfMonth(monthDate);
       const isFuture = isAfter(monthStart, currentMonthEnd);
       const monthTx = (transactions || []).filter((t: any) => {
-        const txDate = new Date(t.date);
+        const txDate = parseLocalDate(t.date);
         return !isBefore(txDate, monthStart) && !isAfter(txDate, monthEnd);
       });
       if (isFuture) {
@@ -99,7 +100,7 @@ export default function DREDetalhado() {
       const ms = startOfMonth(new Date(Number(auditCategory.month.split('-')[0]), Number(auditCategory.month.split('-')[1]) - 1, 1));
       const me = endOfMonth(ms);
       filtered = filtered.filter(t => {
-        const d = new Date(t.date);
+        const d = parseLocalDate(t.date);
         return !isBefore(d, ms) && !isAfter(d, me);
       });
     }
@@ -259,7 +260,7 @@ export default function DREDetalhado() {
                 </div>
                 {auditTransactions.map((t: any) => (
                   <div key={t.id} className="grid grid-cols-[80px_1fr_100px] gap-2 text-sm py-1.5 border-b border-border/50">
-                    <span className="text-muted-foreground tabular-nums">{format(new Date(t.date), 'dd/MM/yy')}</span>
+                    <span className="text-muted-foreground tabular-nums">{format(parseLocalDate(t.date), 'dd/MM/yy')}</span>
                     <span className="text-muted-foreground truncate">
                       {t.comment || '—'}
                       {t.is_installment && <span className="ml-1 text-[10px] px-1 py-0.5 rounded bg-muted text-muted-foreground">{t.installment_number}/{t.total_installments}</span>}
