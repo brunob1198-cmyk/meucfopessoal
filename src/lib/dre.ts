@@ -65,7 +65,7 @@ export function computeDRE(
   const receitaLiquida = receitaBruta - descontos;
   const custos = sumByType('custo');
   const lucroBruto = receitaLiquida - custos;
-  const despesas = sumByType('despesa');
+  const despesas = sumByType('despesa') + sumByType('investimento');
   const ebitda = lucroBruto - despesas;
   const depreciacao = sumByType('depreciacao');
   const ebit = ebitda - depreciacao;
