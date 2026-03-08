@@ -1,12 +1,18 @@
 import { useState } from 'react';
 import { useCategories, buildCategoryTree, Category } from '@/hooks/useCategories';
 import { useCreateTransaction } from '@/hooks/useTransactions';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
-import { ChevronDown, ChevronRight, Plus, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Loader2, FolderPlus, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Card } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 const DRE_TYPE_COLORS: Record<string, string> = {
   receita: 'border-l-[hsl(var(--chart-receita))]',
@@ -14,6 +20,18 @@ const DRE_TYPE_COLORS: Record<string, string> = {
   custo: 'border-l-[hsl(var(--chart-custo))]',
   despesa: 'border-l-[hsl(var(--chart-despesa))]',
   investimento: 'border-l-[hsl(var(--chart-investimento))]',
+};
+
+const DRE_TYPE_LABELS: Record<string, string> = {
+  receita: 'Receita',
+  desconto: 'Desconto',
+  custo: 'Custo',
+  despesa: 'Despesa',
+  depreciacao: 'Depreciação',
+  resultado_financeiro: 'Resultado Financeiro',
+  outras_receitas: 'Outras Receitas',
+  impostos: 'Impostos',
+  investimento: 'Investimento',
 };
 
 function SubcategoryRow({ cat, onSubmit }: { cat: Category; onSubmit: (data: any) => void }) {
@@ -26,7 +44,7 @@ function SubcategoryRow({ cat, onSubmit }: { cat: Category; onSubmit: (data: any
   const [submitting, setSubmitting] = useState(false);
 
   const handleSave = async () => {
-    if (!amount || Number(amount) <= 0) return;
+    if (!amount || Number(amount) === 0) return;
     setSubmitting(true);
     await onSubmit({
       category_id: cat.id,
@@ -58,13 +76,12 @@ function SubcategoryRow({ cat, onSubmit }: { cat: Category; onSubmit: (data: any
           <div className="flex gap-2">
             <Input
               type="number"
-              placeholder="Valor (R$)"
+              placeholder="Valor (R$) — negativo para estorno"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               className="flex-1"
               autoFocus
               step="0.01"
-              min="0"
             />
             <Input
               type="date"
@@ -93,6 +110,7 @@ function SubcategoryRow({ cat, onSubmit }: { cat: Category; onSubmit: (data: any
               />
             )}
           </div>
+          <p className="text-[10px] text-muted-foreground">💡 Use valor negativo para corrigir/estornar um lançamento</p>
           <Button
             onClick={handleSave}
             disabled={submitting || !amount}
@@ -107,8 +125,52 @@ function SubcategoryRow({ cat, onSubmit }: { cat: Category; onSubmit: (data: any
   );
 }
 
+function AddSubcategoryForm({ parentId, onDone }: { parentId: string; onDone: () => void }) {
+  const [name, setName] = useState('');
+  const [saving, setSaving] = useState(false);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const handleAdd = async () => {
+    if (!name.trim() || !user) return;
+    setSaving(true);
+    const { error } = await supabase.from('categories').insert({
+      user_id: user.id,
+      name: name.trim(),
+      dre_type: 'despesa', // will inherit from parent via query
+      parent_id: parentId,
+      sort_order: 99,
+    });
+    if (error) {
+      toast.error('Erro: ' + error.message);
+    } else {
+      toast.success('Subcategoria criada!');
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      onDone();
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div className="flex gap-2 px-3 py-2">
+      <Input
+        placeholder="Nome da subcategoria"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        className="flex-1 h-8 text-xs"
+        autoFocus
+        onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+      />
+      <Button size="sm" onClick={handleAdd} disabled={saving} className="h-8 text-xs">
+        {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Criar'}
+      </Button>
+    </div>
+  );
+}
+
 function CategoryGroup({ cat, onSubmit }: { cat: Category; onSubmit: (data: any) => void }) {
   const [expanded, setExpanded] = useState(false);
+  const [addingSub, setAddingSub] = useState(false);
   const colorClass = DRE_TYPE_COLORS[cat.dre_type] || '';
 
   return (
@@ -118,20 +180,97 @@ function CategoryGroup({ cat, onSubmit }: { cat: Category; onSubmit: (data: any)
         className="w-full flex items-center justify-between p-3 text-left font-semibold text-sm hover:bg-muted/30 transition-colors"
       >
         <span>{cat.name}</span>
-        {expanded ? (
-          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-        ) : (
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-        )}
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-muted-foreground font-normal">{cat.children?.length || 0} sub</span>
+          {expanded ? (
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          )}
+        </div>
       </button>
-      {expanded && cat.children && (
+      {expanded && (
         <div className="border-t border-border divide-y divide-border/50">
-          {cat.children.map((sub) => (
+          {cat.children?.map((sub) => (
             <SubcategoryRow key={sub.id} cat={sub} onSubmit={onSubmit} />
           ))}
+          {addingSub ? (
+            <AddSubcategoryForm parentId={cat.id} onDone={() => setAddingSub(false)} />
+          ) : (
+            <button
+              onClick={() => setAddingSub(true)}
+              className="w-full flex items-center gap-1 py-2 px-3 text-xs text-muted-foreground hover:bg-muted/50 transition-colors"
+            >
+              <Plus className="h-3 w-3" /> Adicionar subcategoria
+            </button>
+          )}
         </div>
       )}
     </Card>
+  );
+}
+
+function AddCategoryDialog() {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [dreType, setDreType] = useState('despesa');
+  const [saving, setSaving] = useState(false);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const handleCreate = async () => {
+    if (!name.trim() || !user) return;
+    setSaving(true);
+    const { error } = await supabase.from('categories').insert({
+      user_id: user.id,
+      name: name.trim().toUpperCase(),
+      dre_type: dreType as any,
+      sort_order: 99,
+    });
+    if (error) {
+      toast.error('Erro: ' + error.message);
+    } else {
+      toast.success('Categoria criada!');
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      setName('');
+      setOpen(false);
+    }
+    setSaving(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1">
+          <FolderPlus className="h-4 w-4" /> Nova Categoria
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Criar Categoria</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <Input
+            placeholder="Nome da categoria"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <Select value={dreType} onValueChange={setDreType}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(DRE_TYPE_LABELS).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button onClick={handleCreate} disabled={saving || !name.trim()} className="w-full">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Criar Categoria'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -154,9 +293,12 @@ export default function Lancamentos() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-3">
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-foreground">Lançamentos</h1>
-        <p className="text-sm text-muted-foreground">Clique na subcategoria para lançar rapidamente</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-xl font-bold text-foreground">Lançamentos</h1>
+          <p className="text-sm text-muted-foreground">Clique na subcategoria para lançar rapidamente</p>
+        </div>
+        <AddCategoryDialog />
       </div>
       {tree.map((cat) => (
         <CategoryGroup key={cat.id} cat={cat} onSubmit={handleSubmit} />

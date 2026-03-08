@@ -1,38 +1,64 @@
-import { useState } from 'react';
+import { useMemo } from 'react';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
+import { useProjections } from '@/hooks/useProjections';
 import { computeDREAjustado, formatBRL, DRELine } from '@/lib/dre';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { usePersistedFilter } from '@/hooks/usePersistedFilter';
+import { MonthRangePicker } from '@/components/MonthRangePicker';
+import { format, endOfMonth, isAfter } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 
 export default function DREAjustado() {
-  const [month, setMonth] = useState(format(new Date(), 'yyyy-MM'));
-  const start = format(startOfMonth(new Date(month + '-01')), 'yyyy-MM-dd');
-  const end = format(endOfMonth(new Date(month + '-01')), 'yyyy-MM-dd');
+  const filter = usePersistedFilter('dre-ajustado');
 
-  const { data: transactions, isLoading: txLoading } = useTransactions(start, end);
+  const { data: transactions, isLoading: txLoading } = useTransactions(filter.startDate, filter.endDate);
   const { data: categories, isLoading: catLoading } = useCategories();
+  const { data: projections } = useProjections(filter.startDate, filter.endDate);
 
   const loading = txLoading || catLoading;
-  const lines = transactions && categories ? computeDREAjustado(transactions as any, categories) : [];
 
-  const monthLabel = format(new Date(month + '-01'), "MMMM 'de' yyyy", { locale: ptBR });
+  const now = new Date();
+  const currentMonthEnd = endOfMonth(now);
+
+  const { lines, isProjected } = useMemo(() => {
+    if (!categories) return { lines: [], isProjected: false };
+    const startD = filter.parseMonth(filter.startMonth);
+    const isFuture = isAfter(startD, currentMonthEnd);
+
+    if (isFuture && projections) {
+      const fakeTx = projections.map((p: any) => ({
+        amount: p.amount,
+        category_id: p.category_id,
+        categories: p.categories,
+      }));
+      return { lines: computeDREAjustado(fakeTx, categories), isProjected: true };
+    }
+
+    if (!transactions) return { lines: [], isProjected: false };
+    return { lines: computeDREAjustado(transactions as any, categories), isProjected: false };
+  }, [transactions, categories, projections, filter.startMonth, filter.endMonth]);
+
+  const startLabel = format(filter.parseMonth(filter.startMonth), "MMM/yy", { locale: ptBR });
+  const endLabel = format(filter.parseMonth(filter.endMonth), "MMM/yy", { locale: ptBR });
+  const periodLabel = filter.startMonth === filter.endMonth
+    ? format(filter.parseMonth(filter.startMonth), "MMMM 'de' yyyy", { locale: ptBR })
+    : `${startLabel} a ${endLabel}`;
 
   return (
     <div className="max-w-3xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
           <h1 className="text-xl font-bold text-foreground">DRE Ajustado</h1>
-          <p className="text-sm text-muted-foreground capitalize">{monthLabel}</p>
+          <p className="text-sm text-muted-foreground capitalize">{periodLabel}</p>
         </div>
-        <Input
-          type="month"
-          value={month}
-          onChange={(e) => setMonth(e.target.value)}
-          className="w-44"
+        <MonthRangePicker
+          startMonth={filter.startMonth}
+          endMonth={filter.endMonth}
+          onStartChange={filter.setStartMonth}
+          onEndChange={filter.setEndMonth}
+          onYearClick={() => filter.setFullYear()}
         />
       </div>
 
@@ -57,10 +83,17 @@ export default function DREAjustado() {
                     key={i}
                     className={`border-b border-border/50 ${
                       line.isTotal ? 'bg-muted/40 font-semibold' : ''
-                    }`}
+                    } ${isProjected ? 'bg-primary/5' : ''}`}
                   >
-                    <td className="py-3 px-4">{line.label}</td>
-                    <td className={`text-right py-3 px-4 tabular-nums ${line.value < 0 ? 'text-destructive' : ''}`}>
+                    <td className="py-3 px-4">
+                      {line.label}
+                      {isProjected && i === 0 && (
+                        <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                          projetado
+                        </span>
+                      )}
+                    </td>
+                    <td className={`text-right py-3 px-4 tabular-nums ${line.value < 0 ? 'text-destructive' : ''} ${isProjected ? 'text-primary' : ''}`}>
                       {formatBRL(line.value)}
                     </td>
                     <td className="text-right py-3 px-4 tabular-nums text-muted-foreground">
