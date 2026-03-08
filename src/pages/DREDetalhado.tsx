@@ -263,7 +263,7 @@ export default function DREDetalhado() {
                   <span>Data</span><span>Comentário</span><span className="text-right">Valor</span>
                 </div>
                 {auditTransactions.map((t: any) => (
-                  <div key={t.id} className="grid grid-cols-[80px_1fr_100px] gap-2 text-sm py-1.5 border-b border-border/50 items-center">
+                  <div key={t.id} className="group/row grid grid-cols-[80px_1fr_100px] gap-2 text-sm py-1.5 border-b border-border/50 items-center">
                     <span className="text-muted-foreground tabular-nums">{format(parseLocalDate(t.date), 'dd/MM/yy')}</span>
                     <span className="text-muted-foreground flex items-center gap-1 min-w-0">
                       {editingId === t.id ? (
