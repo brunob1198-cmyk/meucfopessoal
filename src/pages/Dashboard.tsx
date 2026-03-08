@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import { useProjections } from '@/hooks/useProjections';
@@ -8,8 +8,10 @@ import { formatBRL } from '@/lib/dre';
 import { format, eachMonthOfInterval, startOfMonth, endOfMonth, isAfter, isBefore } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { Loader2, TrendingUp, TrendingDown, DollarSign, ImageDown } from 'lucide-react';
 import { ExportMenu } from '@/components/ExportMenu';
+import { exportChartAsPNG } from '@/lib/exportChart';
+import { Button } from '@/components/ui/button';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, LineChart, Line,
@@ -28,6 +30,9 @@ export default function Dashboard() {
   const { data: projections } = useProjections(filter.startDate, filter.endDate);
 
   const loading = txLoading || catLoading;
+  const pieChartRef = useRef<HTMLDivElement>(null);
+  const lineChartRef = useRef<HTMLDivElement>(null);
+  const barChartRef = useRef<HTMLDivElement>(null);
 
   const now = new Date();
   const currentMonthEnd = endOfMonth(now);
@@ -249,42 +254,56 @@ export default function Dashboard() {
       {/* Row 1: Pie + Evolução DRE Linha */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
-          <CardHeader><CardTitle className="text-base">Distribuição de Despesas (%)</CardTitle></CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-base">Distribuição de Despesas (%)</CardTitle>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => exportChartAsPNG(pieChartRef.current, 'distribuicao-despesas')} title="Exportar gráfico">
+              <ImageDown className="h-4 w-4" />
+            </Button>
+          </CardHeader>
           <CardContent>
             {pieData.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">Sem dados para o período</p>
             ) : (
-              <ResponsiveContainer width="100%" height={280}>
-                <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={2} dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
-                    {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                  </Pie>
-                  <Tooltip formatter={(v: number) => formatBRL(v)} />
-                </PieChart>
-              </ResponsiveContainer>
+              <div ref={pieChartRef}>
+                <ResponsiveContainer width="100%" height={280}>
+                  <PieChart>
+                    <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={2} dataKey="value"
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                      {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip formatter={(v: number) => formatBRL(v)} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
             )}
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="text-base">Evolução DRE Mensal</CardTitle></CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-base">Evolução DRE Mensal</CardTitle>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => exportChartAsPNG(lineChartRef.current, 'evolucao-dre-mensal')} title="Exportar gráfico">
+              <ImageDown className="h-4 w-4" />
+            </Button>
+          </CardHeader>
           <CardContent>
             {lineData.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">Sem dados</p>
             ) : (
-              <ResponsiveContainer width="100%" height={280}>
-                <LineChart data={lineData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip formatter={(v: number) => formatBRL(v)} />
-                  <Legend />
-                  <Line type="monotone" dataKey="Receita Bruta" stroke="hsl(220, 70%, 45%)" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="Despesas + Custos" stroke="hsl(0, 72%, 51%)" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="Lucro Líquido" stroke="hsl(152, 60%, 40%)" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
+              <div ref={lineChartRef}>
+                <ResponsiveContainer width="100%" height={280}>
+                  <LineChart data={lineData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                    <Tooltip formatter={(v: number) => formatBRL(v)} />
+                    <Legend />
+                    <Line type="monotone" dataKey="Receita Bruta" stroke="hsl(220, 70%, 45%)" strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey="Despesas + Custos" stroke="hsl(0, 72%, 51%)" strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey="Lucro Líquido" stroke="hsl(152, 60%, 40%)" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -292,11 +311,17 @@ export default function Dashboard() {
 
       {/* Row 2: Stacked bar expenses */}
       <Card>
-        <CardHeader><CardTitle className="text-base">Gastos por Categoria (Coluna Empilhada)</CardTitle></CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-base">Gastos por Categoria (Coluna Empilhada)</CardTitle>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => exportChartAsPNG(barChartRef.current, 'gastos-por-categoria')} title="Exportar gráfico">
+            <ImageDown className="h-4 w-4" />
+          </Button>
+        </CardHeader>
         <CardContent>
           {stackedBarData.data.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">Sem dados</p>
           ) : (
+            <div ref={barChartRef}>
             <ResponsiveContainer width="100%" height={320}>
               <BarChart data={stackedBarData.data}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -309,6 +334,7 @@ export default function Dashboard() {
                 ))}
               </BarChart>
             </ResponsiveContainer>
+            </div>
           )}
         </CardContent>
       </Card>
