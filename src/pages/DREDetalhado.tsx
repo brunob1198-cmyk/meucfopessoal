@@ -263,11 +263,35 @@ export default function DREDetalhado() {
                   <span>Data</span><span>Comentário</span><span className="text-right">Valor</span>
                 </div>
                 {auditTransactions.map((t: any) => (
-                  <div key={t.id} className="grid grid-cols-[80px_1fr_100px] gap-2 text-sm py-1.5 border-b border-border/50">
+                  <div key={t.id} className="grid grid-cols-[80px_1fr_100px] gap-2 text-sm py-1.5 border-b border-border/50 items-center">
                     <span className="text-muted-foreground tabular-nums">{format(parseLocalDate(t.date), 'dd/MM/yy')}</span>
-                    <span className="text-muted-foreground truncate">
-                      {t.comment || '—'}
-                      {t.is_installment && <span className="ml-1 text-[10px] px-1 py-0.5 rounded bg-muted text-muted-foreground">{t.installment_number}/{t.total_installments}</span>}
+                    <span className="text-muted-foreground flex items-center gap-1 min-w-0">
+                      {editingId === t.id ? (
+                        <span className="flex items-center gap-1 flex-1">
+                          <Input
+                            value={editComment}
+                            onChange={(e) => setEditComment(e.target.value)}
+                            className="h-7 text-xs"
+                            placeholder="Comentário..."
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                updateTransaction.mutate({ id: t.id, updates: { comment: editComment || null } });
+                                setEditingId(null);
+                              }
+                              if (e.key === 'Escape') setEditingId(null);
+                            }}
+                          />
+                          <button onClick={() => { updateTransaction.mutate({ id: t.id, updates: { comment: editComment || null } }); setEditingId(null); }} className="p-0.5 hover:bg-muted rounded text-primary"><Check className="h-3.5 w-3.5" /></button>
+                          <button onClick={() => setEditingId(null)} className="p-0.5 hover:bg-muted rounded text-muted-foreground"><X className="h-3.5 w-3.5" /></button>
+                        </span>
+                      ) : (
+                        <>
+                          <span className="truncate flex-1">{t.comment || '—'}</span>
+                          {t.is_installment && <span className="text-[10px] px-1 py-0.5 rounded bg-muted text-muted-foreground shrink-0">{t.installment_number}/{t.total_installments}</span>}
+                          <button onClick={() => { setEditingId(t.id); setEditComment(t.comment || ''); }} className="p-0.5 hover:bg-muted rounded opacity-0 group-hover/row:opacity-100 transition-opacity shrink-0" title="Editar comentário"><Pencil className="h-3 w-3 text-muted-foreground" /></button>
+                        </>
+                      )}
                     </span>
                     <span className={cn('text-right tabular-nums font-medium', Number(t.amount) < 0 && 'text-destructive')}>{formatBRL(Number(t.amount))}</span>
                   </div>
