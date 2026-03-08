@@ -265,35 +265,45 @@ export default function Dashboard() {
               <p className="text-sm text-muted-foreground text-center py-8">Sem dados para o período</p>
             ) : (
               <div ref={pieChartRef}>
-              <ResponsiveContainer width="100%" height={280}>
-                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={2} dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
-                    {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                  </Pie>
-                  <Tooltip formatter={(v: number) => formatBRL(v)} />
-                </PieChart>
-              </ResponsiveContainer>
+                <ResponsiveContainer width="100%" height={280}>
+                  <PieChart>
+                    <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={2} dataKey="value"
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                      {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip formatter={(v: number) => formatBRL(v)} />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
+            )}
+          </CardContent>
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="text-base">Evolução DRE Mensal</CardTitle></CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-base">Evolução DRE Mensal</CardTitle>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => exportChartAsPNG(lineChartRef.current, 'evolucao-dre-mensal')} title="Exportar gráfico">
+              <ImageDown className="h-4 w-4" />
+            </Button>
+          </CardHeader>
           <CardContent>
             {lineData.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">Sem dados</p>
             ) : (
-              <ResponsiveContainer width="100%" height={280}>
-                <LineChart data={lineData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip formatter={(v: number) => formatBRL(v)} />
-                  <Legend />
-                  <Line type="monotone" dataKey="Receita Bruta" stroke="hsl(220, 70%, 45%)" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="Despesas + Custos" stroke="hsl(0, 72%, 51%)" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="Lucro Líquido" stroke="hsl(152, 60%, 40%)" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
+              <div ref={lineChartRef}>
+                <ResponsiveContainer width="100%" height={280}>
+                  <LineChart data={lineData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                    <Tooltip formatter={(v: number) => formatBRL(v)} />
+                    <Legend />
+                    <Line type="monotone" dataKey="Receita Bruta" stroke="hsl(220, 70%, 45%)" strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey="Despesas + Custos" stroke="hsl(0, 72%, 51%)" strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey="Lucro Líquido" stroke="hsl(152, 60%, 40%)" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             )}
           </CardContent>
         </Card>
