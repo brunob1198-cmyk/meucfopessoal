@@ -38,7 +38,7 @@ const items = [
 { title: 'CFO Digital', url: '/inteligencia', icon: Sparkles },
 { title: 'Compromissos', url: '/compromissos', icon: CalendarRange },
 { title: 'Balanço Patrimonial', url: '/balanco', icon: Scale },
-{ title: 'Simulador Financeiro', url: '/simulador', icon: Calculator },
+{ title: 'Simulador de Futuro Financeiro', url: '/simulador', icon: Calculator },
 { title: 'Meu Perfil', url: '/perfil', icon: UserCircle }];
 
 
