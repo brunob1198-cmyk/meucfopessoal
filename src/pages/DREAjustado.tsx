@@ -77,7 +77,7 @@ export default function DREAjustado() {
     <div className="max-w-full mx-auto">
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">DRE Ajustado</h1>
+          <h1 className="text-xl font-bold text-foreground">DRE Ajustado</h1>
           <p className="text-sm text-muted-foreground capitalize">{periodLabel}</p>
         </div>
         <MonthRangePicker
