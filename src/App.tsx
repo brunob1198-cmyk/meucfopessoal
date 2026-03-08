@@ -13,6 +13,7 @@ import Planejador from "./pages/Planejador";
 import Dashboard from "./pages/Dashboard";
 import Inteligencia from "./pages/Inteligencia";
 import Compromissos from "./pages/Compromissos";
+import BalancoPatrimonial from "./pages/BalancoPatrimonial";
 import Perfil from "./pages/Perfil";
 import NotFound from "./pages/NotFound";
 
