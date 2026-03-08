@@ -10,7 +10,8 @@ import {
   CalendarRange,
   UserCircle,
   Scale,
-  Calculator } from
+  Calculator,
+  HelpCircle } from
 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
@@ -39,6 +40,7 @@ const items = [
 { title: 'Mapa de Compromissos', url: '/compromissos', icon: CalendarRange },
 { title: 'Balanço Patrimonial', url: '/balanco', icon: Scale },
 { title: 'Visão Futuro Financeiro', url: '/simulador', icon: Calculator },
+{ title: 'Tutorial & Ajuda', url: '/tutorial', icon: HelpCircle },
 { title: 'Meu Perfil', url: '/perfil', icon: UserCircle }];
 
 

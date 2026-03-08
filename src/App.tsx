@@ -16,6 +16,7 @@ import Compromissos from "./pages/Compromissos";
 import BalancoPatrimonial from "./pages/BalancoPatrimonial";
 import Perfil from "./pages/Perfil";
 import SimuladorFinanceiro from "./pages/SimuladorFinanceiro";
+import Tutorial from "./pages/Tutorial";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -53,6 +54,7 @@ const App = () => (
             <Route path="/balanco" element={<ProtectedRoute><BalancoPatrimonial /></ProtectedRoute>} />
             <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
             <Route path="/simulador" element={<ProtectedRoute><SimuladorFinanceiro /></ProtectedRoute>} />
+            <Route path="/tutorial" element={<ProtectedRoute><Tutorial /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
