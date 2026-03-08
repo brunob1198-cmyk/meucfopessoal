@@ -372,6 +372,104 @@ export default function BalancoPatrimonial() {
         />
       </div>
 
+      {/* DRE Integration - Lucros Retidos */}
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <Wallet className="h-5 w-5 text-primary" />
+            <CardTitle className="text-lg">Integração DRE → Patrimônio</CardTitle>
+          </div>
+          <CardDescription>
+            O lucro líquido acumulado do DRE é automaticamente somado ao seu patrimônio líquido
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">Lucro Mês Atual</p>
+              <p className={cn('text-lg font-bold', currentMonthProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+                {fmt(currentMonthProfit)}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">Lucro Mês Anterior</p>
+              <p className={cn('text-lg font-bold', previousMonthProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+                {fmt(previousMonthProfit)}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">Acumulado no Ano</p>
+              <p className={cn('text-lg font-bold', yearToDateProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+                {fmt(yearToDateProfit)}
+              </p>
+            </div>
+            <div className="space-y-1 p-3 rounded-lg bg-primary/5 border border-primary/20">
+              <div className="flex items-center gap-1">
+                <ArrowUpRight className="h-3 w-3 text-primary" />
+                <p className="text-xs font-medium text-primary">Lucros Retidos (Total)</p>
+              </div>
+              <p className={cn('text-lg font-bold', accumulatedProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+                {fmt(accumulatedProfit)}
+              </p>
+              <p className="text-[10px] text-muted-foreground">Somado ao patrimônio líquido</p>
+            </div>
+          </div>
+
+          {/* Composição do Patrimônio Líquido */}
+          <div className="mt-4 pt-4 border-t border-border">
+            <p className="text-xs font-medium text-muted-foreground mb-2">Composição do Patrimônio Líquido</p>
+            <div className="space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span>Total de Ativos</span>
+                <span className="font-medium">{fmt(totalAssets)}</span>
+              </div>
+              <div className="flex justify-between text-red-600 dark:text-red-400">
+                <span>(-) Total de Passivos</span>
+                <span className="font-medium">{fmt(totalLiabilities)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>(=) Patrimônio Base</span>
+                <span className="font-medium">{fmt(netWorthBase)}</span>
+              </div>
+              <div className="flex justify-between text-primary">
+                <span>(+) Lucros Retidos (DRE)</span>
+                <span className="font-medium">{fmt(accumulatedProfit)}</span>
+              </div>
+              <div className="flex justify-between pt-1 border-t border-border font-bold">
+                <span>(=) Patrimônio Líquido</span>
+                <span>{fmt(netWorth)}</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Lucro Líquido Mensal Chart */}
+      {profitChartData.some(d => d.receita > 0 || d.despesas > 0) && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Lucro Líquido Mensal (DRE)</CardTitle>
+            <CardDescription>Impacto mensal no patrimônio líquido</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[250px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={profitChartData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="month" className="text-xs" />
+                  <YAxis tickFormatter={v => `${(v / 1000).toFixed(0)}k`} className="text-xs" />
+                  <Tooltip formatter={(v: number) => fmt(v)} />
+                  <Legend />
+                  <Bar dataKey="receita" fill="hsl(152, 60%, 40%)" name="Receita" opacity={0.6} />
+                  <Bar dataKey="despesas" fill="hsl(0, 72%, 51%)" name="Despesas" opacity={0.6} />
+                  <Line type="monotone" dataKey="lucro" stroke="hsl(220, 70%, 45%)" strokeWidth={2} name="Lucro Líquido" dot={{ r: 3 }} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Chart */}
       {chartData.length > 1 && (
         <Card>
