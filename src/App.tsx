@@ -15,6 +15,7 @@ import Inteligencia from "./pages/Inteligencia";
 import Compromissos from "./pages/Compromissos";
 import BalancoPatrimonial from "./pages/BalancoPatrimonial";
 import Perfil from "./pages/Perfil";
+import SimuladorFinanceiro from "./pages/SimuladorFinanceiro";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
