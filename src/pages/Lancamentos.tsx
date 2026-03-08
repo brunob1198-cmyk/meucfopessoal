@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUserPlan, useTransactionCount, FREE_TX_LIMIT } from '@/hooks/useUserPlan';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
-import { ChevronDown, ChevronRight, Plus, Loader2, FolderPlus, X, AlertTriangle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Loader2, FolderPlus, Trash2, AlertTriangle } from 'lucide-react';
 import { ExcelUpload } from '@/components/ExcelUpload';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -35,6 +36,62 @@ const DRE_TYPE_LABELS: Record<string, string> = {
   impostos: 'Impostos',
   investimento: 'Investimento',
 };
+
+function DeleteCategoryButton({ categoryId, categoryName, hasChildren }: { categoryId: string; categoryName: string; hasChildren?: boolean }) {
+  const [deleting, setDeleting] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    // Delete children first if any
+    if (hasChildren) {
+      const { error: childError } = await supabase.from('categories').delete().eq('parent_id', categoryId);
+      if (childError) {
+        toast.error('Erro ao excluir subcategorias: ' + childError.message);
+        setDeleting(false);
+        return;
+      }
+    }
+    const { error } = await supabase.from('categories').delete().eq('id', categoryId);
+    if (error) {
+      if (error.message.includes('foreign key') || error.message.includes('violates')) {
+        toast.error('Não é possível excluir: existem lançamentos vinculados a esta categoria.');
+      } else {
+        toast.error('Erro: ' + error.message);
+      }
+    } else {
+      toast.success(`"${categoryName}" excluída!`);
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+    }
+    setDeleting(false);
+  };
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <button className="p-1 hover:bg-destructive/10 rounded transition-colors" title="Excluir">
+          <Trash2 className="h-3.5 w-3.5 text-destructive/70 hover:text-destructive" />
+        </button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Excluir "{categoryName}"?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {hasChildren
+              ? 'Esta categoria e todas as suas subcategorias serão removidas. Lançamentos existentes vinculados impedirão a exclusão.'
+              : 'Esta subcategoria será removida. Lançamentos existentes vinculados impedirão a exclusão.'}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Excluir'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
 
 function SubcategoryRow({ cat, onSubmit }: { cat: Category; onSubmit: (data: any) => void }) {
   const [open, setOpen] = useState(false);
@@ -66,59 +123,31 @@ function SubcategoryRow({ cat, onSubmit }: { cat: Category; onSubmit: (data: any
 
   return (
     <div>
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between py-2 px-3 text-sm hover:bg-muted/50 rounded transition-colors"
-      >
-        <span>{cat.name}</span>
-        <Plus className="h-3.5 w-3.5 text-muted-foreground" />
-      </button>
+      <div className="w-full flex items-center justify-between py-2 px-3 text-sm hover:bg-muted/50 rounded transition-colors">
+        <button onClick={() => setOpen(!open)} className="flex-1 text-left flex items-center gap-1">
+          <span>{cat.name}</span>
+        </button>
+        <div className="flex items-center gap-1">
+          <DeleteCategoryButton categoryId={cat.id} categoryName={cat.name} />
+          <Plus className="h-3.5 w-3.5 text-muted-foreground cursor-pointer" onClick={() => setOpen(!open)} />
+        </div>
+      </div>
       {open && (
         <div className="px-3 pb-3 space-y-2 bg-muted/30 rounded-b">
           <div className="flex gap-2">
-            <Input
-              type="number"
-              placeholder="Valor (R$) — negativo para estorno"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="flex-1"
-              autoFocus
-              step="0.01"
-            />
-            <Input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-36"
-            />
+            <Input type="number" placeholder="Valor (R$) — negativo para estorno" value={amount} onChange={(e) => setAmount(e.target.value)} className="flex-1" autoFocus step="0.01" />
+            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-36" />
           </div>
-          <Input
-            placeholder="Comentário (opcional)"
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-          />
+          <Input placeholder="Comentário (opcional)" value={comment} onChange={(e) => setComment(e.target.value)} />
           <div className="flex items-center gap-2">
             <Switch checked={isInstallment} onCheckedChange={setIsInstallment} />
             <span className="text-xs text-muted-foreground">Parcelado</span>
             {isInstallment && (
-              <Input
-                type="number"
-                placeholder="Parcelas"
-                value={installments}
-                onChange={(e) => setInstallments(e.target.value)}
-                className="w-20"
-                min="2"
-                max="60"
-              />
+              <Input type="number" placeholder="Parcelas" value={installments} onChange={(e) => setInstallments(e.target.value)} className="w-20" min="2" max="60" />
             )}
           </div>
           <p className="text-[10px] text-muted-foreground">💡 Use valor negativo para corrigir/estornar um lançamento</p>
-          <Button
-            onClick={handleSave}
-            disabled={submitting || !amount}
-            size="sm"
-            className="w-full"
-          >
+          <Button onClick={handleSave} disabled={submitting || !amount} size="sm" className="w-full">
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'SALVAR'}
           </Button>
         </div>
@@ -139,7 +168,7 @@ function AddSubcategoryForm({ parentId, onDone }: { parentId: string; onDone: ()
     const { error } = await supabase.from('categories').insert({
       user_id: user.id,
       name: name.trim(),
-      dre_type: 'despesa', // will inherit from parent via query
+      dre_type: 'despesa',
       parent_id: parentId,
       sort_order: 99,
     });
@@ -155,14 +184,7 @@ function AddSubcategoryForm({ parentId, onDone }: { parentId: string; onDone: ()
 
   return (
     <div className="flex gap-2 px-3 py-2">
-      <Input
-        placeholder="Nome da subcategoria"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        className="flex-1 h-8 text-xs"
-        autoFocus
-        onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-      />
+      <Input placeholder="Nome da subcategoria" value={name} onChange={(e) => setName(e.target.value)} className="flex-1 h-8 text-xs" autoFocus onKeyDown={(e) => e.key === 'Enter' && handleAdd()} />
       <Button size="sm" onClick={handleAdd} disabled={saving} className="h-8 text-xs">
         {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Criar'}
       </Button>
@@ -177,20 +199,18 @@ function CategoryGroup({ cat, onSubmit }: { cat: Category; onSubmit: (data: any)
 
   return (
     <Card className={`border-l-4 ${colorClass} overflow-hidden`}>
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between p-3 text-left font-semibold text-sm hover:bg-muted/30 transition-colors"
-      >
-        <span>{cat.name}</span>
-        <div className="flex items-center gap-1">
+      <div className="w-full flex items-center justify-between p-3 text-left font-semibold text-sm hover:bg-muted/30 transition-colors">
+        <button onClick={() => setExpanded(!expanded)} className="flex-1 flex items-center gap-1">
+          {expanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+          <span>{cat.name}</span>
+        </button>
+        <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground font-normal">{cat.children?.length || 0} sub</span>
-          {expanded ? (
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          {!cat.is_default && (
+            <DeleteCategoryButton categoryId={cat.id} categoryName={cat.name} hasChildren={(cat.children?.length || 0) > 0} />
           )}
         </div>
-      </button>
+      </div>
       {expanded && (
         <div className="border-t border-border divide-y divide-border/50">
           {cat.children?.map((sub) => (
@@ -252,15 +272,9 @@ function AddCategoryDialog() {
           <DialogTitle>Criar Categoria</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
-          <Input
-            placeholder="Nome da categoria"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
+          <Input placeholder="Nome da categoria" value={name} onChange={(e) => setName(e.target.value)} />
           <Select value={dreType} onValueChange={setDreType}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               {Object.entries(DRE_TYPE_LABELS).map(([k, v]) => (
                 <SelectItem key={k} value={k}>{v}</SelectItem>

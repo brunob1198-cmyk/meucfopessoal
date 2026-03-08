@@ -38,19 +38,16 @@ export default function Dashboard() {
     return eachMonthOfInterval({ start, end }).map(d => format(d, 'yyyy-MM'));
   }, [filter.startMonth, filter.endMonth]);
 
-  // Combine transactions + projections for future months
   const allData = useMemo(() => {
     if (!categories) return { txByMonth: new Map() as Map<string, any[]> };
     const txByMonth = new Map<string, any[]>();
 
-    // Add real transactions
     (transactions || []).forEach((t: any) => {
       const m = t.date.substring(0, 7);
       if (!txByMonth.has(m)) txByMonth.set(m, []);
       txByMonth.get(m)!.push(t);
     });
 
-    // Add projections for future months
     (projections || []).forEach((p: any) => {
       const m = typeof p.month === 'string' ? p.month.substring(0, 7) : '';
       const monthDate = new Date(Number(m.split('-')[0]), Number(m.split('-')[1]) - 1, 1);
@@ -88,7 +85,6 @@ export default function Dashboard() {
   const ebitda = lucroBruto - despesas;
   const lucroLiquido = ebitda - sumByType('depreciacao') + sumByType('resultado_financeiro') + sumByType('outras_receitas') - sumByType('impostos');
 
-  // Pie chart: expense distribution
   const pieData = useMemo(() => {
     if (!categories) return [];
     const parentCats = categories.filter((c) => !c.parent_id && c.dre_type === 'despesa');
@@ -103,12 +99,11 @@ export default function Dashboard() {
     }).filter((d) => d.value > 0).sort((a, b) => b.value - a.value);
   }, [categories, allData]);
 
-  // Stacked bar: expense categories by month (item 6)
   const stackedBarData = useMemo(() => {
     if (!categories) return { data: [] as any[], keys: [] as string[] };
     const parentCats = categories.filter((c) => !c.parent_id && c.dre_type === 'despesa');
     const catNames = parentCats.map(c => c.name);
-    const childMap = new Map<string, string>(); // childId -> parentName
+    const childMap = new Map<string, string>();
     parentCats.forEach(p => {
       categories.filter(c => c.parent_id === p.id).forEach(c => childMap.set(c.id, p.name));
     });
@@ -129,7 +124,6 @@ export default function Dashboard() {
     return { data, keys: catNames.filter(n => data.some(d => d[n] > 0)) };
   }, [categories, months, allData]);
 
-  // Line chart: DRE mensal (item 7)
   const lineData = useMemo(() => {
     if (!categories) return [];
     return months.map(m => {
@@ -155,6 +149,61 @@ export default function Dashboard() {
       };
     });
   }, [categories, months, allData]);
+
+  // Build detailed table data for export
+  const detailedTableData = useMemo(() => {
+    const rows: { [key: string]: string | number }[] = [];
+    rows.push({
+      Indicador: 'Receita Bruta',
+      Valor: formatBRL(receitaBruta),
+    });
+    rows.push({
+      Indicador: '(-) Descontos',
+      Valor: formatBRL(descontos),
+    });
+    rows.push({
+      Indicador: '= Receita Líquida',
+      Valor: formatBRL(receitaLiquida),
+    });
+    rows.push({
+      Indicador: '(-) Custos',
+      Valor: formatBRL(custos),
+    });
+    rows.push({
+      Indicador: '= Lucro Bruto',
+      Valor: formatBRL(lucroBruto),
+    });
+    rows.push({
+      Indicador: '(-) Despesas Operacionais',
+      Valor: formatBRL(despesas),
+    });
+    rows.push({
+      Indicador: '= EBITDA',
+      Valor: formatBRL(ebitda),
+    });
+    rows.push({
+      Indicador: '= LUCRO LÍQUIDO',
+      Valor: formatBRL(lucroLiquido),
+    });
+    rows.push({ Indicador: '', Valor: '' });
+    rows.push({ Indicador: 'EVOLUÇÃO MENSAL', Valor: '' });
+    lineData.forEach(d => {
+      rows.push({
+        Indicador: d.mes,
+        'Receita Bruta': formatBRL(d['Receita Bruta']),
+        'Despesas + Custos': formatBRL(d['Despesas + Custos']),
+        'Lucro Líquido': formatBRL(d['Lucro Líquido']),
+      });
+    });
+    if (pieData.length > 0) {
+      rows.push({ Indicador: '', Valor: '' });
+      rows.push({ Indicador: 'DISTRIBUIÇÃO DE DESPESAS', Valor: '' });
+      pieData.forEach(d => {
+        rows.push({ Indicador: d.name, Valor: formatBRL(d.value) });
+      });
+    }
+    return rows;
+  }, [receitaBruta, descontos, receitaLiquida, custos, lucroBruto, despesas, ebitda, lucroLiquido, lineData, pieData]);
 
   const periodLabel = filter.startMonth === filter.endMonth
     ? format(filter.parseMonth(filter.startMonth), "MMMM 'de' yyyy", { locale: ptBR })
@@ -185,12 +234,7 @@ export default function Dashboard() {
         <ExportMenu
           filename={`dashboard-${filter.startMonth}-${filter.endMonth}`}
           title={`Dashboard — ${periodLabel}`}
-          getData={() => lineData.map(d => ({
-            Mês: d.mes,
-            'Receita Bruta': formatBRL(d['Receita Bruta']),
-            'Despesas + Custos': formatBRL(d['Despesas + Custos']),
-            'Lucro Líquido': formatBRL(d['Lucro Líquido']),
-          }))}
+          getData={() => detailedTableData}
         />
       </div>
 

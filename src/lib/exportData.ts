@@ -27,26 +27,60 @@ export function exportToExcel(data: ExportRow[], filename: string) {
   XLSX.writeFile(wb, `${filename}.xlsx`);
 }
 
-export function exportToPDF(data: ExportRow[], filename: string, title: string) {
+export function exportToPDF(data: ExportRow[], filename: string, title: string, options?: { colorRows?: boolean }) {
   if (data.length === 0) return;
   const headers = Object.keys(data[0]);
+  const useColors = options?.colorRows ?? false;
+
+  const rowHtml = data.map((row, idx) => {
+    const desc = String(row[headers[0]] || '');
+    const isTotal = desc.includes('TOTAL') || desc.includes('EBITDA') || desc.includes('Lucro') || desc.includes('Margem') || desc.includes('Patrimônio');
+    const isGroup = desc === desc.toUpperCase() && desc.length > 2 && !isTotal;
+    
+    let bgColor = '';
+    let fontWeight = '';
+    let color = '';
+    
+    if (useColors) {
+      if (isTotal) {
+        bgColor = '#1a365d'; fontWeight = 'bold'; color = '#fff';
+      } else if (isGroup) {
+        bgColor = '#2d4a7a'; fontWeight = '600'; color = '#e8edf5';
+      } else if (idx % 2 === 0) {
+        bgColor = '#f7f9fc';
+      } else {
+        bgColor = '#ffffff';
+      }
+    } else {
+      if (isTotal) {
+        bgColor = '#e8edf5'; fontWeight = 'bold';
+      } else if (idx % 2 === 0) {
+        bgColor = '#fafafa';
+      }
+    }
+
+    return `<tr style="background:${bgColor};font-weight:${fontWeight};color:${color}">
+      ${headers.map((h, i) => `<td style="border:1px solid ${useColors ? '#c5d1e0' : '#ddd'};padding:5px 10px;${i > 0 ? 'text-align:right;' : ''}">${row[h]}</td>`).join('')}
+    </tr>`;
+  }).join('');
 
   const html = `
     <!DOCTYPE html>
     <html><head><meta charset="utf-8"><title>${title}</title>
     <style>
-      body { font-family: Arial, sans-serif; margin: 20px; font-size: 11px; }
-      h1 { font-size: 16px; margin-bottom: 10px; }
-      table { width: 100%; border-collapse: collapse; }
-      th, td { border: 1px solid #ddd; padding: 4px 8px; text-align: left; }
-      th { background: #f5f5f5; font-weight: 600; }
-      td:not(:first-child) { text-align: right; }
+      body { font-family: 'Segoe UI', Arial, sans-serif; margin: 20px; font-size: 11px; color: #1a202c; }
+      h1 { font-size: 18px; margin-bottom: 4px; color: #1a365d; font-weight: 700; }
+      .subtitle { font-size: 11px; color: #718096; margin-bottom: 16px; }
+      table { width: 100%; border-collapse: collapse; border: 1px solid ${useColors ? '#1a365d' : '#ddd'}; }
+      th { background: #1a365d; color: #fff; padding: 8px 10px; text-align: left; font-weight: 600; font-size: 11px; border: 1px solid #1a365d; }
+      th:not(:first-child) { text-align: right; }
       @media print { body { margin: 0; } }
     </style></head><body>
     <h1>${title}</h1>
+    <div class="subtitle">Gerado em ${new Date().toLocaleDateString('pt-BR')} — Sistema Operacional da Vida Financeira</div>
     <table>
       <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
-      <tbody>${data.map(row => `<tr>${headers.map(h => `<td>${row[h]}</td>`).join('')}</tr>`).join('')}</tbody>
+      <tbody>${rowHtml}</tbody>
     </table>
     </body></html>
   `;

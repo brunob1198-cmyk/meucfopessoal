@@ -7,9 +7,10 @@ interface ExportMenuProps {
   getData: () => { [key: string]: string | number }[];
   filename: string;
   title: string;
+  colorRows?: boolean;
 }
 
-export function ExportMenu({ getData, filename, title }: ExportMenuProps) {
+export function ExportMenu({ getData, filename, title, colorRows = true }: ExportMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -24,7 +25,7 @@ export function ExportMenu({ getData, filename, title }: ExportMenuProps) {
         <DropdownMenuItem onClick={() => exportToCSV(getData(), filename)}>
           <FileDown className="h-4 w-4 mr-2" /> CSV
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => exportToPDF(getData(), filename, title)}>
+        <DropdownMenuItem onClick={() => exportToPDF(getData(), filename, title, { colorRows })}>
           <FileText className="h-4 w-4 mr-2" /> PDF (impressão)
         </DropdownMenuItem>
       </DropdownMenuContent>

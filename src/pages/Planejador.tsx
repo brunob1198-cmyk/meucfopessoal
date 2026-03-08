@@ -4,17 +4,18 @@ import { useProjections, useBulkReplicateProjection } from '@/hooks/useProjectio
 import { usePersistedFilter } from '@/hooks/usePersistedFilter';
 import { MonthRangePicker } from '@/components/MonthRangePicker';
 import { formatBRL } from '@/lib/dre';
-import { format, eachMonthOfInterval } from 'date-fns';
+import { format, eachMonthOfInterval, addMonths, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, ChevronDown, ChevronRight, Copy, Save, ChevronsUpDown } from 'lucide-react';
+import { Loader2, ChevronDown, ChevronRight, Copy, Save, ChevronsUpDown, Lock } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 
 const STORAGE_KEY = 'planejador-expanded-groups';
+const REPLICATE_STORAGE_KEY = 'planejador-replicate-period';
 
 function loadExpandedGroups(): Set<string> {
   try {
@@ -28,6 +29,30 @@ function saveExpandedGroups(groups: Set<string>) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify([...groups]));
 }
 
+function loadReplicatePeriod(): { start: string; end: string } | null {
+  try {
+    const raw = localStorage.getItem(REPLICATE_STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return null;
+}
+
+function saveReplicatePeriod(start: string, end: string) {
+  localStorage.setItem(REPLICATE_STORAGE_KEY, JSON.stringify({ start, end }));
+}
+
+/** Returns the first future month (month after current) */
+function getFirstFutureMonth(): string {
+  const next = addMonths(startOfMonth(new Date()), 1);
+  return format(next, 'yyyy-MM');
+}
+
+function isMonthEditable(month: string): boolean {
+  const now = new Date();
+  const currentMonth = format(startOfMonth(now), 'yyyy-MM');
+  return month > currentMonth;
+}
+
 function ReplicateDialog({
   categoryName,
   categoryId,
@@ -39,11 +64,28 @@ function ReplicateDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState(String(currentAmount || ''));
-  const year = new Date().getFullYear();
-  const allMonths = Array.from({ length: 12 }, (_, i) =>
-    `${year}-${String(i + 1).padStart(2, '0')}`
-  );
+  
+  const savedPeriod = loadReplicatePeriod();
+  const firstFuture = getFirstFutureMonth();
+  const defaultStart = savedPeriod?.start && savedPeriod.start >= firstFuture ? savedPeriod.start : firstFuture;
+  const defaultEnd = savedPeriod?.end && savedPeriod.end >= firstFuture ? savedPeriod.end : format(new Date(new Date().getFullYear(), 11, 1), 'yyyy-MM');
+  
+  const [startMonth, setStartMonth] = useState(defaultStart);
+  const [endMonth, setEndMonth] = useState(defaultEnd);
+
+  const allMonths = useMemo(() => {
+    if (startMonth > endMonth) return [];
+    const start = new Date(Number(startMonth.split('-')[0]), Number(startMonth.split('-')[1]) - 1, 1);
+    const end = new Date(Number(endMonth.split('-')[0]), Number(endMonth.split('-')[1]) - 1, 1);
+    return eachMonthOfInterval({ start, end }).map(d => format(d, 'yyyy-MM'));
+  }, [startMonth, endMonth]);
+
   const [selectedMonths, setSelectedMonths] = useState<string[]>(allMonths);
+
+  useEffect(() => {
+    setSelectedMonths(allMonths);
+  }, [allMonths]);
+
   const replicate = useBulkReplicateProjection();
 
   const toggleMonth = (m: string) => {
@@ -54,14 +96,35 @@ function ReplicateDialog({
 
   const handleReplicate = async () => {
     if (!amount || selectedMonths.length === 0) return;
+    // Filter only future months
+    const futureMonths = selectedMonths.filter(isMonthEditable);
+    if (futureMonths.length === 0) {
+      toast.error('Selecione ao menos um mês futuro.');
+      return;
+    }
+    saveReplicatePeriod(startMonth, endMonth);
     await replicate.mutateAsync({
       category_id: categoryId,
       amount: Number(amount),
-      months: selectedMonths,
+      months: futureMonths,
     });
-    toast.success(`Valor replicado para ${selectedMonths.length} mês(es)`);
+    toast.success(`Valor replicado para ${futureMonths.length} mês(es)`);
     setOpen(false);
   };
+
+  // Generate month options for start/end selectors (next 24 months)
+  const monthOptions = useMemo(() => {
+    const opts: string[] = [];
+    const start = new Date();
+    start.setDate(1);
+    start.setMonth(start.getMonth() + 1);
+    for (let i = 0; i < 24; i++) {
+      const d = new Date(start);
+      d.setMonth(d.getMonth() + i);
+      opts.push(format(d, 'yyyy-MM'));
+    }
+    return opts;
+  }, []);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -79,15 +142,33 @@ function ReplicateDialog({
             <label className="text-sm font-medium">Valor projetado</label>
             <Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} step="0.01" className="mt-1" />
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Início</label>
+              <select value={startMonth} onChange={(e) => setStartMonth(e.target.value)} className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm mt-1">
+                {monthOptions.map(m => (
+                  <option key={m} value={m}>{format(new Date(Number(m.split('-')[0]), Number(m.split('-')[1]) - 1, 1), 'MMM/yyyy', { locale: ptBR })}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Fim</label>
+              <select value={endMonth} onChange={(e) => setEndMonth(e.target.value)} className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm mt-1">
+                {monthOptions.filter(m => m >= startMonth).map(m => (
+                  <option key={m} value={m}>{format(new Date(Number(m.split('-')[0]), Number(m.split('-')[1]) - 1, 1), 'MMM/yyyy', { locale: ptBR })}</option>
+                ))}
+              </select>
+            </div>
+          </div>
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium">Meses</label>
+              <label className="text-sm font-medium">Meses ({selectedMonths.length})</label>
               <Button variant="ghost" size="sm" className="text-xs h-6"
-                onClick={() => setSelectedMonths(selectedMonths.length === 12 ? [] : allMonths)}>
-                {selectedMonths.length === 12 ? 'Desmarcar todos' : 'Selecionar todos'}
+                onClick={() => setSelectedMonths(selectedMonths.length === allMonths.length ? [] : allMonths)}>
+                {selectedMonths.length === allMonths.length ? 'Desmarcar todos' : 'Selecionar todos'}
               </Button>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2 max-h-[200px] overflow-y-auto">
               {allMonths.map((m) => (
                 <label key={m} className="flex items-center gap-2 text-sm cursor-pointer">
                   <Checkbox checked={selectedMonths.includes(m)} onCheckedChange={() => toggleMonth(m)} />
@@ -138,7 +219,6 @@ export default function Planejador() {
   const [isDirty, setIsDirty] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => loadExpandedGroups());
 
-  // Persist expanded groups
   useEffect(() => {
     saveExpandedGroups(expandedGroups);
   }, [expandedGroups]);
@@ -168,6 +248,7 @@ export default function Planejador() {
   };
 
   const setDraftValue = (catId: string, month: string, value: number) => {
+    if (!isMonthEditable(month)) return;
     setDraft(prev => {
       const next = new Map(prev);
       next.set(`${catId}:${month}`, value);
@@ -182,6 +263,7 @@ export default function Planejador() {
     const grouped = new Map<string, { months: string[]; amount: number }[]>();
     draft.forEach((amount, key) => {
       const [catId, month] = key.split(':');
+      if (!isMonthEditable(month)) return; // skip past/current
       if (!grouped.has(catId)) grouped.set(catId, []);
       grouped.get(catId)!.push({ months: [month], amount });
     });
@@ -249,11 +331,17 @@ export default function Planejador() {
                 <thead className="sticky top-0 bg-card z-10">
                   <tr className="border-b border-border">
                     <th className="text-left py-3 px-4 font-medium text-muted-foreground min-w-[200px]">Categoria</th>
-                    {months.map(m => (
-                      <th key={m} className="text-center py-3 px-2 font-medium text-muted-foreground min-w-[100px] capitalize">
-                        {format(filter.parseMonth(m), 'MMM/yy', { locale: ptBR })}
-                      </th>
-                    ))}
+                    {months.map(m => {
+                      const editable = isMonthEditable(m);
+                      return (
+                        <th key={m} className={`text-center py-3 px-2 font-medium min-w-[100px] capitalize ${!editable ? 'text-muted-foreground/50' : 'text-muted-foreground'}`}>
+                          <div className="flex items-center justify-center gap-1">
+                            {!editable && <Lock className="h-3 w-3" />}
+                            {format(filter.parseMonth(m), 'MMM/yy', { locale: ptBR })}
+                          </div>
+                        </th>
+                      );
+                    })}
                     <th className="w-10" />
                   </tr>
                 </thead>
@@ -326,16 +414,23 @@ function CategoryRowMultiMonth({
           <td className="py-1.5 px-4 pl-10 text-sm">{sub.name}</td>
           {months.map(m => {
             const val = getDraftValue(sub.id, m);
+            const editable = isMonthEditable(m);
             return (
-              <td key={m} className="py-1.5 px-1">
-                <Input
-                  type="number"
-                  className="w-full text-center h-7 text-xs"
-                  value={val !== undefined ? val : ''}
-                  onChange={(e) => setDraftValue(sub.id, m, Number(e.target.value) || 0)}
-                  placeholder="0"
-                  step="0.01"
-                />
+              <td key={m} className={`py-1.5 px-1 ${!editable ? 'bg-muted/20' : ''}`}>
+                {editable ? (
+                  <Input
+                    type="number"
+                    className="w-full text-center h-7 text-xs"
+                    value={val !== undefined ? val : ''}
+                    onChange={(e) => setDraftValue(sub.id, m, Number(e.target.value) || 0)}
+                    placeholder="0"
+                    step="0.01"
+                  />
+                ) : (
+                  <div className="w-full text-center h-7 text-xs flex items-center justify-center text-muted-foreground/60">
+                    {val !== undefined ? formatBRL(val) : '—'}
+                  </div>
+                )}
               </td>
             );
           })}

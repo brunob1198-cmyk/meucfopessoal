@@ -90,7 +90,6 @@ export default function DREDetalhado() {
     });
   };
 
-  // Audit: global or per-month
   const [auditCategory, setAuditCategory] = useState<{ id: string; name: string; month?: string } | null>(null);
 
   const auditTransactions = useMemo(() => {
@@ -111,7 +110,12 @@ export default function DREDetalhado() {
     ? format(filter.parseMonth(filter.startMonth), "MMMM 'de' yyyy", { locale: ptBR })
     : `${format(filter.parseMonth(filter.startMonth), 'MMM/yy', { locale: ptBR })} a ${format(filter.parseMonth(filter.endMonth), 'MMM/yy', { locale: ptBR })}`;
 
-  const getTotalColorClass = (value: number) => value >= 0 ? 'text-primary' : 'text-destructive';
+  const getRowStyle = (row: typeof rowLabels[0]) => {
+    if (row.isTotal) return 'bg-[hsl(var(--table-total-bg))] text-[hsl(var(--table-total-fg))] font-bold';
+    if (row.isGroupHeader) return 'bg-[hsl(var(--table-cat-bg))] text-[hsl(var(--table-cat-fg))] font-semibold';
+    if (row.isSubcategory) return 'bg-[hsl(var(--table-subcat-bg))] text-[hsl(var(--table-subcat-fg))]';
+    return '';
+  };
 
   return (
     <div className="max-w-full mx-auto">
@@ -156,22 +160,22 @@ export default function DREDetalhado() {
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-foreground/10 border border-border" /> Real</span>
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-primary/20 border border-primary/30" /> Projetado</span>
         <span className="flex items-center gap-1 ml-2 text-muted-foreground">
-          Clique nas categorias para expandir. Clique em <Search className="h-3 w-3 inline" /> para ver lançamentos (geral ou por mês).
+          Clique nas categorias para expandir. Clique em <Search className="h-3 w-3 inline" /> para ver lançamentos.
         </span>
       </div>
 
-      <Card>
+      <Card className="overflow-hidden">
         <CardContent className="p-0">
           {loading ? (
             <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-card z-10">
-                  <tr className="border-b border-border">
-                    <th className="text-left py-2 px-3 font-medium text-muted-foreground min-w-[220px] sticky left-0 bg-card z-20">Descrição</th>
+                <thead className="sticky top-0 z-10">
+                  <tr className="bg-[hsl(var(--table-total-bg))] text-[hsl(var(--table-total-fg))]">
+                    <th className="text-left py-2.5 px-3 font-semibold min-w-[220px] sticky left-0 bg-[hsl(var(--table-total-bg))] z-20">Descrição</th>
                     {monthsData.map(md => (
-                      <th key={md.month} className={cn('text-right py-2 px-3 font-medium min-w-[110px] capitalize', md.isProjected ? 'text-primary bg-primary/5' : 'text-muted-foreground')}>
+                      <th key={md.month} className={cn('text-right py-2.5 px-3 font-semibold min-w-[110px] capitalize', md.isProjected && 'opacity-80')}>
                         {format(filter.parseMonth(md.month), 'MMM/yy', { locale: ptBR })}
                         {md.isProjected && <span className="block text-[9px] font-normal opacity-70">projetado</span>}
                       </th>
@@ -181,19 +185,20 @@ export default function DREDetalhado() {
                 <tbody>
                   {rowLabels.map((row, rowIdx) => {
                     if (row.isSubcategory && row.parentGroupId && !expandedGroups.has(row.parentGroupId)) return null;
+                    const rowStyle = getRowStyle(row);
                     return (
-                      <tr key={rowIdx} className={cn('border-b border-border/50', row.isTotal && 'bg-muted/40 font-semibold', row.isGroupHeader && !row.isTotal && 'bg-muted/20', row.isSubcategory && 'bg-background')}>
-                        <td className="py-2 px-3 sticky left-0 bg-inherit z-10" style={{ paddingLeft: `${row.indent * 1.5 + 0.75}rem` }}>
+                      <tr key={rowIdx} className={cn('border-b border-border/30', rowStyle)}>
+                        <td className={cn('py-2 px-3 sticky left-0 z-10', rowStyle)} style={{ paddingLeft: `${row.indent * 1.5 + 0.75}rem` }}>
                           <div className="flex items-center gap-1">
                             {row.isGroupHeader && row.groupId && (
-                              <button onClick={() => toggleGroup(row.groupId!)} className="p-0.5 hover:bg-muted rounded">
-                                {expandedGroups.has(row.groupId) ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                              <button onClick={() => toggleGroup(row.groupId!)} className="p-0.5 hover:opacity-70 rounded">
+                                {expandedGroups.has(row.groupId) ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
                               </button>
                             )}
                             <span>{row.label}</span>
                             {row.isSubcategory && row.categoryId && (
-                              <button onClick={() => setAuditCategory({ id: row.categoryId!, name: row.label })} className="p-0.5 hover:bg-muted rounded ml-1 opacity-50 hover:opacity-100" title="Ver todos os lançamentos">
-                                <Search className="h-3 w-3 text-muted-foreground" />
+                              <button onClick={() => setAuditCategory({ id: row.categoryId!, name: row.label })} className="p-0.5 hover:bg-muted/50 rounded ml-1 opacity-50 hover:opacity-100" title="Ver todos os lançamentos">
+                                <Search className="h-3 w-3" />
                               </button>
                             )}
                           </div>
@@ -203,7 +208,7 @@ export default function DREDetalhado() {
                           const val = line?.value ?? 0;
                           const isMargem = row.type === 'margem';
                           return (
-                            <td key={md.month} className={cn('text-right py-2 px-3 tabular-nums relative group/cell', row.isTotal && getTotalColorClass(val), !row.isTotal && val < 0 && 'text-destructive', md.isProjected && !row.isTotal && 'text-primary/80 bg-primary/5')}>
+                            <td key={md.month} className={cn('text-right py-2 px-3 tabular-nums relative group/cell', md.isProjected && !row.isTotal && !row.isGroupHeader && 'opacity-80')}>
                               {line ? (isMargem ? `${val.toFixed(1)}%` : formatBRL(val)) : '-'}
                               {row.isSubcategory && row.categoryId && val !== 0 && (
                                 <button

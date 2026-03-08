@@ -54,6 +54,14 @@
     --chart-custo: 38 92% 50%;
     --chart-desconto: 280 60% 50%;
     --chart-investimento: 220 70% 55%;
+
+    /* Executive table gradient tokens */
+    --table-cat-bg: 220 40% 22%;
+    --table-cat-fg: 220 10% 95%;
+    --table-subcat-bg: 220 25% 95%;
+    --table-subcat-fg: 220 30% 15%;
+    --table-total-bg: 220 50% 15%;
+    --table-total-fg: 0 0% 100%;
   }
 
   .dark {
@@ -99,6 +107,13 @@
     --sidebar-accent-foreground: 220 10% 90%;
     --sidebar-border: 220 25% 14%;
     --sidebar-ring: 220 70% 55%;
+
+    --table-cat-bg: 220 35% 25%;
+    --table-cat-fg: 220 10% 92%;
+    --table-subcat-bg: 220 20% 16%;
+    --table-subcat-fg: 220 10% 85%;
+    --table-total-bg: 220 45% 18%;
+    --table-total-fg: 0 0% 100%;
   }
 }
 
