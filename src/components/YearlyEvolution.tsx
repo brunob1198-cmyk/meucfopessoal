@@ -92,14 +92,36 @@ function generateYearRange(): number[] {
 
 const ALL_YEARS = generateYearRange();
 
+const STORAGE_KEY = 'yearly-evolution-filters';
+
+function loadFilters() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return null;
+}
+
+function saveFilters(data: any) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
+}
+
 export function YearlyEvolution() {
   const currentYear = new Date().getFullYear();
-  const [viewIndex, setViewIndex] = useState(0);
-  const [startYear, setStartYear] = useState(currentYear - 4);
-  const [endYear, setEndYear] = useState(currentYear);
-  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set()); // empty = all
+  const saved = useMemo(() => loadFilters(), []);
+  const [viewIndex, setViewIndex] = useState(saved?.viewIndex ?? 0);
+  const [startYear, setStartYear] = useState(saved?.startYear ?? currentYear - 4);
+  const [endYear, setEndYear] = useState(saved?.endYear ?? currentYear);
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(
+    () => new Set(saved?.selectedCategories ?? [])
+  );
   const chartRef = useRef<HTMLDivElement>(null);
   const view = VIEW_OPTIONS[viewIndex];
+
+  // Persist filters
+  useMemo(() => {
+    saveFilters({ viewIndex, startYear, endYear, selectedCategories: Array.from(selectedCategories) });
+  }, [viewIndex, startYear, endYear, selectedCategories]);
 
   const startDate = `${startYear}-01-01`;
   const endDate = `${endYear}-12-31`;
