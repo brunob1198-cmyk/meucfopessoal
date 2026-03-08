@@ -395,17 +395,17 @@ function CategoryRowMultiMonth({
 
   return (
     <>
-      <tr className="bg-muted/30 font-semibold border-b border-border/50">
-        <td className="py-2 px-4 flex items-center gap-1">
+      <tr className="bg-[hsl(var(--table-cat-bg))] text-[hsl(var(--table-cat-fg))] font-semibold border-b border-border/30">
+        <td className="py-2.5 px-4 flex items-center gap-1">
           {hasChildren && (
             <button onClick={onToggle} className="p-0.5">
-              {expanded ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+              {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
             </button>
           )}
           {cat.name}
         </td>
         {monthTotals.map((total, i) => (
-          <td key={months[i]} className="text-center py-2 px-2 tabular-nums text-sm">{formatBRL(total)}</td>
+          <td key={months[i]} className="text-center py-2.5 px-2 tabular-nums text-sm">{formatBRL(total)}</td>
         ))}
         <td />
       </tr>
