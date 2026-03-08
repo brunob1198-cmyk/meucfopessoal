@@ -129,7 +129,6 @@ export function ExcelUpload() {
     wsCat['!cols'] = [{ wch: 30 }];
     utils.book_append_sheet(wb, wsCat, 'Categorias');
 
-    const { writeFile } = require('xlsx');
     writeFile(wb, 'modelo-lancamentos.xlsx');
   };
 
