@@ -40,9 +40,9 @@ export function ExcelUpload() {
 
     const reader = new FileReader();
     reader.onload = (evt) => {
-      const wb = read(evt.target?.result, { type: 'binary', cellDates: true });
+      const wb = read(evt.target?.result, { type: 'binary' });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const json = utils.sheet_to_json<any>(ws, { defval: '' });
+      const json = utils.sheet_to_json<any>(ws, { defval: '', raw: true });
 
       const parsed: ParsedRow[] = json.map((row: any) => {
         const rawDate = row['Data'] || row['data'] || '';
@@ -51,24 +51,24 @@ export function ExcelUpload() {
         const rawComment = String(row['Comentário'] || row['Comentario'] || row['comentario'] || row['comentário'] || '');
 
         let dateStr = '';
-        if (rawDate instanceof Date && !isNaN(rawDate.getTime())) {
-          const y = rawDate.getUTCFullYear();
-          const m = String(rawDate.getUTCMonth() + 1).padStart(2, '0');
-          const d = String(rawDate.getUTCDate()).padStart(2, '0');
-          dateStr = `${y}-${m}-${d}`;
-        } else if (typeof rawDate === 'number') {
-          const d = new Date((rawDate - 25569) * 86400 * 1000);
-          dateStr = d.toISOString().split('T')[0];
+        if (typeof rawDate === 'number') {
+          // Excel serial date - add 12h to avoid timezone boundary issues
+          const utcMs = (rawDate - 25569) * 86400 * 1000 + 43200000;
+          const d = new Date(utcMs);
+          const y = d.getUTCFullYear();
+          const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+          const day = String(d.getUTCDate()).padStart(2, '0');
+          dateStr = `${y}-${m}-${day}`;
         } else if (typeof rawDate === 'string' && rawDate.includes('/')) {
           const parts = rawDate.split('/');
           if (parts.length === 3) {
-            // Always treat as DD/MM/YYYY (Brazilian format)
+            // Always DD/MM/YYYY (Brazilian format)
             const day = parts[0].padStart(2, '0');
             const month = parts[1].padStart(2, '0');
             const year = parts[2].length === 2 ? '20' + parts[2] : parts[2];
             dateStr = `${year}-${month}-${day}`;
           }
-        } else if (typeof rawDate === 'string') {
+        } else if (typeof rawDate === 'string' && rawDate.includes('-')) {
           dateStr = rawDate;
         }
 
