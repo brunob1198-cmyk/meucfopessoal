@@ -93,6 +93,16 @@ export default function Inteligencia() {
     setShowHistory(true);
   };
 
+  const deleteAnalysis = async (id: string) => {
+    const { error } = await supabase.from('analysis_history').delete().eq('id', id);
+    if (error) {
+      toast.error('Erro ao excluir análise');
+      return;
+    }
+    setHistory(prev => prev.filter(h => h.id !== id));
+    toast.success('Análise excluída');
+  };
+
   const getPeriodDates = () => {
     const now = new Date();
     if (periodType === 'custom') {
