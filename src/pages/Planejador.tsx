@@ -328,13 +328,13 @@ export default function Planejador() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-card z-10">
-                  <tr className="border-b border-border">
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground min-w-[200px]">Categoria</th>
+                <thead className="sticky top-0 z-10">
+                  <tr className="bg-[hsl(var(--table-total-bg))] text-[hsl(var(--table-total-fg))]">
+                    <th className="text-left py-3 px-4 font-semibold min-w-[200px] sticky left-0 bg-[hsl(var(--table-total-bg))] z-20">Categoria</th>
                     {months.map(m => {
                       const editable = isMonthEditable(m);
                       return (
-                        <th key={m} className={`text-center py-3 px-2 font-medium min-w-[100px] capitalize ${!editable ? 'text-muted-foreground/50' : 'text-muted-foreground'}`}>
+                        <th key={m} className={`text-center py-3 px-2 font-semibold min-w-[100px] capitalize ${!editable ? 'opacity-50' : ''}`}>
                           <div className="flex items-center justify-center gap-1">
                             {!editable && <Lock className="h-3 w-3" />}
                             {format(filter.parseMonth(m), 'MMM/yy', { locale: ptBR })}
