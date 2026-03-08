@@ -100,7 +100,7 @@ export default function DREDetalhado() {
       const ms = startOfMonth(new Date(Number(auditCategory.month.split('-')[0]), Number(auditCategory.month.split('-')[1]) - 1, 1));
       const me = endOfMonth(ms);
       filtered = filtered.filter(t => {
-        const d = new Date(t.date);
+        const d = parseLocalDate(t.date);
         return !isBefore(d, ms) && !isAfter(d, me);
       });
     }
