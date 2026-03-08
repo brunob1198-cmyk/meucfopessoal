@@ -146,7 +146,7 @@ export default function DREAjustado() {
                   const isMargem = line.type === 'margem';
                   const rowStyle = line.isTotal ? 'bg-[hsl(var(--table-total-bg))] text-[hsl(var(--table-total-fg))] font-bold' : '';
                   return (
-                    <tr key={i} className={cn('border-b border-border/30', rowStyle, monthsData[0]?.isProjected && !line.isTotal && 'opacity-80')}>
+                    <tr key={i} className={cn('border-b border-border/30', rowStyle, monthsData[0]?.isProjected && !line.isTotal && 'text-emerald-600')}>
                       <td className={cn('py-2.5 px-4', rowStyle)}>
                         {line.label}
                         {monthsData[0]?.isProjected && i === 0 && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">projetado</span>}
