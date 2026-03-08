@@ -241,6 +241,7 @@ export default function Dashboard() {
           filename={`dashboard-${filter.startMonth}-${filter.endMonth}`}
           title={`Dashboard — ${periodLabel}`}
           getData={() => detailedTableData}
+          chartRefs={[pieChartRef, lineChartRef, barChartRef]}
         />
       </div>
 
