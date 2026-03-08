@@ -334,6 +334,7 @@ export default function Dashboard() {
                 ))}
               </BarChart>
             </ResponsiveContainer>
+            </div>
           )}
         </CardContent>
       </Card>
