@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUserPlan, useTransactionCount, FREE_TX_LIMIT } from '@/hooks/useUserPlan';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
-import { ChevronDown, ChevronRight, Plus, Loader2, FolderPlus, Trash2, AlertTriangle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Loader2, FolderPlus, Trash2, AlertTriangle, Pencil, Check, X } from 'lucide-react';
 import { ExcelUpload } from '@/components/ExcelUpload';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
