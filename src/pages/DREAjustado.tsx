@@ -89,7 +89,7 @@ export default function DREAjustado() {
 
       <div className="flex gap-3 mb-3 text-xs">
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-foreground/10 border border-border" /> Real</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-primary/20 border border-primary/30" /> Projetado</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-200 border border-emerald-300" /> Projetado</span>
       </div>
 
       <Card className="overflow-hidden">
@@ -103,7 +103,7 @@ export default function DREAjustado() {
                   <tr className="bg-[hsl(var(--table-total-bg))] text-[hsl(var(--table-total-fg))]">
                     <th className="text-left py-2.5 px-4 font-semibold min-w-[200px] sticky left-0 bg-[hsl(var(--table-total-bg))] z-20">Descrição</th>
                     {monthsData.map(md => (
-                      <th key={md.month} className={cn('text-right py-2.5 px-3 font-semibold min-w-[110px] capitalize', md.isProjected && 'opacity-80')}>
+                      <th key={md.month} className={cn('text-right py-2.5 px-3 font-semibold min-w-[110px] capitalize', md.isProjected && 'text-emerald-700')}>
                         {format(filter.parseMonth(md.month), 'MMM/yy', { locale: ptBR })}
                         {md.isProjected && <span className="block text-[9px] font-normal opacity-70">projetado</span>}
                       </th>
@@ -121,7 +121,7 @@ export default function DREAjustado() {
                           const val = line?.value ?? 0;
                           const isMargem = row.type === 'margem';
                           return (
-                            <td key={md.month} className={cn('text-right py-2.5 px-3 tabular-nums', val < 0 && 'text-destructive', md.isProjected && !row.isTotal && 'opacity-80')}>
+                            <td key={md.month} className={cn('text-right py-2.5 px-3 tabular-nums', val < 0 && 'text-destructive', md.isProjected && !row.isTotal && 'text-emerald-600')}>
                               {line ? (isMargem ? `${val.toFixed(1)}%` : formatBRL(val)) : '-'}
                             </td>
                           );
@@ -146,12 +146,12 @@ export default function DREAjustado() {
                   const isMargem = line.type === 'margem';
                   const rowStyle = line.isTotal ? 'bg-[hsl(var(--table-total-bg))] text-[hsl(var(--table-total-fg))] font-bold' : '';
                   return (
-                    <tr key={i} className={cn('border-b border-border/30', rowStyle, monthsData[0]?.isProjected && !line.isTotal && 'opacity-80')}>
+                    <tr key={i} className={cn('border-b border-border/30', rowStyle, monthsData[0]?.isProjected && !line.isTotal && 'text-emerald-600')}>
                       <td className={cn('py-2.5 px-4', rowStyle)}>
                         {line.label}
-                        {monthsData[0]?.isProjected && i === 0 && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">projetado</span>}
+                        {monthsData[0]?.isProjected && i === 0 && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">projetado</span>}
                       </td>
-                      <td className={cn('text-right py-2.5 px-4 tabular-nums', line.value < 0 && 'text-destructive', monthsData[0]?.isProjected && !line.isTotal && 'opacity-80')}>
+                      <td className={cn('text-right py-2.5 px-4 tabular-nums', line.value < 0 && 'text-destructive', monthsData[0]?.isProjected && !line.isTotal && 'text-emerald-600')}>
                         {isMargem ? `${line.value.toFixed(1)}%` : formatBRL(line.value)}
                       </td>
                       <td className={cn('text-right py-2.5 px-4 tabular-nums text-muted-foreground', line.percent < 0 && 'text-destructive')}>{line.percent.toFixed(1)}%</td>
