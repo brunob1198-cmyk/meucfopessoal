@@ -9,7 +9,8 @@ import {
   Sparkles,
   CalendarRange,
   UserCircle,
-  Scale } from
+  Scale,
+  Calculator } from
 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
@@ -37,6 +38,7 @@ const items = [
 { title: 'CFO Digital', url: '/inteligencia', icon: Sparkles },
 { title: 'Compromissos', url: '/compromissos', icon: CalendarRange },
 { title: 'Balanço Patrimonial', url: '/balanco', icon: Scale },
+{ title: 'Simulador Financeiro', url: '/simulador', icon: Calculator },
 { title: 'Meu Perfil', url: '/perfil', icon: UserCircle }];
 
 
