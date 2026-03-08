@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Brain, AlertTriangle, Lightbulb, TrendingUp, RefreshCw, Sparkles, History, Calendar } from 'lucide-react';
+import { Loader2, Brain, AlertTriangle, Lightbulb, TrendingUp, RefreshCw, Sparkles, History, Calendar, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -91,6 +91,16 @@ export default function Inteligencia() {
       setHistory(data as unknown as HistoryItem[]);
     }
     setShowHistory(true);
+  };
+
+  const deleteAnalysis = async (id: string) => {
+    const { error } = await supabase.from('analysis_history').delete().eq('id', id);
+    if (error) {
+      toast.error('Erro ao excluir análise');
+      return;
+    }
+    setHistory(prev => prev.filter(h => h.id !== id));
+    toast.success('Análise excluída');
   };
 
   const getPeriodDates = () => {
@@ -238,30 +248,42 @@ export default function Inteligencia() {
               <p className="text-sm text-muted-foreground text-center py-8">Nenhuma análise anterior encontrada.</p>
             ) : (
               history.map((item) => (
-                <button
+                <div
                   key={item.id}
-                  onClick={() => {
-                    setResult(item.result);
-                    setShowHistory(false);
-                  }}
-                  className="w-full text-left p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                  className="flex items-center gap-2"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">
-                      {format(new Date(item.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {item.period_start && item.period_end
-                        ? `${item.period_start.substring(0, 7)} a ${item.period_end.substring(0, 7)}`
-                        : item.period_start
-                        ? `Desde ${item.period_start.substring(0, 7)}`
-                        : 'Últimos 12 meses'}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                    {item.result.insights?.[0] || 'Análise financeira'}
-                  </p>
-                </button>
+                  <button
+                    onClick={() => {
+                      setResult(item.result);
+                      setShowHistory(false);
+                    }}
+                    className="flex-1 text-left p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">
+                        {format(new Date(item.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {item.period_start && item.period_end
+                          ? `${item.period_start.substring(0, 7)} a ${item.period_end.substring(0, 7)}`
+                          : item.period_start
+                          ? `Desde ${item.period_start.substring(0, 7)}`
+                          : 'Últimos 12 meses'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                      {item.result.insights?.[0] || 'Análise financeira'}
+                    </p>
+                  </button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0 text-muted-foreground hover:text-destructive"
+                    onClick={() => deleteAnalysis(item.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               ))
             )}
           </div>
