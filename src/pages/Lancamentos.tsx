@@ -299,7 +299,10 @@ export default function Lancamentos() {
           <h1 className="text-xl font-bold text-foreground">Lançamentos</h1>
           <p className="text-sm text-muted-foreground">Clique na subcategoria para lançar rapidamente</p>
         </div>
-        <AddCategoryDialog />
+        <div className="flex items-center gap-2">
+          <ExcelUpload />
+          <AddCategoryDialog />
+        </div>
       </div>
       {tree.map((cat) => (
         <CategoryGroup key={cat.id} cat={cat} onSubmit={handleSubmit} />
