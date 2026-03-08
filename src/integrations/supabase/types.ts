@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      analysis_history: {
+        Row: {
+          created_at: string
+          id: string
+          period_end: string | null
+          period_start: string | null
+          result: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          period_end?: string | null
+          period_start?: string | null
+          result: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          period_end?: string | null
+          period_start?: string | null
+          result?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string

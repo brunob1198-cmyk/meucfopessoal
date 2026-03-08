@@ -37,14 +37,24 @@ export function useUpsertProjection() {
     }) => {
       if (!user) throw new Error('Não autenticado');
 
+      const monthValue = input.month.length === 7 ? input.month + '-01' : input.month;
+
       // Check if exists
       const { data: existing } = await supabase
         .from('projections')
         .select('id')
         .eq('user_id', user.id)
         .eq('category_id', input.category_id)
-        .eq('month', input.month + '-01')
+        .eq('month', monthValue)
         .maybeSingle();
+
+      if (input.amount === 0) {
+        // Delete if amount is 0
+        if (existing) {
+          await supabase.from('projections').delete().eq('id', existing.id);
+        }
+        return;
+      }
 
       if (existing) {
         const { error } = await supabase
@@ -58,7 +68,7 @@ export function useUpsertProjection() {
           .insert({
             user_id: user.id,
             category_id: input.category_id,
-            month: input.month + '-01',
+            month: monthValue,
             amount: input.amount,
           });
         if (error) throw error;
@@ -86,13 +96,23 @@ export function useBulkReplicateProjection() {
       if (!user) throw new Error('Não autenticado');
 
       for (const month of input.months) {
+        const monthValue = month.length === 7 ? month + '-01' : month;
+
         const { data: existing } = await supabase
           .from('projections')
           .select('id')
           .eq('user_id', user.id)
           .eq('category_id', input.category_id)
-          .eq('month', month + '-01')
+          .eq('month', monthValue)
           .maybeSingle();
+
+        if (input.amount === 0) {
+          // Delete projection when amount is 0
+          if (existing) {
+            await supabase.from('projections').delete().eq('id', existing.id);
+          }
+          continue;
+        }
 
         if (existing) {
           await supabase
@@ -105,7 +125,7 @@ export function useBulkReplicateProjection() {
             .insert({
               user_id: user.id,
               category_id: input.category_id,
-              month: month + '-01',
+              month: monthValue,
               amount: input.amount,
             });
         }
@@ -113,7 +133,6 @@ export function useBulkReplicateProjection() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projections'] });
-      toast.success('Projeção replicada com sucesso!');
     },
     onError: (err: Error) => {
       toast.error('Erro: ' + err.message);

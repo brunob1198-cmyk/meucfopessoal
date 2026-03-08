@@ -9,7 +9,7 @@ import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, ChevronDown, ChevronRight, Copy, Save } from 'lucide-react';
+import { Loader2, ChevronDown, ChevronRight, Copy, Save, ChevronsUpDown } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
@@ -63,38 +63,20 @@ function ReplicateDialog({
         <div className="space-y-4">
           <div>
             <label className="text-sm font-medium">Valor projetado</label>
-            <Input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              step="0.01"
-              className="mt-1"
-            />
+            <Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} step="0.01" className="mt-1" />
           </div>
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-sm font-medium">Meses</label>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs h-6"
-                onClick={() =>
-                  setSelectedMonths(selectedMonths.length === 12 ? [] : allMonths)
-                }
-              >
+              <Button variant="ghost" size="sm" className="text-xs h-6"
+                onClick={() => setSelectedMonths(selectedMonths.length === 12 ? [] : allMonths)}>
                 {selectedMonths.length === 12 ? 'Desmarcar todos' : 'Selecionar todos'}
               </Button>
             </div>
             <div className="grid grid-cols-3 gap-2">
               {allMonths.map((m) => (
-                <label
-                  key={m}
-                  className="flex items-center gap-2 text-sm cursor-pointer"
-                >
-                  <Checkbox
-                    checked={selectedMonths.includes(m)}
-                    onCheckedChange={() => toggleMonth(m)}
-                  />
+                <label key={m} className="flex items-center gap-2 text-sm cursor-pointer">
+                  <Checkbox checked={selectedMonths.includes(m)} onCheckedChange={() => toggleMonth(m)} />
                   <span className="capitalize">
                     {format(new Date(Number(m.split('-')[0]), Number(m.split('-')[1]) - 1, 1), 'MMM/yy', { locale: ptBR })}
                   </span>
@@ -102,16 +84,8 @@ function ReplicateDialog({
               ))}
             </div>
           </div>
-          <Button
-            onClick={handleReplicate}
-            disabled={replicate.isPending || !amount || selectedMonths.length === 0}
-            className="w-full"
-          >
-            {replicate.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              `Replicar para ${selectedMonths.length} mês(es)`
-            )}
+          <Button onClick={handleReplicate} disabled={replicate.isPending || !amount || selectedMonths.length === 0} className="w-full">
+            {replicate.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : `Replicar para ${selectedMonths.length} mês(es)`}
           </Button>
         </div>
       </DialogContent>
@@ -119,7 +93,7 @@ function ReplicateDialog({
   );
 }
 
-type DraftMap = Map<string, number>; // key = `${categoryId}:${month}`
+type DraftMap = Map<string, number>;
 
 export default function Planejador() {
   const filter = usePersistedFilter('planejador');
@@ -135,8 +109,6 @@ export default function Planejador() {
     return eachMonthOfInterval({ start, end }).map(d => format(d, 'yyyy-MM'));
   }, [filter.startMonth, filter.endMonth]);
 
-  // Build map from projections: key = categoryId:YYYY-MM
-  // FIX: normalize p.month from 'YYYY-MM-DD' to 'YYYY-MM'
   const savedMap = useMemo(() => {
     const map = new Map<string, number>();
     if (!projections) return map;
@@ -148,9 +120,9 @@ export default function Planejador() {
     return map;
   }, [projections]);
 
-  // Local draft state
   const [draft, setDraft] = useState<DraftMap>(new Map());
   const [isDirty, setIsDirty] = useState(false);
+  const [allExpanded, setAllExpanded] = useState(true);
 
   const getDraftValue = (catId: string, month: string): number | undefined => {
     const key = `${catId}:${month}`;
@@ -186,11 +158,7 @@ export default function Planejador() {
       });
 
       for (const [amount, monthList] of byAmount) {
-        await replicate.mutateAsync({
-          category_id: catId,
-          amount,
-          months: monthList,
-        });
+        await replicate.mutateAsync({ category_id: catId, amount, months: monthList });
       }
     }
 
@@ -213,6 +181,10 @@ export default function Planejador() {
           <p className="text-sm text-muted-foreground capitalize">{periodLabel}</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setAllExpanded(prev => !prev)} className="gap-1.5">
+            <ChevronsUpDown className="h-4 w-4" />
+            {allExpanded ? 'Recolher' : 'Expandir'}
+          </Button>
           <MonthRangePicker
             startMonth={filter.startMonth}
             endMonth={filter.endMonth}
@@ -220,17 +192,8 @@ export default function Planejador() {
             onEndChange={filter.setEndMonth}
             onYearClick={() => filter.setFullYear()}
           />
-          <Button
-            onClick={handleSave}
-            disabled={!isDirty || replicate.isPending}
-            className="gap-1.5"
-            size="sm"
-          >
-            {replicate.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
+          <Button onClick={handleSave} disabled={!isDirty || replicate.isPending} className="gap-1.5" size="sm">
+            {replicate.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Salvar
           </Button>
         </div>
@@ -247,9 +210,7 @@ export default function Planejador() {
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-card z-10">
                   <tr className="border-b border-border">
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground min-w-[200px]">
-                      Categoria
-                    </th>
+                    <th className="text-left py-3 px-4 font-medium text-muted-foreground min-w-[200px]">Categoria</th>
                     {months.map(m => (
                       <th key={m} className="text-center py-3 px-2 font-medium text-muted-foreground min-w-[100px] capitalize">
                         {format(filter.parseMonth(m), 'MMM/yy', { locale: ptBR })}
@@ -266,6 +227,7 @@ export default function Planejador() {
                       months={months}
                       getDraftValue={getDraftValue}
                       setDraftValue={setDraftValue}
+                      forceExpanded={allExpanded}
                     />
                   ))}
                 </tbody>
@@ -288,24 +250,21 @@ export default function Planejador() {
 }
 
 function CategoryRowMultiMonth({
-  cat,
-  months,
-  getDraftValue,
-  setDraftValue,
+  cat, months, getDraftValue, setDraftValue, forceExpanded,
 }: {
   cat: Category;
   months: string[];
   getDraftValue: (catId: string, month: string) => number | undefined;
   setDraftValue: (catId: string, month: string, value: number) => void;
+  forceExpanded: boolean;
 }) {
-  const [expanded, setExpanded] = useState(true);
+  const [localExpanded, setLocalExpanded] = useState(true);
+  const expanded = forceExpanded !== undefined ? forceExpanded : localExpanded;
   const hasChildren = cat.children && cat.children.length > 0;
 
   const monthTotals = useMemo(() => {
     if (!cat.children) return months.map(() => 0);
-    return months.map(m => {
-      return cat.children!.reduce((sum, c) => sum + (getDraftValue(c.id, m) || 0), 0);
-    });
+    return months.map(m => cat.children!.reduce((sum, c) => sum + (getDraftValue(c.id, m) || 0), 0));
   }, [cat.children, months, getDraftValue]);
 
   return (
@@ -313,54 +272,40 @@ function CategoryRowMultiMonth({
       <tr className="bg-muted/30 font-semibold border-b border-border/50">
         <td className="py-2 px-4 flex items-center gap-1">
           {hasChildren && (
-            <button onClick={() => setExpanded(!expanded)} className="p-0.5">
-              {expanded ? (
-                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-              ) : (
-                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-              )}
+            <button onClick={() => setLocalExpanded(!localExpanded)} className="p-0.5">
+              {expanded ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
             </button>
           )}
           {cat.name}
         </td>
         {monthTotals.map((total, i) => (
-          <td key={months[i]} className="text-center py-2 px-2 tabular-nums text-sm">
-            {formatBRL(total)}
-          </td>
+          <td key={months[i]} className="text-center py-2 px-2 tabular-nums text-sm">{formatBRL(total)}</td>
         ))}
         <td />
       </tr>
-      {expanded &&
-        cat.children?.map((sub) => (
-          <tr key={sub.id} className="border-b border-border/50">
-            <td className="py-1.5 px-4 pl-10 text-sm">{sub.name}</td>
-            {months.map(m => {
-              const val = getDraftValue(sub.id, m);
-              return (
-                <td key={m} className="py-1.5 px-1">
-                  <Input
-                    type="number"
-                    className="w-full text-center h-7 text-xs"
-                    value={val !== undefined ? val : ''}
-                    onChange={(e) => {
-                      const numVal = Number(e.target.value) || 0;
-                      setDraftValue(sub.id, m, numVal);
-                    }}
-                    placeholder="0"
-                    step="0.01"
-                  />
-                </td>
-              );
-            })}
-            <td className="py-1.5 px-1">
-              <ReplicateDialog
-                categoryName={sub.name}
-                categoryId={sub.id}
-                currentAmount={getDraftValue(sub.id, months[0]) || 0}
-              />
-            </td>
-          </tr>
-        ))}
+      {expanded && cat.children?.map((sub) => (
+        <tr key={sub.id} className="border-b border-border/50">
+          <td className="py-1.5 px-4 pl-10 text-sm">{sub.name}</td>
+          {months.map(m => {
+            const val = getDraftValue(sub.id, m);
+            return (
+              <td key={m} className="py-1.5 px-1">
+                <Input
+                  type="number"
+                  className="w-full text-center h-7 text-xs"
+                  value={val !== undefined ? val : ''}
+                  onChange={(e) => setDraftValue(sub.id, m, Number(e.target.value) || 0)}
+                  placeholder="0"
+                  step="0.01"
+                />
+              </td>
+            );
+          })}
+          <td className="py-1.5 px-1">
+            <ReplicateDialog categoryName={sub.name} categoryId={sub.id} currentAmount={getDraftValue(sub.id, months[0]) || 0} />
+          </td>
+        </tr>
+      ))}
     </>
   );
 }
