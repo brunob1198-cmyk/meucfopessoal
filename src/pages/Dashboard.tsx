@@ -254,7 +254,12 @@ export default function Dashboard() {
       {/* Row 1: Pie + Evolução DRE Linha */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
-          <CardHeader><CardTitle className="text-base">Distribuição de Despesas (%)</CardTitle></CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-base">Distribuição de Despesas (%)</CardTitle>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => exportChartAsPNG(pieChartRef.current, 'distribuicao-despesas')} title="Exportar gráfico">
+              <ImageDown className="h-4 w-4" />
+            </Button>
+          </CardHeader>
           <CardContent>
             {pieData.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">Sem dados para o período</p>
