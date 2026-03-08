@@ -42,50 +42,55 @@ export function ExcelUpload() {
     reader.onload = (evt) => {
       const wb = read(evt.target?.result, { type: 'binary' });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      
-      // Get both raw (numbers) and formatted (strings) to handle dates properly
-      const jsonRaw = utils.sheet_to_json<any>(ws, { defval: '', raw: true });
-      const jsonFmt = utils.sheet_to_json<any>(ws, { defval: '', raw: false });
+      const json = utils.sheet_to_json<any>(ws, { defval: '', raw: true });
 
-      const parsed: ParsedRow[] = jsonRaw.map((row: any, idx: number) => {
+      // Pure math serial-to-date (no JS Date/timezone issues)
+      function excelSerialToDate(serial: number): string {
+        // Excel 1900 date system (with Lotus 1-2-3 leap year bug)
+        let s = Math.round(serial);
+        if (s > 60) s--; // adjust for the fake Feb 29, 1900
+        
+        let y = 1900;
+        let daysLeft = s - 1; // serial 1 = Jan 1, 1900
+        
+        while (true) {
+          const daysInYear = (y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0)) ? 366 : 365;
+          if (daysLeft < daysInYear) break;
+          daysLeft -= daysInYear;
+          y++;
+        }
+        
+        const isLeap = (y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0));
+        const monthDays = [31, isLeap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+        let m = 0;
+        while (m < 12 && daysLeft >= monthDays[m]) {
+          daysLeft -= monthDays[m];
+          m++;
+        }
+        
+        return `${y}-${String(m + 1).padStart(2, '0')}-${String(daysLeft + 1).padStart(2, '0')}`;
+      }
+
+      const parsed: ParsedRow[] = json.map((row: any) => {
         const rawDate = row['Data'] || row['data'] || '';
-        const fmtDate = (jsonFmt[idx] || {})['Data'] || (jsonFmt[idx] || {})['data'] || '';
         const rawCat = String(row['Categoria'] || row['categoria'] || '').trim();
         const rawAmount = Number(String(row['Valor'] || row['valor'] || 0).replace(/,/g, ''));
         const rawComment = String(row['Comentário'] || row['Comentario'] || row['comentario'] || row['comentário'] || '');
 
-        console.log('DEBUG ROW', idx, 'rawDate:', rawDate, 'type:', typeof rawDate, 'fmtDate:', fmtDate);
-
         let dateStr = '';
-        
-        // First try the formatted string from xlsx (most reliable)
-        const dateText = String(fmtDate || rawDate || '');
-        
-        if (dateText.includes('/')) {
-          const parts = dateText.split('/');
+        if (typeof rawDate === 'number') {
+          dateStr = excelSerialToDate(rawDate);
+        } else if (typeof rawDate === 'string' && rawDate.includes('/')) {
+          const parts = rawDate.split('/');
           if (parts.length === 3) {
-            const p0 = parseInt(parts[0]);
-            const p1 = parseInt(parts[1]);
-            const p2 = parts[2];
-            const year = p2.length === 2 ? '20' + p2 : p2;
-            
-            // If formatted as M/D/YY (US format from xlsx)
-            if (p0 <= 12 && p1 <= 31) {
-              // xlsx formats dates as M/D/YY in US locale
-              // So 2/1/25 means month=2, day=1 → Feb 1
-              dateStr = `${year}-${String(p0).padStart(2, '0')}-${String(p1).padStart(2, '0')}`;
-            } else {
-              // DD/MM/YYYY Brazilian format
-              dateStr = `${year}-${String(p1).padStart(2, '0')}-${String(p0).padStart(2, '0')}`;
-            }
+            // Always DD/MM/YYYY (Brazilian format)
+            const day = parts[0].padStart(2, '0');
+            const month = parts[1].padStart(2, '0');
+            const year = parts[2].length === 2 ? '20' + parts[2] : parts[2];
+            dateStr = `${year}-${month}-${day}`;
           }
-        } else if (dateText.includes('-')) {
-          dateStr = dateText;
-        } else if (typeof rawDate === 'number') {
-          // Fallback: Excel serial number
-          const utcMs = Math.round((rawDate - 25569) * 86400) * 1000;
-          const d = new Date(utcMs);
-          dateStr = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+        } else if (typeof rawDate === 'string' && rawDate.includes('-')) {
+          dateStr = rawDate;
         }
 
         const catId = categoryMap.get(rawCat.toLowerCase());
