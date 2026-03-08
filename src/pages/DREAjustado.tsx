@@ -121,7 +121,7 @@ export default function DREAjustado() {
                           const val = line?.value ?? 0;
                           const isMargem = row.type === 'margem';
                           return (
-                            <td key={md.month} className={cn('text-right py-2.5 px-3 tabular-nums', !row.isTotal && val < 0 && 'text-destructive', md.isProjected && !row.isTotal && 'opacity-80')}>
+                            <td key={md.month} className={cn('text-right py-2.5 px-3 tabular-nums', val < 0 && 'text-destructive', md.isProjected && !row.isTotal && 'opacity-80')}>
                               {line ? (isMargem ? `${val.toFixed(1)}%` : formatBRL(val)) : '-'}
                             </td>
                           );
