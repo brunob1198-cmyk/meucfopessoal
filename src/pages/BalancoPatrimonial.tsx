@@ -339,6 +339,21 @@ export default function BalancoPatrimonial() {
     }).filter(d => d.value > 0);
   }, [assets]);
 
+  // Alert: passivos > ativos
+  const isPassivosExceedAtivos = totalLiabilities > totalAssets;
+
+  // Alert: 3 consecutive months of declining net worth
+  const isDeclineTrend = useMemo(() => {
+    if (history.length < 3) return false;
+    const last3 = history.slice(-3);
+    return (
+      Number(last3[2].net_worth) < Number(last3[1].net_worth) &&
+      Number(last3[1].net_worth) < Number(last3[0].net_worth)
+    );
+  }, [history]);
+
+  const hasAlerts = isPassivosExceedAtivos || isDeclineTrend;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -347,6 +362,36 @@ export default function BalancoPatrimonial() {
           <p className="text-muted-foreground text-sm">Visão completa da sua posição financeira</p>
         </div>
       </div>
+
+      {/* Alerts */}
+      {hasAlerts && (
+        <div className="space-y-3">
+          {isPassivosExceedAtivos && (
+            <div className="flex items-start gap-3 p-4 rounded-lg border border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/40">
+              <ShieldAlert className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-sm text-red-700 dark:text-red-300">Passivos superam os Ativos</p>
+                <p className="text-xs text-red-600/80 dark:text-red-400/80 mt-0.5">
+                  Seus passivos ({fmt(totalLiabilities)}) estão maiores que seus ativos ({fmt(totalAssets)}).
+                  Isso significa patrimônio líquido negativo — priorize a redução de dívidas.
+                </p>
+              </div>
+            </div>
+          )}
+          {isDeclineTrend && (
+            <div className="flex items-start gap-3 p-4 rounded-lg border border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40">
+              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-sm text-amber-700 dark:text-amber-300">Patrimônio em queda há 3 meses</p>
+                <p className="text-xs text-amber-600/80 dark:text-amber-400/80 mt-0.5">
+                  Seu patrimônio líquido está em queda consecutiva nos últimos 3 meses.
+                  Revise seus gastos e considere estratégias para reverter essa tendência.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
