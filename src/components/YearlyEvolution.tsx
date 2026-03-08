@@ -268,10 +268,15 @@ export function YearlyEvolution() {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-56 p-3 pointer-events-auto" align="end">
-                  <div className="space-y-2">
-                    <Button variant="ghost" size="sm" className="w-full justify-start h-7 text-xs" onClick={selectAll}>
-                      Mostrar todas
-                    </Button>
+                   <div className="space-y-2">
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="sm" className="flex-1 justify-start h-7 text-xs" onClick={selectAll}>
+                        Todas
+                      </Button>
+                      <Button variant="ghost" size="sm" className="flex-1 justify-start h-7 text-xs" onClick={deselectAll}>
+                        Nenhuma
+                      </Button>
+                    </div>
                     <div className="border-t border-border pt-2 space-y-1.5 max-h-60 overflow-y-auto">
                       {allRows.map((r, i) => (
                         <label key={r.name} className="flex items-center gap-2 cursor-pointer text-sm hover:bg-muted/50 rounded px-1 py-0.5">
