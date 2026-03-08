@@ -109,6 +109,40 @@ function formatCompact(value: number): string {
   return formatBRL(value);
 }
 
+function formatNumberBR(value: number): string {
+  return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function parseNumberBR(value: string): number {
+  // Remove thousand separators and convert decimal comma to dot
+  const cleaned = value.replace(/\./g, '').replace(',', '.');
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? 0 : num;
+}
+
+function CurrencyInput({ value, onChange, className }: { value: number; onChange: (v: number) => void; className?: string }) {
+  const [display, setDisplay] = useState(formatNumberBR(value));
+  const [focused, setFocused] = useState(false);
+
+  useEffect(() => {
+    if (!focused) setDisplay(formatNumberBR(value));
+  }, [value, focused]);
+
+  return (
+    <Input
+      value={display}
+      className={className}
+      onFocus={() => setFocused(true)}
+      onBlur={() => {
+        setFocused(false);
+        onChange(parseNumberBR(display));
+        setDisplay(formatNumberBR(parseNumberBR(display)));
+      }}
+      onChange={e => setDisplay(e.target.value)}
+    />
+  );
+}
+
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
@@ -441,13 +475,13 @@ export default function SimuladorFinanceiro() {
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground">Patrimônio Investido Atual</Label>
-                <Input type="number" value={scenario.currentInvestment} onChange={e => updateScenario('currentInvestment', Number(e.target.value))} className="mt-1" />
+                <CurrencyInput value={scenario.currentInvestment} onChange={v => updateScenario('currentInvestment', v)} className="mt-1" />
               </div>
             </div>
             <div className="space-y-4">
               <div>
                 <Label className="text-xs text-muted-foreground">Investimento Mensal</Label>
-                <Input type="number" value={scenario.monthlyInvestment} onChange={e => updateScenario('monthlyInvestment', Number(e.target.value))} className="mt-1" />
+                <CurrencyInput value={scenario.monthlyInvestment} onChange={v => updateScenario('monthlyInvestment', v)} className="mt-1" />
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground">Crescimento da Renda: {scenario.incomeGrowth}% a.a.</Label>
