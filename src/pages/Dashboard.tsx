@@ -34,6 +34,7 @@ export default function Dashboard() {
   const pieChartRef = useRef<HTMLDivElement>(null);
   const lineChartRef = useRef<HTMLDivElement>(null);
   const barChartRef = useRef<HTMLDivElement>(null);
+  const dashboardRef = useRef<HTMLDivElement>(null);
 
   const now = new Date();
   const currentMonthEnd = endOfMonth(now);
