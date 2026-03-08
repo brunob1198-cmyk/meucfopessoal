@@ -311,11 +311,17 @@ export default function Dashboard() {
 
       {/* Row 2: Stacked bar expenses */}
       <Card>
-        <CardHeader><CardTitle className="text-base">Gastos por Categoria (Coluna Empilhada)</CardTitle></CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-base">Gastos por Categoria (Coluna Empilhada)</CardTitle>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => exportChartAsPNG(barChartRef.current, 'gastos-por-categoria')} title="Exportar gráfico">
+            <ImageDown className="h-4 w-4" />
+          </Button>
+        </CardHeader>
         <CardContent>
           {stackedBarData.data.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">Sem dados</p>
           ) : (
+            <div ref={barChartRef}>
             <ResponsiveContainer width="100%" height={320}>
               <BarChart data={stackedBarData.data}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
