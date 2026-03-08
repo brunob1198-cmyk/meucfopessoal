@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { read, utils } from 'xlsx';
+import { read, utils, writeFile } from 'xlsx';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCategories } from '@/hooks/useCategories';
