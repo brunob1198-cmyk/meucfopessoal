@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUserPlan, useTransactionCount, FREE_TX_LIMIT } from '@/hooks/useUserPlan';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
-import { ChevronDown, ChevronRight, Plus, Loader2, FolderPlus, Trash2, AlertTriangle, Pencil, Check, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Loader2, FolderPlus, Trash2, AlertTriangle, Pencil, Check, X, ArrowRightLeft } from 'lucide-react';
 import { ExcelUpload } from '@/components/ExcelUpload';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -130,7 +130,65 @@ function DeleteCategoryButton({ categoryId, categoryName, hasChildren }: { categ
   );
 }
 
-function SubcategoryRow({ cat, onSubmit }: { cat: Category; onSubmit: (data: any) => void }) {
+function MoveSubcategoryButton({ subcategory, parentCategories }: { subcategory: Category; parentCategories: Category[] }) {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [targetParentId, setTargetParentId] = useState('');
+  const queryClient = useQueryClient();
+
+  const available = parentCategories.filter(p => p.id !== subcategory.parent_id);
+
+  const handleMove = async () => {
+    if (!targetParentId) return;
+    setSaving(true);
+    const targetParent = parentCategories.find(p => p.id === targetParentId);
+    const { error } = await supabase.from('categories').update({
+      parent_id: targetParentId,
+      dre_type: (targetParent?.dre_type || subcategory.dre_type) as any,
+    }).eq('id', subcategory.id);
+    if (error) {
+      toast.error('Erro ao mover: ' + error.message);
+    } else {
+      toast.success(`"${subcategory.name}" movida com sucesso!`);
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    }
+    setSaving(false);
+    setOpen(false);
+    setTargetParentId('');
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <button className="p-1 hover:bg-muted rounded transition-colors" title="Mover para outra categoria">
+          <ArrowRightLeft className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+        </button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Mover "{subcategory.name}"</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">Selecione a nova categoria pai. Os lançamentos existentes serão mantidos.</p>
+        <Select value={targetParentId} onValueChange={setTargetParentId}>
+          <SelectTrigger><SelectValue placeholder="Selecione a nova categoria..." /></SelectTrigger>
+          <SelectContent>
+            {available.map(p => (
+              <SelectItem key={p.id} value={p.id}>
+                {p.name} <span className="text-muted-foreground ml-1">({DRE_TYPE_LABELS[p.dre_type] || p.dre_type})</span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button onClick={handleMove} disabled={saving || !targetParentId} className="w-full">
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Mover Subcategoria'}
+        </Button>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SubcategoryRow({ cat, onSubmit, parentCategories }: { cat: Category; onSubmit: (data: any) => void; parentCategories: Category[] }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [amount, setAmount] = useState('');
@@ -173,6 +231,7 @@ function SubcategoryRow({ cat, onSubmit }: { cat: Category; onSubmit: (data: any
           <button onClick={() => setEditing(true)} className="p-1 hover:bg-muted rounded transition-colors" title="Editar">
             <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
           </button>
+          <MoveSubcategoryButton subcategory={cat} parentCategories={parentCategories} />
           <DeleteCategoryButton categoryId={cat.id} categoryName={cat.name} />
           <Plus className="h-3.5 w-3.5 text-muted-foreground cursor-pointer" onClick={() => setOpen(!open)} />
         </div>
@@ -237,7 +296,7 @@ function AddSubcategoryForm({ parentId, onDone }: { parentId: string; onDone: ()
   );
 }
 
-function CategoryGroup({ cat, onSubmit }: { cat: Category; onSubmit: (data: any) => void }) {
+function CategoryGroup({ cat, onSubmit, parentCategories }: { cat: Category; onSubmit: (data: any) => void; parentCategories: Category[] }) {
   const [expanded, setExpanded] = useState(false);
   const [addingSub, setAddingSub] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -267,7 +326,7 @@ function CategoryGroup({ cat, onSubmit }: { cat: Category; onSubmit: (data: any)
       {expanded && (
         <div className="border-t border-border divide-y divide-border/50">
           {cat.children?.map((sub) => (
-            <SubcategoryRow key={sub.id} cat={sub} onSubmit={onSubmit} />
+            <SubcategoryRow key={sub.id} cat={sub} onSubmit={onSubmit} parentCategories={parentCategories} />
           ))}
           {addingSub ? (
             <AddSubcategoryForm parentId={cat.id} onDone={() => setAddingSub(false)} />
@@ -388,7 +447,7 @@ export default function Lancamentos() {
         </div>
       </div>
       {tree.map((cat) => (
-        <CategoryGroup key={cat.id} cat={cat} onSubmit={handleSubmit} />
+        <CategoryGroup key={cat.id} cat={cat} onSubmit={handleSubmit} parentCategories={tree} />
       ))}
     </div>
   );
