@@ -9,6 +9,7 @@ import { format, eachMonthOfInterval, startOfMonth, endOfMonth, isAfter, isBefor
 import { ptBR } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { ExportMenu } from '@/components/ExportMenu';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, LineChart, Line,
