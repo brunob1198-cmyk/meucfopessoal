@@ -296,7 +296,7 @@ function AddSubcategoryForm({ parentId, onDone }: { parentId: string; onDone: ()
   );
 }
 
-function CategoryGroup({ cat, onSubmit }: { cat: Category; onSubmit: (data: any) => void }) {
+function CategoryGroup({ cat, onSubmit, parentCategories }: { cat: Category; onSubmit: (data: any) => void; parentCategories: Category[] }) {
   const [expanded, setExpanded] = useState(false);
   const [addingSub, setAddingSub] = useState(false);
   const [editing, setEditing] = useState(false);
