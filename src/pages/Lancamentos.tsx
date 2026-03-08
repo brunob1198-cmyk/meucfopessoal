@@ -37,13 +37,50 @@ const DRE_TYPE_LABELS: Record<string, string> = {
   investimento: 'Investimento',
 };
 
+function EditCategoryInline({ categoryId, currentName, onDone }: { categoryId: string; currentName: string; onDone: () => void }) {
+  const [name, setName] = useState(currentName);
+  const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleSave = async () => {
+    if (!name.trim() || name.trim() === currentName) { onDone(); return; }
+    setSaving(true);
+    const { error } = await supabase.from('categories').update({ name: name.trim() }).eq('id', categoryId);
+    if (error) {
+      toast.error('Erro ao renomear: ' + error.message);
+    } else {
+      toast.success('Categoria renomeada!');
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+    }
+    setSaving(false);
+    onDone();
+  };
+
+  return (
+    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+      <Input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        className="h-7 text-xs w-40"
+        autoFocus
+        onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') onDone(); }}
+      />
+      <button onClick={handleSave} disabled={saving} className="p-1 hover:bg-primary/10 rounded">
+        {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3 text-primary" />}
+      </button>
+      <button onClick={onDone} className="p-1 hover:bg-muted rounded">
+        <X className="h-3 w-3 text-muted-foreground" />
+      </button>
+    </div>
+  );
+}
+
 function DeleteCategoryButton({ categoryId, categoryName, hasChildren }: { categoryId: string; categoryName: string; hasChildren?: boolean }) {
   const [deleting, setDeleting] = useState(false);
   const queryClient = useQueryClient();
 
   const handleDelete = async () => {
     setDeleting(true);
-    // Delete children first if any
     if (hasChildren) {
       const { error: childError } = await supabase.from('categories').delete().eq('parent_id', categoryId);
       if (childError) {
