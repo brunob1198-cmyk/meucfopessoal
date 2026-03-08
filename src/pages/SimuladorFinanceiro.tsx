@@ -481,7 +481,7 @@ export default function SimuladorFinanceiro() {
             <div className="space-y-4">
               <div>
                 <Label className="text-xs text-muted-foreground">Investimento Mensal</Label>
-                <Input type="number" value={scenario.monthlyInvestment} onChange={e => updateScenario('monthlyInvestment', Number(e.target.value))} className="mt-1" />
+                <CurrencyInput value={scenario.monthlyInvestment} onChange={v => updateScenario('monthlyInvestment', v)} className="mt-1" />
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground">Crescimento da Renda: {scenario.incomeGrowth}% a.a.</Label>
