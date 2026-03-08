@@ -319,14 +319,14 @@ export function YearlyEvolution() {
           <CardContent>
             <div ref={chartRef}>
               <ResponsiveContainer width="100%" height={380}>
-                <BarChart data={chartData} barCategoryGap="20%" barGap={1}>
+                <BarChart data={chartData} barCategoryGap="20%" barGap={1} margin={{ top: 20, right: 20, bottom: 5, left: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="ano" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                   <Tooltip formatter={(v: number) => formatBRL(v)} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
                   {chartKeys.map((key, i) => (
-                    <Bar key={key} dataKey={key} stackId="yearly" fill={COLORS[i % COLORS.length]}>
+                    <Bar key={key} dataKey={key} stackId="yearly" fill={COLORS[i % COLORS.length]} shape={Bar3DShape(COLORS[i % COLORS.length])}>
                       <LabelList
                         dataKey={key}
                         position="inside"
