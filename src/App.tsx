@@ -13,6 +13,7 @@ import Planejador from "./pages/Planejador";
 import Dashboard from "./pages/Dashboard";
 import Inteligencia from "./pages/Inteligencia";
 import Compromissos from "./pages/Compromissos";
+import BalancoPatrimonial from "./pages/BalancoPatrimonial";
 import Perfil from "./pages/Perfil";
 import NotFound from "./pages/NotFound";
 
@@ -48,6 +49,7 @@ const App = () => (
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/inteligencia" element={<ProtectedRoute><Inteligencia /></ProtectedRoute>} />
             <Route path="/compromissos" element={<ProtectedRoute><Compromissos /></ProtectedRoute>} />
+            <Route path="/balanco" element={<ProtectedRoute><BalancoPatrimonial /></ProtectedRoute>} />
             <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>

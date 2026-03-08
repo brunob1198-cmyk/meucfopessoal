@@ -41,6 +41,90 @@ export type Database = {
         }
         Relationships: []
       }
+      balance_sheet_assets: {
+        Row: {
+          acquisition_date: string | null
+          category: Database["public"]["Enums"]["asset_category"]
+          created_at: string
+          current_value: number
+          id: string
+          name: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          acquisition_date?: string | null
+          category: Database["public"]["Enums"]["asset_category"]
+          created_at?: string
+          current_value?: number
+          id?: string
+          name: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          acquisition_date?: string | null
+          category?: Database["public"]["Enums"]["asset_category"]
+          created_at?: string
+          current_value?: number
+          id?: string
+          name?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      balance_sheet_liabilities: {
+        Row: {
+          category: Database["public"]["Enums"]["liability_category"]
+          created_at: string
+          current_balance: number
+          end_date: string | null
+          id: string
+          interest_rate: number | null
+          monthly_payment: number | null
+          name: string
+          notes: string | null
+          start_date: string | null
+          total_value: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["liability_category"]
+          created_at?: string
+          current_balance?: number
+          end_date?: string | null
+          id?: string
+          interest_rate?: number | null
+          monthly_payment?: number | null
+          name: string
+          notes?: string | null
+          start_date?: string | null
+          total_value?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["liability_category"]
+          created_at?: string
+          current_balance?: number
+          end_date?: string | null
+          id?: string
+          interest_rate?: number | null
+          monthly_payment?: number | null
+          name?: string
+          notes?: string | null
+          start_date?: string | null
+          total_value?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
@@ -81,6 +165,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      net_worth_history: {
+        Row: {
+          created_at: string
+          id: string
+          month: string
+          net_worth: number
+          total_assets: number
+          total_liabilities: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          month: string
+          net_worth?: number
+          total_assets?: number
+          total_liabilities?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          month?: string
+          net_worth?: number
+          total_assets?: number
+          total_liabilities?: number
+          user_id?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -265,6 +379,18 @@ export type Database = {
       }
     }
     Enums: {
+      asset_category:
+        | "conta_corrente"
+        | "poupanca"
+        | "dinheiro_caixa"
+        | "renda_fixa"
+        | "acoes"
+        | "fundos"
+        | "criptomoedas"
+        | "imoveis"
+        | "veiculos"
+        | "participacoes"
+        | "outros_bens"
       dre_type:
         | "receita"
         | "desconto"
@@ -275,6 +401,14 @@ export type Database = {
         | "outras_receitas"
         | "impostos"
         | "investimento"
+      liability_category:
+        | "cartao_credito"
+        | "emprestimo"
+        | "financiamento_imobiliario"
+        | "financiamento_veiculo"
+        | "parcelamento"
+        | "impostos_pagar"
+        | "outros_passivos"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -402,6 +536,19 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      asset_category: [
+        "conta_corrente",
+        "poupanca",
+        "dinheiro_caixa",
+        "renda_fixa",
+        "acoes",
+        "fundos",
+        "criptomoedas",
+        "imoveis",
+        "veiculos",
+        "participacoes",
+        "outros_bens",
+      ],
       dre_type: [
         "receita",
         "desconto",
@@ -412,6 +559,15 @@ export const Constants = {
         "outras_receitas",
         "impostos",
         "investimento",
+      ],
+      liability_category: [
+        "cartao_credito",
+        "emprestimo",
+        "financiamento_imobiliario",
+        "financiamento_veiculo",
+        "parcelamento",
+        "impostos_pagar",
+        "outros_passivos",
       ],
     },
   },

@@ -8,7 +8,8 @@ import {
   TrendingUp,
   Sparkles,
   CalendarRange,
-  UserCircle } from
+  UserCircle,
+  Scale } from
 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
@@ -35,6 +36,7 @@ const items = [
 { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
 { title: 'CFO Digital', url: '/inteligencia', icon: Sparkles },
 { title: 'Compromissos', url: '/compromissos', icon: CalendarRange },
+{ title: 'Balanço Patrimonial', url: '/balanco', icon: Scale },
 { title: 'Meu Perfil', url: '/perfil', icon: UserCircle }];
 
 
