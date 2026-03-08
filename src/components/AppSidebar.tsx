@@ -64,7 +64,7 @@ export function AppSidebar() {
                     activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
                     
                       <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span className="text-orange-500 font-medium">{item.title}</span>}
+                      {!collapsed && <span className="font-medium text-amber-400">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
