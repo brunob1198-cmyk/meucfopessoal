@@ -11,7 +11,8 @@ import { ptBR } from 'date-fns/locale';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, ChevronDown, ChevronRight, Search, ChevronsUpDown } from 'lucide-react';
+import { Loader2, ChevronDown, ChevronRight, Search, ChevronsUpDown, Pencil, Check, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { ExportMenu } from '@/components/ExportMenu';
 
