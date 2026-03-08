@@ -44,7 +44,7 @@ export default function DREDetalhado() {
       const monthEnd = endOfMonth(monthDate);
       const isFuture = isAfter(monthStart, currentMonthEnd);
       const monthTx = (transactions || []).filter((t: any) => {
-        const txDate = new Date(t.date);
+        const txDate = parseLocalDate(t.date);
         return !isBefore(txDate, monthStart) && !isAfter(txDate, monthEnd);
       });
       if (isFuture) {
