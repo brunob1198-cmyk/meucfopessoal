@@ -92,14 +92,36 @@ function generateYearRange(): number[] {
 
 const ALL_YEARS = generateYearRange();
 
+const STORAGE_KEY = 'yearly-evolution-filters';
+
+function loadFilters() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return null;
+}
+
+function saveFilters(data: any) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
+}
+
 export function YearlyEvolution() {
   const currentYear = new Date().getFullYear();
-  const [viewIndex, setViewIndex] = useState(0);
-  const [startYear, setStartYear] = useState(currentYear - 4);
-  const [endYear, setEndYear] = useState(currentYear);
-  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set()); // empty = all
+  const saved = useMemo(() => loadFilters(), []);
+  const [viewIndex, setViewIndex] = useState(saved?.viewIndex ?? 0);
+  const [startYear, setStartYear] = useState(saved?.startYear ?? currentYear - 4);
+  const [endYear, setEndYear] = useState(saved?.endYear ?? currentYear);
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(
+    () => new Set(saved?.selectedCategories ?? [])
+  );
   const chartRef = useRef<HTMLDivElement>(null);
   const view = VIEW_OPTIONS[viewIndex];
+
+  // Persist filters
+  useMemo(() => {
+    saveFilters({ viewIndex, startYear, endYear, selectedCategories: Array.from(selectedCategories) });
+  }, [viewIndex, startYear, endYear, selectedCategories]);
 
   const startDate = `${startYear}-01-01`;
   const endDate = `${endYear}-12-31`;
@@ -168,6 +190,7 @@ export function YearlyEvolution() {
   };
 
   const selectAll = () => setSelectedCategories(new Set());
+  const deselectAll = () => setSelectedCategories(new Set(['__none__'])); // special empty state
 
   // Year-over-year percentages
   const yearPercentages = useMemo(() => {
@@ -245,10 +268,15 @@ export function YearlyEvolution() {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-56 p-3 pointer-events-auto" align="end">
-                  <div className="space-y-2">
-                    <Button variant="ghost" size="sm" className="w-full justify-start h-7 text-xs" onClick={selectAll}>
-                      Mostrar todas
-                    </Button>
+                   <div className="space-y-2">
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="sm" className="flex-1 justify-start h-7 text-xs" onClick={selectAll}>
+                        Todas
+                      </Button>
+                      <Button variant="ghost" size="sm" className="flex-1 justify-start h-7 text-xs" onClick={deselectAll}>
+                        Nenhuma
+                      </Button>
+                    </div>
                     <div className="border-t border-border pt-2 space-y-1.5 max-h-60 overflow-y-auto">
                       {allRows.map((r, i) => (
                         <label key={r.name} className="flex items-center gap-2 cursor-pointer text-sm hover:bg-muted/50 rounded px-1 py-0.5">
