@@ -1,1 +1,4 @@
 project_id = "krfbtzrqkaorhmfpoygp"
+
+[functions.financial-insights]
+verify_jwt = false

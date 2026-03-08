@@ -5,7 +5,8 @@ import {
   Target,
   LayoutDashboard,
   LogOut,
-  TrendingUp } from
+  TrendingUp,
+  Sparkles } from
 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
@@ -29,7 +30,8 @@ const items = [
 { title: 'DRE Detalhado', url: '/dre', icon: FileText },
 { title: 'DRE Ajustado', url: '/dre-ajustado', icon: FileBarChart },
 { title: 'Planejador', url: '/planejador', icon: Target },
-{ title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard }];
+{ title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+{ title: 'CFO Digital', url: '/inteligencia', icon: Sparkles }];
 
 
 export function AppSidebar() {

@@ -11,6 +11,7 @@ import DREDetalhado from "./pages/DREDetalhado";
 import DREAjustado from "./pages/DREAjustado";
 import Planejador from "./pages/Planejador";
 import Dashboard from "./pages/Dashboard";
+import Inteligencia from "./pages/Inteligencia";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ const App = () => (
             <Route path="/dre-ajustado" element={<ProtectedRoute><DREAjustado /></ProtectedRoute>} />
             <Route path="/planejador" element={<ProtectedRoute><Planejador /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/inteligencia" element={<ProtectedRoute><Inteligencia /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
