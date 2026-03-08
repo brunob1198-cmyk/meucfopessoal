@@ -6,7 +6,8 @@ import {
   LayoutDashboard,
   LogOut,
   TrendingUp,
-  Sparkles } from
+  Sparkles,
+  CalendarRange } from
 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
