@@ -35,7 +35,7 @@ const items = [
 { title: 'DRE Ajustado', url: '/dre-ajustado', icon: FileBarChart },
 { title: 'Planejador', url: '/planejador', icon: Target },
 { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
-{ title: 'CFO Digital', url: '/inteligencia', icon: Sparkles },
+{ title: 'CFO Digital IA', url: '/inteligencia', icon: Sparkles },
 { title: 'Compromissos', url: '/compromissos', icon: CalendarRange },
 { title: 'Balanço Patrimonial', url: '/balanco', icon: Scale },
 { title: 'Simulador de Futuro Financeiro', url: '/simulador', icon: Calculator },
