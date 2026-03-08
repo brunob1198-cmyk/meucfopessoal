@@ -30,6 +30,9 @@ export default function Dashboard() {
   const { data: projections } = useProjections(filter.startDate, filter.endDate);
 
   const loading = txLoading || catLoading;
+  const pieChartRef = useRef<HTMLDivElement>(null);
+  const lineChartRef = useRef<HTMLDivElement>(null);
+  const barChartRef = useRef<HTMLDivElement>(null);
 
   const now = new Date();
   const currentMonthEnd = endOfMonth(now);
