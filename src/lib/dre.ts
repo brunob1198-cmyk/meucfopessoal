@@ -70,23 +70,17 @@ export function computeDRE(
   const depreciacao = sumByType('depreciacao');
   const ebit = ebitda - depreciacao;
 
+  const pct = (v: number) => (receitaBruta > 0 ? (v / receitaBruta) * 100 : 0);
+
+  const parentCategories = categories.filter((c) => !c.parent_id);
+
   // Resultado Financeiro: split into receitas and despesas financeiras
   const rfParents = parentCategories.filter((c) => c.dre_type === 'resultado_financeiro');
   const rfReceitaParents = rfParents.filter((p) => !p.name.toLowerCase().includes('despesa'));
   const rfDespesaParents = rfParents.filter((p) => p.name.toLowerCase().includes('despesa'));
 
-  const receitasFinanceiras = rfReceitaParents.reduce((sum, p) => sum + sumByParentId(p.id), 0)
-    + transactions.filter((t) => {
-        const cat = categories.find((c) => c.id === t.category_id);
-        return cat && !cat.parent_id && cat.dre_type === 'resultado_financeiro' && !cat.name.toLowerCase().includes('despesa');
-      }).reduce((sum, t) => sum + Number(t.amount), 0);
-
-  const despesasFinanceiras = rfDespesaParents.reduce((sum, p) => sum + sumByParentId(p.id), 0)
-    + transactions.filter((t) => {
-        const cat = categories.find((c) => c.id === t.category_id);
-        return cat && !cat.parent_id && cat.dre_type === 'resultado_financeiro' && cat.name.toLowerCase().includes('despesa');
-      }).reduce((sum, t) => sum + Number(t.amount), 0);
-
+  const receitasFinanceiras = rfReceitaParents.reduce((sum, p) => sum + sumByParentId(p.id), 0);
+  const despesasFinanceiras = rfDespesaParents.reduce((sum, p) => sum + sumByParentId(p.id), 0);
   const resultadoFinanceiro = receitasFinanceiras - despesasFinanceiras;
 
   const outrasReceitas = sumByType('outras_receitas');
@@ -94,9 +88,6 @@ export function computeDRE(
   const impostos = sumByType('impostos');
   const lucroLiquido = lair - impostos;
 
-  const pct = (v: number) => (receitaBruta > 0 ? (v / receitaBruta) * 100 : 0);
-
-  const parentCategories = categories.filter((c) => !c.parent_id);
   const lines: DRELine[] = [];
 
   // Receita
