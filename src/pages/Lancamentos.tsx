@@ -132,6 +132,7 @@ function DeleteCategoryButton({ categoryId, categoryName, hasChildren }: { categ
 
 function SubcategoryRow({ cat, onSubmit }: { cat: Category; onSubmit: (data: any) => void }) {
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [comment, setComment] = useState('');
@@ -161,10 +162,17 @@ function SubcategoryRow({ cat, onSubmit }: { cat: Category; onSubmit: (data: any
   return (
     <div>
       <div className="w-full flex items-center justify-between py-2 px-3 text-sm hover:bg-muted/50 rounded transition-colors">
-        <button onClick={() => setOpen(!open)} className="flex-1 text-left flex items-center gap-1">
-          <span>{cat.name}</span>
-        </button>
+        {editing ? (
+          <EditCategoryInline categoryId={cat.id} currentName={cat.name} onDone={() => setEditing(false)} />
+        ) : (
+          <button onClick={() => setOpen(!open)} className="flex-1 text-left flex items-center gap-1">
+            <span>{cat.name}</span>
+          </button>
+        )}
         <div className="flex items-center gap-1">
+          <button onClick={() => setEditing(true)} className="p-1 hover:bg-muted rounded transition-colors" title="Editar">
+            <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+          </button>
           <DeleteCategoryButton categoryId={cat.id} categoryName={cat.name} />
           <Plus className="h-3.5 w-3.5 text-muted-foreground cursor-pointer" onClick={() => setOpen(!open)} />
         </div>
