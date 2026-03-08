@@ -182,6 +182,16 @@ export default function Dashboard() {
           onEndChange={filter.setEndMonth}
           onYearClick={() => filter.setFullYear()}
         />
+        <ExportMenu
+          filename={`dashboard-${filter.startMonth}-${filter.endMonth}`}
+          title={`Dashboard — ${periodLabel}`}
+          getData={() => lineData.map(d => ({
+            Mês: d.mes,
+            'Receita Bruta': formatBRL(d['Receita Bruta']),
+            'Despesas + Custos': formatBRL(d['Despesas + Custos']),
+            'Lucro Líquido': formatBRL(d['Lucro Líquido']),
+          }))}
+        />
       </div>
 
       {/* KPIs */}

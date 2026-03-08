@@ -279,9 +279,17 @@ function AddCategoryDialog() {
 export default function Lancamentos() {
   const { data: categories, isLoading } = useCategories();
   const createTx = useCreateTransaction();
+  const { isPremium } = useUserPlan();
+  const { data: txCount } = useTransactionCount();
   const tree = categories ? buildCategoryTree(categories) : [];
+  const limitReached = !isPremium && (txCount || 0) >= FREE_TX_LIMIT;
 
   const handleSubmit = async (data: any) => {
+    if (limitReached) {
+      const { toast } = await import('sonner');
+      toast.error(`Limite de ${FREE_TX_LIMIT} lançamentos/mês atingido. Faça upgrade para Premium.`);
+      return;
+    }
     await createTx.mutateAsync(data);
   };
 
@@ -299,6 +307,13 @@ export default function Lancamentos() {
         <div>
           <h1 className="text-xl font-bold text-foreground">Lançamentos</h1>
           <p className="text-sm text-muted-foreground">Clique na subcategoria para lançar rapidamente</p>
+          {!isPremium && (
+            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+              {limitReached && <AlertTriangle className="h-3 w-3 text-destructive" />}
+              {txCount || 0}/{FREE_TX_LIMIT} lançamentos este mês
+              {limitReached && <span className="text-destructive font-medium"> — Limite atingido</span>}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <ExcelUpload />
