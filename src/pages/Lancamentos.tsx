@@ -240,17 +240,25 @@ function AddSubcategoryForm({ parentId, onDone }: { parentId: string; onDone: ()
 function CategoryGroup({ cat, onSubmit }: { cat: Category; onSubmit: (data: any) => void }) {
   const [expanded, setExpanded] = useState(false);
   const [addingSub, setAddingSub] = useState(false);
+  const [editing, setEditing] = useState(false);
   const colorClass = DRE_TYPE_COLORS[cat.dre_type] || '';
 
   return (
     <Card className={`border-l-4 ${colorClass} overflow-hidden`}>
       <div className="w-full flex items-center justify-between p-3 text-left font-semibold text-sm hover:bg-muted/30 transition-colors">
-        <button onClick={() => setExpanded(!expanded)} className="flex-1 flex items-center gap-1">
-          {expanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-          <span>{cat.name}</span>
-        </button>
+        {editing ? (
+          <EditCategoryInline categoryId={cat.id} currentName={cat.name} onDone={() => setEditing(false)} />
+        ) : (
+          <button onClick={() => setExpanded(!expanded)} className="flex-1 flex items-center gap-1">
+            {expanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+            <span>{cat.name}</span>
+          </button>
+        )}
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground font-normal">{cat.children?.length || 0} sub</span>
+          <button onClick={() => setEditing(true)} className="p-1 hover:bg-muted rounded transition-colors" title="Editar">
+            <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+          </button>
           {!cat.is_default && (
             <DeleteCategoryButton categoryId={cat.id} categoryName={cat.name} hasChildren={(cat.children?.length || 0) > 0} />
           )}
