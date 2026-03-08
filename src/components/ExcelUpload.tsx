@@ -44,8 +44,9 @@ export function ExcelUpload() {
       const ws = wb.Sheets[wb.SheetNames[0]];
       const json = utils.sheet_to_json<any>(ws, { defval: '', raw: true });
 
-      const parsed: ParsedRow[] = json.map((row: any) => {
+      const parsed: ParsedRow[] = json.map((row: any, idx: number) => {
         const rawDate = row['Data'] || row['data'] || '';
+        if (idx < 3) console.log('DEBUG ROW', idx, 'rawDate:', rawDate, 'type:', typeof rawDate, 'keys:', Object.keys(row));
         const rawCat = String(row['Categoria'] || row['categoria'] || '').trim();
         const rawAmount = Number(String(row['Valor'] || row['valor'] || 0).replace(/,/g, ''));
         const rawComment = String(row['Comentário'] || row['Comentario'] || row['comentario'] || row['comentário'] || '');
