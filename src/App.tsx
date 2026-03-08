@@ -11,6 +11,7 @@ import DREDetalhado from "./pages/DREDetalhado";
 import DREAjustado from "./pages/DREAjustado";
 import Planejador from "./pages/Planejador";
 import Dashboard from "./pages/Dashboard";
+import Inteligencia from "./pages/Inteligencia";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
