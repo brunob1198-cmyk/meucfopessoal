@@ -151,7 +151,7 @@ export default function DREAjustado() {
                         {line.label}
                         {monthsData[0]?.isProjected && i === 0 && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">projetado</span>}
                       </td>
-                      <td className={cn('text-right py-2.5 px-4 tabular-nums', !line.isTotal && line.value < 0 && 'text-destructive', monthsData[0]?.isProjected && !line.isTotal && 'opacity-80')}>
+                      <td className={cn('text-right py-2.5 px-4 tabular-nums', line.value < 0 && 'text-destructive', monthsData[0]?.isProjected && !line.isTotal && 'opacity-80')}>
                         {isMargem ? `${line.value.toFixed(1)}%` : formatBRL(line.value)}
                       </td>
                       <td className="text-right py-2.5 px-4 tabular-nums text-muted-foreground">{line.percent.toFixed(1)}%</td>
