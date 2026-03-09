@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { parseLocalDate } from '@/lib/utils';
-import { useTransactions, useUpdateTransaction } from '@/hooks/useTransactions';
+import { useTransactions, useUpdateTransaction, useDeleteTransaction } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import { useProjections } from '@/hooks/useProjections';
 import { computeDRE, formatBRL, DRELine } from '@/lib/dre';
