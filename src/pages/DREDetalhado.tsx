@@ -275,16 +275,16 @@ export default function DREDetalhado() {
                   <span>Data</span><span>Comentário</span><span className="text-right">Valor</span><span></span>
                 </div>
                 {auditTransactions.map((t: any) => (
-                  <div key={t.id} className="group/row grid grid-cols-[80px_1fr_100px_40px] gap-2 text-sm py-1.5 border-b border-border/50 items-center">
-                    <span className="text-muted-foreground tabular-nums">{format(parseLocalDate(t.date), 'dd/MM/yy')}</span>
-                    <span className="text-muted-foreground flex items-center gap-1 min-w-0">
-                      {editingId === t.id ? (
-                        <span className="flex items-center gap-1 flex-1">
+                  <div key={t.id} className="group/row">
+                    {editingId === t.id ? (
+                      <div className="border border-primary rounded p-2 space-y-2 bg-muted/30">
+                        <div className="flex gap-2">
                           <Input
-                            value={editComment}
-                            onChange={(e) => setEditComment(e.target.value)}
-                            className="h-7 text-xs"
-                            placeholder="Comentário..."
+                            type="date"
+                            value={editDate}
+                            onChange={(e) => setEditDate(e.target.value)}
+                            className="h-8 text-xs w-32"
+                          />
                             autoFocus
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
