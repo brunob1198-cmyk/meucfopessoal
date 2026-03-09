@@ -85,6 +85,8 @@ export default function DREDetalhado() {
     }));
   }, [monthsData]);
 
+  const allGroupIds = useMemo(() => rowLabels.filter(r => r.isGroupHeader && r.groupId).map(r => r.groupId!), [rowLabels]);
+
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => {
     try {
       const saved = localStorage.getItem('dre-detalhado-expanded');
