@@ -611,7 +611,7 @@ export default function Tutorial() {
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg">
             <MessageCircleQuestion className="h-5 w-5 text-primary" />
-            Pergunte ao Assistente
+            Pergunte ao Big B
             {messages.length > 0 && (
               <Button variant="ghost" size="sm" className="ml-auto text-xs text-muted-foreground h-7" onClick={clearHistory}>
                 Limpar histórico
