@@ -305,6 +305,7 @@ export type Database = {
           installment_group: string | null
           installment_number: number | null
           is_installment: boolean
+          payment_date: string
           total_installments: number | null
           updated_at: string
           user_id: string
@@ -319,6 +320,7 @@ export type Database = {
           installment_group?: string | null
           installment_number?: number | null
           is_installment?: boolean
+          payment_date?: string
           total_installments?: number | null
           updated_at?: string
           user_id: string
@@ -333,6 +335,7 @@ export type Database = {
           installment_group?: string | null
           installment_number?: number | null
           is_installment?: boolean
+          payment_date?: string
           total_installments?: number | null
           updated_at?: string
           user_id?: string
