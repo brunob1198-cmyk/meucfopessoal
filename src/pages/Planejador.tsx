@@ -439,12 +439,14 @@ export default function Planejador() {
 }
 
 function CategoryRowMultiMonth({
-  cat, months, getDraftValue, setDraftValue, expanded, onToggle,
+  cat, months, getDraftValue, getDraftNotes, setDraftValue, setDraftNotesValue, expanded, onToggle,
 }: {
   cat: Category;
   months: string[];
   getDraftValue: (catId: string, month: string) => number | undefined;
+  getDraftNotes: (catId: string, month: string) => string | undefined;
   setDraftValue: (catId: string, month: string, value: number) => void;
+  setDraftNotesValue: (catId: string, month: string, notes: string) => void;
   expanded: boolean;
   onToggle: () => void;
 }) {
