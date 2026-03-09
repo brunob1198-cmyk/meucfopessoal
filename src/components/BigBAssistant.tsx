@@ -181,12 +181,11 @@ export function BigBAssistant() {
 
           {/* Speech bubble "Ajuda?" */}
           {!open && (
-            <div className="absolute -left-[70px] top-1/2 -translate-y-1/2 pointer-events-none">
-              <div className="relative bg-card border border-border rounded-xl px-3 py-1.5 shadow-md">
-                <span className="text-xs font-medium text-foreground whitespace-nowrap">Ajuda?</span>
-                {/* Arrow pointing right */}
-                <div className="absolute top-1/2 -translate-y-1/2 -right-[6px] w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[6px] border-l-border"></div>
-                <div className="absolute top-1/2 -translate-y-1/2 -right-[5px] w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-l-[5px] border-l-card"></div>
+            <div className="absolute -left-[58px] top-1/2 -translate-y-1/2 pointer-events-none">
+              <div className="relative bg-card border border-border rounded-lg px-2 py-1 shadow-sm">
+                <span className="text-[10px] font-medium text-foreground whitespace-nowrap leading-none">Ajuda?</span>
+                <div className="absolute top-1/2 -translate-y-1/2 -right-[5px] w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent border-l-[5px] border-l-border"></div>
+                <div className="absolute top-1/2 -translate-y-1/2 -right-[4px] w-0 h-0 border-t-[3px] border-t-transparent border-b-[3px] border-b-transparent border-l-[4px] border-l-card"></div>
               </div>
             </div>
           )}
