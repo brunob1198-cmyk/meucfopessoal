@@ -12,7 +12,8 @@ import {
   Scale,
   Calculator,
   HelpCircle,
-  Banknote } from
+  Banknote,
+  HeartPulse } from
 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
@@ -38,6 +39,7 @@ const items = [
 { title: 'Planejador', url: '/planejador', icon: Target },
 { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
 { title: 'Fluxo de Caixa', url: '/fluxo-caixa', icon: Banknote },
+{ title: 'Financial Health Score', url: '/health-score', icon: HeartPulse },
 { title: 'CFO Digital IA', url: '/inteligencia', icon: Sparkles },
 { title: 'Mapa de Compromissos', url: '/compromissos', icon: CalendarRange },
 { title: 'Balanço Patrimonial', url: '/balanco', icon: Scale },
