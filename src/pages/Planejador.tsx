@@ -275,11 +275,28 @@ export default function Planejador() {
     return undefined;
   };
 
+  const getDraftNotes = (catId: string, month: string): string | undefined => {
+    const key = `${catId}:${month}`;
+    if (draftNotes.has(key)) return draftNotes.get(key);
+    if (savedNotesMap.has(key)) return savedNotesMap.get(key);
+    return undefined;
+  };
+
   const setDraftValue = (catId: string, month: string, value: number) => {
     if (!isMonthEditable(month)) return;
     setDraft(prev => {
       const next = new Map(prev);
       next.set(`${catId}:${month}`, value);
+      return next;
+    });
+    setIsDirty(true);
+  };
+
+  const setDraftNotesValue = (catId: string, month: string, notes: string) => {
+    if (!isMonthEditable(month)) return;
+    setDraftNotes(prev => {
+      const next = new Map(prev);
+      next.set(`${catId}:${month}`, notes);
       return next;
     });
     setIsDirty(true);
