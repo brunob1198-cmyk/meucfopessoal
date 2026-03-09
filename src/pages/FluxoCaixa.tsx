@@ -12,8 +12,11 @@ import { computeDRE } from '@/lib/dre';
 
 export default function FluxoCaixa() {
   const now = new Date();
-  const [startDate, setStartDate] = useState(format(subMonths(startOfMonth(now), 5), 'yyyy-MM-dd'));
-  const [endDate, setEndDate] = useState(format(endOfMonth(addMonths(now, 6)), 'yyyy-MM-dd'));
+  const [startMonth, setStartMonth] = useState(format(subMonths(startOfMonth(now), 5), 'yyyy-MM'));
+  const [endMonth, setEndMonth] = useState(format(addMonths(now, 6), 'yyyy-MM'));
+
+  const startDate = format(startOfMonth(parseISO(startMonth + '-01')), 'yyyy-MM-dd');
+  const endDate = format(endOfMonth(parseISO(endMonth + '-01')), 'yyyy-MM-dd');
 
   const { data: transactions = [] } = useTransactions(startDate, endDate);
   const { data: categories = [] } = useCategories();
@@ -130,10 +133,10 @@ export default function FluxoCaixa() {
           <p className="text-sm text-muted-foreground">Visão de liquidez — quando o dinheiro entra e sai</p>
         </div>
         <MonthRangePicker
-          startMonth={startDate}
-          endMonth={endDate}
-          onStartChange={setStartDate}
-          onEndChange={setEndDate}
+          startMonth={startMonth}
+          endMonth={endMonth}
+          onStartChange={setStartMonth}
+          onEndChange={setEndMonth}
         />
       </div>
 
