@@ -166,6 +166,48 @@ export type Database = {
           },
         ]
       }
+      financial_health_history: {
+        Row: {
+          created_at: string
+          emergency_reserve_score: number
+          expense_control_score: number
+          id: string
+          indebtedness_score: number
+          liquidity_score: number
+          month: string
+          savings_capacity_score: number
+          total_score: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emergency_reserve_score: number
+          expense_control_score: number
+          id?: string
+          indebtedness_score: number
+          liquidity_score: number
+          month: string
+          savings_capacity_score: number
+          total_score: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emergency_reserve_score?: number
+          expense_control_score?: number
+          id?: string
+          indebtedness_score?: number
+          liquidity_score?: number
+          month?: string
+          savings_capacity_score?: number
+          total_score?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       net_worth_history: {
         Row: {
           created_at: string
