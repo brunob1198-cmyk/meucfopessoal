@@ -412,7 +412,9 @@ export default function Planejador() {
                       cat={cat}
                       months={months}
                       getDraftValue={getDraftValue}
+                      getDraftNotes={getDraftNotes}
                       setDraftValue={setDraftValue}
+                      setDraftNotesValue={setDraftNotesValue}
                       expanded={expandedGroups.has(cat.id)}
                       onToggle={() => toggleGroup(cat.id)}
                     />
