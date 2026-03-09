@@ -35,6 +35,8 @@ export default function DREDetalhado() {
   const loading = txLoading || catLoading;
   const now = new Date();
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editAmount, setEditAmount] = useState('');
+  const [editDate, setEditDate] = useState('');
   const [editComment, setEditComment] = useState('');
   const [showNewTx, setShowNewTx] = useState(false);
   const [newAmount, setNewAmount] = useState('');
