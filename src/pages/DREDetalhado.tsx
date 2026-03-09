@@ -261,8 +261,8 @@ export default function DREDetalhado() {
               <p className="text-sm text-muted-foreground text-center py-8">Nenhum lançamento encontrado.</p>
             ) : (
               <>
-                <div className="grid grid-cols-[80px_1fr_100px] gap-2 text-xs font-medium text-muted-foreground pb-1 border-b border-border">
-                  <span>Data</span><span>Comentário</span><span className="text-right">Valor</span>
+                <div className="grid grid-cols-[80px_1fr_100px_40px] gap-2 text-xs font-medium text-muted-foreground pb-1 border-b border-border">
+                  <span>Data</span><span>Comentário</span><span className="text-right">Valor</span><span></span>
                 </div>
                 {auditTransactions.map((t: any) => (
                   <div key={t.id} className="group/row grid grid-cols-[80px_1fr_100px] gap-2 text-sm py-1.5 border-b border-border/50 items-center">
