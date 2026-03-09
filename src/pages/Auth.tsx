@@ -39,7 +39,7 @@ export default function Auth() {
             <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
               <TrendingUp className="h-6 w-6 text-primary-foreground" />
             </div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">DRE Pessoal</h1>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">CFO Pessoal</h1>
           </div>
           <p className="text-muted-foreground text-sm">
             Gerencie suas finanças com mentalidade empresarial
@@ -50,7 +50,7 @@ export default function Auth() {
           <CardHeader className="pb-4">
             <CardTitle className="text-lg">{isLogin ? 'Entrar' : 'Criar conta'}</CardTitle>
             <CardDescription>
-              {isLogin ? 'Acesse sua demonstração de resultados pessoal' : 'Comece a controlar seu DRE pessoal'}
+              {isLogin ? 'Acesse sua demonstração de resultados pessoal' : 'Comece a controlar seu CFO pessoal'}
             </CardDescription>
           </CardHeader>
           <CardContent>

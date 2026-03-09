@@ -60,7 +60,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel className="gap-2">
             <TrendingUp className="h-4 w-4" />
-            {!collapsed && <span className="font-bold">DRE Pessoal</span>}
+            {!collapsed && <span className="font-bold">CFO Pessoal</span>}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
