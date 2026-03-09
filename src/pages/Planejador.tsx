@@ -59,13 +59,16 @@ function ReplicateDialog({
   categoryName,
   categoryId,
   currentAmount,
+  currentNotes,
 }: {
   categoryName: string;
   categoryId: string;
   currentAmount: number;
+  currentNotes?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState(String(currentAmount || ''));
+  const [notes, setNotes] = useState(currentNotes || '');
   
   const savedPeriod = loadReplicatePeriod();
   const firstFuture = getFirstFutureMonth();
