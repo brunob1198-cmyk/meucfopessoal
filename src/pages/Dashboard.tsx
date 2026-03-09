@@ -256,6 +256,9 @@ export default function Dashboard() {
         <Card><CardContent className="p-4"><div className="flex items-center justify-between"><div><p className="text-xs text-muted-foreground font-medium">Lucro Líquido</p><p className={`text-lg font-bold tabular-nums ${lucroLiquido < 0 ? 'text-destructive' : ''}`}>{formatBRL(lucroLiquido)}</p></div><TrendingUp className="h-8 w-8 text-[hsl(var(--chart-receita))] opacity-60" /></div></CardContent></Card>
       </div>
 
+      {/* Financial Health Score Card */}
+      <FinancialHealthScoreCard />
+
       {/* Row 1: Pie + Evolução DRE Linha */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
