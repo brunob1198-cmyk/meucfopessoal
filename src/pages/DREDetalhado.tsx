@@ -336,6 +336,57 @@ export default function DREDetalhado() {
               </>
             )}
           </div>
+
+          {/* Inline new transaction form */}
+          {showNewTx ? (
+            <div className="border-t border-border pt-3 mt-2 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Novo lançamento em "{auditCategory?.name}"</p>
+              <div className="flex gap-2">
+                <Input type="number" placeholder="Valor (R$)" value={newAmount} onChange={(e) => setNewAmount(e.target.value)} className="flex-1 h-8 text-xs" autoFocus step="0.01" />
+                <Input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} className="w-32 h-8 text-xs" />
+              </div>
+              <Input placeholder="Comentário (opcional)" value={newComment} onChange={(e) => setNewComment(e.target.value)} className="h-8 text-xs" />
+              <div className="flex items-center gap-2">
+                <Switch checked={newIsInstallment} onCheckedChange={setNewIsInstallment} />
+                <span className="text-xs text-muted-foreground">Parcelado</span>
+                {newIsInstallment && (
+                  <Input type="number" placeholder="Parcelas" value={newInstallments} onChange={(e) => setNewInstallments(e.target.value)} className="w-20 h-8 text-xs" min="2" max="60" />
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  className="flex-1 h-8 text-xs"
+                  disabled={!newAmount || Number(newAmount) === 0 || createTransaction.isPending}
+                  onClick={async () => {
+                    if (!auditCategory) return;
+                    await createTransaction.mutateAsync({
+                      category_id: auditCategory.id,
+                      amount: Number(newAmount),
+                      date: newDate,
+                      comment: newComment || undefined,
+                      is_installment: newIsInstallment,
+                      total_installments: newIsInstallment ? Number(newInstallments) : undefined,
+                    });
+                    setNewAmount('');
+                    setNewComment('');
+                    setNewIsInstallment(false);
+                    setNewInstallments('2');
+                    setShowNewTx(false);
+                  }}
+                >
+                  {createTransaction.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Salvar'}
+                </Button>
+                <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setShowNewTx(false); setNewAmount(''); setNewComment(''); setNewIsInstallment(false); }}>
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button variant="outline" size="sm" className="w-full mt-2 gap-1 text-xs" onClick={() => { setShowNewTx(true); if (auditCategory?.month) setNewDate(`${auditCategory.month}-15`); }}>
+              <Plus className="h-3.5 w-3.5" /> Novo Lançamento
+            </Button>
+          )}
         </DialogContent>
       </Dialog>
     </div>
