@@ -204,6 +204,7 @@ function ReplicateDialog({
 }
 
 type DraftMap = Map<string, number>;
+type NotesMap = Map<string, string>;
 
 export default function Planejador() {
   const filter = usePersistedFilter('planejador');
