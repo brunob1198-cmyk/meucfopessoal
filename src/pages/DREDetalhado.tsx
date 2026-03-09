@@ -265,7 +265,7 @@ export default function DREDetalhado() {
                   <span>Data</span><span>Comentário</span><span className="text-right">Valor</span><span></span>
                 </div>
                 {auditTransactions.map((t: any) => (
-                  <div key={t.id} className="group/row grid grid-cols-[80px_1fr_100px] gap-2 text-sm py-1.5 border-b border-border/50 items-center">
+                  <div key={t.id} className="group/row grid grid-cols-[80px_1fr_100px_40px] gap-2 text-sm py-1.5 border-b border-border/50 items-center">
                     <span className="text-muted-foreground tabular-nums">{format(parseLocalDate(t.date), 'dd/MM/yy')}</span>
                     <span className="text-muted-foreground flex items-center gap-1 min-w-0">
                       {editingId === t.id ? (
@@ -296,6 +296,28 @@ export default function DREDetalhado() {
                       )}
                     </span>
                     <span className={cn('text-right tabular-nums font-medium', Number(t.amount) < 0 && 'text-destructive')}>{formatBRL(Number(t.amount))}</span>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <button className="p-0.5 hover:bg-destructive/10 rounded opacity-0 group-hover/row:opacity-100 transition-opacity" title="Excluir lançamento">
+                          <Trash2 className="h-3.5 w-3.5 text-destructive/70 hover:text-destructive" />
+                        </button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Excluir lançamento?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja excluir este lançamento de {formatBRL(Number(t.amount))} em {format(parseLocalDate(t.date), 'dd/MM/yyyy')}?
+                            {t.comment && ` (${t.comment})`}
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => deleteTransaction.mutate(t.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Excluir
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 ))}
                 <div className="grid grid-cols-[80px_1fr_100px] gap-2 text-sm py-2 font-semibold border-t border-border">
