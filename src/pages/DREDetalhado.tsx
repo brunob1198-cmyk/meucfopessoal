@@ -29,6 +29,7 @@ export default function DREDetalhado() {
   const { data: categories, isLoading: catLoading } = useCategories();
   const { data: projections } = useProjections(filter.startDate, filter.endDate);
   const updateTransaction = useUpdateTransaction();
+  const deleteTransaction = useDeleteTransaction();
   const loading = txLoading || catLoading;
   const now = new Date();
   const [editingId, setEditingId] = useState<string | null>(null);
