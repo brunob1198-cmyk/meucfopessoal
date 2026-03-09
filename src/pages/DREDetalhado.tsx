@@ -85,26 +85,43 @@ export default function DREDetalhado() {
     }));
   }, [monthsData]);
 
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-  const [allExpanded, setAllExpanded] = useState(false);
-
   const allGroupIds = useMemo(() => rowLabels.filter(r => r.isGroupHeader && r.groupId).map(r => r.groupId!), [rowLabels]);
 
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('dre-detalhado-expanded');
+      if (saved) return new Set(JSON.parse(saved));
+    } catch {}
+    return new Set();
+  });
+  const [allExpanded, setAllExpanded] = useState(() => {
+    try {
+      return localStorage.getItem('dre-detalhado-all-expanded') === 'true';
+    } catch {}
+    return false;
+  });
+
+  const persistExpanded = (groups: Set<string>, all: boolean) => {
+    localStorage.setItem('dre-detalhado-expanded', JSON.stringify([...groups]));
+    localStorage.setItem('dre-detalhado-all-expanded', String(all));
+  };
+
   const toggleAll = () => {
-    if (allExpanded) {
-      setExpandedGroups(new Set());
-    } else {
-      setExpandedGroups(new Set(allGroupIds));
-    }
-    setAllExpanded(!allExpanded);
+    const newAll = !allExpanded;
+    const newGroups = newAll ? new Set(allGroupIds) : new Set<string>();
+    setExpandedGroups(newGroups);
+    setAllExpanded(newAll);
+    persistExpanded(newGroups, newAll);
   };
 
   const toggleGroup = (groupId: string) => {
     setExpandedGroups(prev => {
       const next = new Set(prev);
       if (next.has(groupId)) next.delete(groupId); else next.add(groupId);
+      persistExpanded(next, false);
       return next;
     });
+    setAllExpanded(false);
   };
 
   const [auditCategory, setAuditCategory] = useState<{ id: string; name: string; month?: string } | null>(null);
