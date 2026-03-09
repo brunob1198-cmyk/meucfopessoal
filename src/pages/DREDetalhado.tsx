@@ -448,7 +448,7 @@ export default function DREDetalhado() {
               </div>
             </div>
           ) : (
-            <Button variant="outline" size="sm" className="w-full mt-2 gap-1 text-xs" onClick={() => { setShowNewTx(true); if (auditCategory?.month) setNewDate(`${auditCategory.month}-15`); }}>
+            <Button variant="outline" size="sm" className="w-full mt-2 gap-1 text-xs" onClick={() => { setShowNewTx(true); setNewDate(format(new Date(), 'yyyy-MM-dd')); }}>
               <Plus className="h-3.5 w-3.5" /> Novo Lançamento
             </Button>
           )}
