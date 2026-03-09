@@ -140,8 +140,8 @@ export function BigBAssistant() {
         <div className="fixed top-[90px] right-4 z-50 w-[360px] max-h-[520px] flex flex-col bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-top-2 fade-in duration-200">
           {/* Header */}
           <div className="flex items-center gap-3 px-4 py-3 bg-primary text-primary-foreground">
-            <div className="w-8 h-8 rounded-full bg-primary-foreground/20 flex items-center justify-center">
-              <Bot className="h-5 w-5" />
+            <div className="w-8 h-8 rounded-full overflow-hidden bg-primary-foreground/20">
+              <img src={bigbAvatar} alt="Big B" className="w-full h-full object-cover" />
             </div>
             <div className="flex-1">
               <p className="font-semibold text-sm">Big B</p>
