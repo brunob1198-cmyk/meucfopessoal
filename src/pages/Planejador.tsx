@@ -483,34 +483,37 @@ function CategoryRowMultiMonth({
             return (
               <td key={m} className={`py-1.5 px-1 ${!editable ? 'bg-muted/20' : ''}`}>
                 {editable ? (
-                  <div className="flex items-center gap-1">
-                    <Input
-                      type="number"
-                      className="w-full text-center h-7 text-xs"
-                      value={val !== undefined ? val : ''}
-                      onChange={(e) => setDraftValue(sub.id, m, Number(e.target.value) || 0)}
-                      placeholder="0"
-                      step="0.01"
-                    />
-                    <Popover>
+                  <Popover>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        className="w-full text-center h-7 text-xs pr-7"
+                        value={val !== undefined ? val : ''}
+                        onChange={(e) => setDraftValue(sub.id, m, Number(e.target.value) || 0)}
+                        placeholder="0"
+                        step="0.01"
+                      />
                       <PopoverTrigger asChild>
-                        <button className="p-0.5 hover:bg-muted rounded shrink-0" title="Adicionar comentário">
-                          <MessageSquare className={`h-3.5 w-3.5 ${notes ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <button 
+                          className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 hover:bg-muted/50 rounded shrink-0 transition-colors" 
+                          title="Adicionar comentário"
+                        >
+                          <MessageSquare className={`h-3.5 w-3.5 ${notes ? 'text-primary' : 'text-muted-foreground/40'}`} />
                         </button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-80">
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Comentário</label>
-                          <Textarea 
-                            value={notes || ''} 
-                            onChange={(e) => setDraftNotesValue(sub.id, m, e.target.value)} 
-                            placeholder="Descreva do que se trata esta despesa..."
-                            className="min-h-[100px]"
-                          />
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                    </div>
+                    <PopoverContent className="w-80">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Comentário</label>
+                        <Textarea 
+                          value={notes || ''} 
+                          onChange={(e) => setDraftNotesValue(sub.id, m, e.target.value)} 
+                          placeholder="Descreva do que se trata esta despesa..."
+                          className="min-h-[100px]"
+                        />
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 ) : (
                   <div className="w-full text-center h-7 text-xs flex items-center justify-center text-muted-foreground/60">
                     {val !== undefined ? formatBRL(val) : '—'}
