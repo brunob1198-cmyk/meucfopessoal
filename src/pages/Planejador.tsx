@@ -231,6 +231,17 @@ export default function Planejador() {
     return map;
   }, [projections]);
 
+  const savedNotesMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (!projections) return map;
+    projections.forEach((p: any) => {
+      const monthKey = typeof p.month === 'string' ? p.month.substring(0, 7) : p.month;
+      const key = `${p.category_id}:${monthKey}`;
+      if (p.notes) map.set(key, p.notes);
+    });
+    return map;
+  }, [projections]);
+
   const [draft, setDraft] = useState<DraftMap>(new Map());
   const [isDirty, setIsDirty] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => loadExpandedGroups());
