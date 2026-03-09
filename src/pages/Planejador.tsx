@@ -478,18 +478,39 @@ function CategoryRowMultiMonth({
           <td className="py-1.5 px-4 pl-10 text-sm">{sub.name}</td>
           {months.map(m => {
             const val = getDraftValue(sub.id, m);
+            const notes = getDraftNotes(sub.id, m);
             const editable = isMonthEditable(m);
             return (
               <td key={m} className={`py-1.5 px-1 ${!editable ? 'bg-muted/20' : ''}`}>
                 {editable ? (
-                  <Input
-                    type="number"
-                    className="w-full text-center h-7 text-xs"
-                    value={val !== undefined ? val : ''}
-                    onChange={(e) => setDraftValue(sub.id, m, Number(e.target.value) || 0)}
-                    placeholder="0"
-                    step="0.01"
-                  />
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      className="w-full text-center h-7 text-xs"
+                      value={val !== undefined ? val : ''}
+                      onChange={(e) => setDraftValue(sub.id, m, Number(e.target.value) || 0)}
+                      placeholder="0"
+                      step="0.01"
+                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button className="p-0.5 hover:bg-muted rounded shrink-0" title="Adicionar comentário">
+                          <MessageSquare className={`h-3.5 w-3.5 ${notes ? 'text-primary' : 'text-muted-foreground'}`} />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Comentário</label>
+                          <Textarea 
+                            value={notes || ''} 
+                            onChange={(e) => setDraftNotesValue(sub.id, m, e.target.value)} 
+                            placeholder="Descreva do que se trata esta despesa..."
+                            className="min-h-[100px]"
+                          />
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                 ) : (
                   <div className="w-full text-center h-7 text-xs flex items-center justify-center text-muted-foreground/60">
                     {val !== undefined ? formatBRL(val) : '—'}
