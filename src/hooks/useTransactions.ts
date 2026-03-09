@@ -69,6 +69,7 @@ export function useCreateTransaction() {
         category_id: input.category_id,
         amount: input.amount,
         date: input.date,
+        payment_date: input.payment_date || input.date,
         comment: input.comment || null,
       });
       if (error) throw error;
