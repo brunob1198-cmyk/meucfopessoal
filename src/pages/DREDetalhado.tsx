@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { parseLocalDate } from '@/lib/utils';
-import { useTransactions, useUpdateTransaction } from '@/hooks/useTransactions';
+import { useTransactions, useUpdateTransaction, useDeleteTransaction } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import { useProjections } from '@/hooks/useProjections';
 import { computeDRE, formatBRL, DRELine } from '@/lib/dre';
@@ -10,8 +10,9 @@ import { format, eachMonthOfInterval, startOfMonth, endOfMonth, isAfter, isBefor
 import { ptBR } from 'date-fns/locale';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, ChevronDown, ChevronRight, Search, ChevronsUpDown, Pencil, Check, X } from 'lucide-react';
+import { Loader2, ChevronDown, ChevronRight, Search, ChevronsUpDown, Pencil, Check, X, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { ExportMenu } from '@/components/ExportMenu';
@@ -28,6 +29,7 @@ export default function DREDetalhado() {
   const { data: categories, isLoading: catLoading } = useCategories();
   const { data: projections } = useProjections(filter.startDate, filter.endDate);
   const updateTransaction = useUpdateTransaction();
+  const deleteTransaction = useDeleteTransaction();
   const loading = txLoading || catLoading;
   const now = new Date();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -259,11 +261,11 @@ export default function DREDetalhado() {
               <p className="text-sm text-muted-foreground text-center py-8">Nenhum lançamento encontrado.</p>
             ) : (
               <>
-                <div className="grid grid-cols-[80px_1fr_100px] gap-2 text-xs font-medium text-muted-foreground pb-1 border-b border-border">
-                  <span>Data</span><span>Comentário</span><span className="text-right">Valor</span>
+                <div className="grid grid-cols-[80px_1fr_100px_40px] gap-2 text-xs font-medium text-muted-foreground pb-1 border-b border-border">
+                  <span>Data</span><span>Comentário</span><span className="text-right">Valor</span><span></span>
                 </div>
                 {auditTransactions.map((t: any) => (
-                  <div key={t.id} className="group/row grid grid-cols-[80px_1fr_100px] gap-2 text-sm py-1.5 border-b border-border/50 items-center">
+                  <div key={t.id} className="group/row grid grid-cols-[80px_1fr_100px_40px] gap-2 text-sm py-1.5 border-b border-border/50 items-center">
                     <span className="text-muted-foreground tabular-nums">{format(parseLocalDate(t.date), 'dd/MM/yy')}</span>
                     <span className="text-muted-foreground flex items-center gap-1 min-w-0">
                       {editingId === t.id ? (
@@ -294,11 +296,34 @@ export default function DREDetalhado() {
                       )}
                     </span>
                     <span className={cn('text-right tabular-nums font-medium', Number(t.amount) < 0 && 'text-destructive')}>{formatBRL(Number(t.amount))}</span>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <button className="p-0.5 hover:bg-destructive/10 rounded opacity-0 group-hover/row:opacity-100 transition-opacity" title="Excluir lançamento">
+                          <Trash2 className="h-3.5 w-3.5 text-destructive/70 hover:text-destructive" />
+                        </button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Excluir lançamento?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja excluir este lançamento de {formatBRL(Number(t.amount))} em {format(parseLocalDate(t.date), 'dd/MM/yyyy')}?
+                            {t.comment && ` (${t.comment})`}
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => deleteTransaction.mutate(t.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Excluir
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 ))}
-                <div className="grid grid-cols-[80px_1fr_100px] gap-2 text-sm py-2 font-semibold border-t border-border">
+                <div className="grid grid-cols-[80px_1fr_100px_40px] gap-2 text-sm py-2 font-semibold border-t border-border">
                   <span /><span>Total</span>
                   <span className="text-right tabular-nums">{formatBRL(auditTransactions.reduce((sum: number, t: any) => sum + Number(t.amount), 0))}</span>
+                  <span />
                 </div>
               </>
             )}
