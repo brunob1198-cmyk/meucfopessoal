@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bot, X, Send, Loader2 } from 'lucide-react';
+import { X, Send, Loader2 } from 'lucide-react';
+import bigbAvatar from '@/assets/bigb-avatar.png';
 import { Button } from '@/components/ui/button';
 import ReactMarkdown from 'react-markdown';
 
