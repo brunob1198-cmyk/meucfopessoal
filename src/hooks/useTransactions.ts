@@ -85,7 +85,7 @@ export function useUpdateTransaction() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: { comment?: string } }) => {
+    mutationFn: async ({ id, updates }: { id: string; updates: { comment?: string; amount?: number; date?: string } }) => {
       const { error } = await supabase.from('transactions').update(updates).eq('id', id);
       if (error) throw error;
     },

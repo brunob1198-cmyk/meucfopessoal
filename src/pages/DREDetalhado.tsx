@@ -35,6 +35,8 @@ export default function DREDetalhado() {
   const loading = txLoading || catLoading;
   const now = new Date();
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editAmount, setEditAmount] = useState('');
+  const [editDate, setEditDate] = useState('');
   const [editComment, setEditComment] = useState('');
   const [showNewTx, setShowNewTx] = useState(false);
   const [newAmount, setNewAmount] = useState('');
@@ -273,59 +275,105 @@ export default function DREDetalhado() {
                   <span>Data</span><span>Comentário</span><span className="text-right">Valor</span><span></span>
                 </div>
                 {auditTransactions.map((t: any) => (
-                  <div key={t.id} className="group/row grid grid-cols-[80px_1fr_100px_40px] gap-2 text-sm py-1.5 border-b border-border/50 items-center">
-                    <span className="text-muted-foreground tabular-nums">{format(parseLocalDate(t.date), 'dd/MM/yy')}</span>
-                    <span className="text-muted-foreground flex items-center gap-1 min-w-0">
-                      {editingId === t.id ? (
-                        <span className="flex items-center gap-1 flex-1">
+                  <div key={t.id} className="group/row">
+                    {editingId === t.id ? (
+                      <div className="border border-primary rounded p-2 space-y-2 bg-muted/30">
+                        <div className="flex gap-2">
                           <Input
-                            value={editComment}
-                            onChange={(e) => setEditComment(e.target.value)}
-                            className="h-7 text-xs"
-                            placeholder="Comentário..."
-                            autoFocus
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                updateTransaction.mutate({ id: t.id, updates: { comment: editComment || null } });
-                                setEditingId(null);
-                              }
-                              if (e.key === 'Escape') setEditingId(null);
-                            }}
+                            type="date"
+                            value={editDate}
+                            onChange={(e) => setEditDate(e.target.value)}
+                            className="h-8 text-xs w-32"
                           />
-                          <button onClick={() => { updateTransaction.mutate({ id: t.id, updates: { comment: editComment || null } }); setEditingId(null); }} className="p-0.5 hover:bg-muted rounded text-primary"><Check className="h-3.5 w-3.5" /></button>
-                          <button onClick={() => setEditingId(null)} className="p-0.5 hover:bg-muted rounded text-muted-foreground"><X className="h-3.5 w-3.5" /></button>
-                        </span>
-                      ) : (
-                        <>
+                          <Input
+                            type="number"
+                            value={editAmount}
+                            onChange={(e) => setEditAmount(e.target.value)}
+                            className="h-8 text-xs flex-1"
+                            placeholder="Valor"
+                            step="0.01"
+                          />
+                        </div>
+                        <Input
+                          value={editComment}
+                          onChange={(e) => setEditComment(e.target.value)}
+                          className="h-8 text-xs"
+                          placeholder="Comentário (opcional)"
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            className="h-7 text-xs flex-1"
+                            onClick={() => {
+                              updateTransaction.mutate({
+                                id: t.id,
+                                updates: {
+                                  amount: Number(editAmount),
+                                  date: editDate,
+                                  comment: editComment || null
+                                }
+                              });
+                              setEditingId(null);
+                            }}
+                          >
+                            <Check className="h-3.5 w-3.5 mr-1" /> Salvar
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => setEditingId(null)}
+                          >
+                            <X className="h-3.5 w-3.5 mr-1" /> Cancelar
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-[80px_1fr_100px_40px] gap-2 text-sm py-1.5 border-b border-border/50 items-center">
+                        <span className="text-muted-foreground tabular-nums">{format(parseLocalDate(t.date), 'dd/MM/yy')}</span>
+                        <span className="text-muted-foreground flex items-center gap-1 min-w-0">
                           <span className="truncate flex-1">{t.comment || '—'}</span>
                           {t.is_installment && <span className="text-[10px] px-1 py-0.5 rounded bg-muted text-muted-foreground shrink-0">{t.installment_number}/{t.total_installments}</span>}
-                          <button onClick={() => { setEditingId(t.id); setEditComment(t.comment || ''); }} className="p-0.5 hover:bg-muted rounded opacity-0 group-hover/row:opacity-100 transition-opacity shrink-0" title="Editar comentário"><Pencil className="h-3 w-3 text-muted-foreground" /></button>
-                        </>
-                      )}
-                    </span>
-                    <span className={cn('text-right tabular-nums font-medium', Number(t.amount) < 0 && 'text-destructive')}>{formatBRL(Number(t.amount))}</span>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <button className="p-0.5 hover:bg-destructive/10 rounded opacity-0 group-hover/row:opacity-100 transition-opacity" title="Excluir lançamento">
-                          <Trash2 className="h-3.5 w-3.5 text-destructive/70 hover:text-destructive" />
-                        </button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Excluir lançamento?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Tem certeza que deseja excluir este lançamento de {formatBRL(Number(t.amount))} em {format(parseLocalDate(t.date), 'dd/MM/yyyy')}?
-                            {t.comment && ` (${t.comment})`}
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => deleteTransaction.mutate(t.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                            Excluir
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                        </span>
+                        <span className={cn('text-right tabular-nums font-medium', Number(t.amount) < 0 && 'text-destructive')}>{formatBRL(Number(t.amount))}</span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => {
+                              setEditingId(t.id);
+                              setEditAmount(String(t.amount));
+                              setEditDate(t.date);
+                              setEditComment(t.comment || '');
+                            }}
+                            className="p-0.5 hover:bg-muted rounded opacity-0 group-hover/row:opacity-100 transition-opacity"
+                            title="Editar lançamento"
+                          >
+                            <Pencil className="h-3 w-3 text-muted-foreground" />
+                          </button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <button className="p-0.5 hover:bg-destructive/10 rounded opacity-0 group-hover/row:opacity-100 transition-opacity" title="Excluir lançamento">
+                                <Trash2 className="h-3.5 w-3.5 text-destructive/70 hover:text-destructive" />
+                              </button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Excluir lançamento?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja excluir este lançamento de {formatBRL(Number(t.amount))} em {format(parseLocalDate(t.date), 'dd/MM/yyyy')}?
+                                  {t.comment && ` (${t.comment})`}
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deleteTransaction.mutate(t.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
                 <div className="grid grid-cols-[80px_1fr_100px_40px] gap-2 text-sm py-2 font-semibold border-t border-border">
