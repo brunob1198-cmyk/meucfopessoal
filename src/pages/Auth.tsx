@@ -50,7 +50,7 @@ export default function Auth() {
           <CardHeader className="pb-4">
             <CardTitle className="text-lg">{isLogin ? 'Entrar' : 'Criar conta'}</CardTitle>
             <CardDescription>
-              {isLogin ? 'Acesse sua demonstração de resultados pessoal' : 'Comece a controlar seu DRE pessoal'}
+              {isLogin ? 'Acesse sua demonstração de resultados pessoal' : 'Comece a controlar seu CFO pessoal'}
             </CardDescription>
           </CardHeader>
           <CardContent>
