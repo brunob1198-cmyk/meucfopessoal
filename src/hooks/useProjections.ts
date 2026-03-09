@@ -91,7 +91,8 @@ export function useBulkReplicateProjection() {
     mutationFn: async (input: {
       category_id: string;
       amount: number;
-      months: string[]; // ['2026-01', '2026-02', ...]
+      months: string[];
+      notes?: string;
     }) => {
       if (!user) throw new Error('Não autenticado');
 
@@ -107,7 +108,6 @@ export function useBulkReplicateProjection() {
           .maybeSingle();
 
         if (input.amount === 0) {
-          // Delete projection when amount is 0
           if (existing) {
             await supabase.from('projections').delete().eq('id', existing.id);
           }
@@ -117,7 +117,7 @@ export function useBulkReplicateProjection() {
         if (existing) {
           await supabase
             .from('projections')
-            .update({ amount: input.amount })
+            .update({ amount: input.amount, ...(input.notes !== undefined ? { notes: input.notes || null } : {}) })
             .eq('id', existing.id);
         } else {
           await supabase
@@ -127,6 +127,7 @@ export function useBulkReplicateProjection() {
               category_id: input.category_id,
               month: monthValue,
               amount: input.amount,
+              notes: input.notes || null,
             });
         }
       }
