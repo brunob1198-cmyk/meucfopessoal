@@ -10,10 +10,44 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { ArrowUpCircle, ArrowDownCircle, Wallet, TrendingUp, TrendingDown, AlertTriangle, Info } from 'lucide-react';
 import { computeDRE } from '@/lib/dre';
 
+const STORAGE_KEY = 'fluxo-caixa-filter';
+
+function getDefaultFilter() {
+  const now = new Date();
+  return {
+    start: format(subMonths(startOfMonth(now), 5), 'yyyy-MM'),
+    end: format(addMonths(now, 6), 'yyyy-MM'),
+  };
+}
+
 export default function FluxoCaixa() {
   const now = new Date();
-  const [startMonth, setStartMonth] = useState(format(subMonths(startOfMonth(now), 5), 'yyyy-MM'));
-  const [endMonth, setEndMonth] = useState(format(addMonths(now, 6), 'yyyy-MM'));
+
+  const [startMonth, setStartMonthState] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) return JSON.parse(saved).start || getDefaultFilter().start;
+    } catch {}
+    return getDefaultFilter().start;
+  });
+
+  const [endMonth, setEndMonthState] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) return JSON.parse(saved).end || getDefaultFilter().end;
+    } catch {}
+    return getDefaultFilter().end;
+  });
+
+  const setStartMonth = (m: string) => {
+    setStartMonthState(m);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ start: m, end: endMonth }));
+  };
+
+  const setEndMonth = (m: string) => {
+    setEndMonthState(m);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ start: startMonth, end: m }));
+  };
 
   const startDate = format(startOfMonth(parseISO(startMonth + '-01')), 'yyyy-MM-dd');
   const endDate = format(endOfMonth(parseISO(endMonth + '-01')), 'yyyy-MM-dd');
