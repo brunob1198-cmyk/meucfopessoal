@@ -133,10 +133,10 @@ export default function FluxoCaixa() {
           <p className="text-sm text-muted-foreground">Visão de liquidez — quando o dinheiro entra e sai</p>
         </div>
         <MonthRangePicker
-          startMonth={startDate}
-          endMonth={endDate}
-          onStartChange={setStartDate}
-          onEndChange={setEndDate}
+          startMonth={startMonth}
+          endMonth={endMonth}
+          onStartChange={setStartMonth}
+          onEndChange={setEndMonth}
         />
       </div>
 
