@@ -320,9 +320,10 @@ export default function DREDetalhado() {
                     </AlertDialog>
                   </div>
                 ))}
-                <div className="grid grid-cols-[80px_1fr_100px] gap-2 text-sm py-2 font-semibold border-t border-border">
+                <div className="grid grid-cols-[80px_1fr_100px_40px] gap-2 text-sm py-2 font-semibold border-t border-border">
                   <span /><span>Total</span>
                   <span className="text-right tabular-nums">{formatBRL(auditTransactions.reduce((sum: number, t: any) => sum + Number(t.amount), 0))}</span>
+                  <span />
                 </div>
               </>
             )}
