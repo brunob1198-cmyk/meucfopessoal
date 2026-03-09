@@ -12,7 +12,8 @@ import {
   Scale,
   Calculator,
   HelpCircle,
-  Banknote } from
+  Banknote,
+  HeartPulse } from
 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
