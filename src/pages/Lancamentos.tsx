@@ -246,6 +246,16 @@ function SubcategoryRow({ cat, onSubmit, parentCategories }: { cat: Category; on
             <Input type="number" placeholder="Valor (R$) — negativo para estorno" value={amount} onChange={(e) => setAmount(e.target.value)} className="flex-1" autoFocus step="0.01" />
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-36" />
           </div>
+          <div className="flex items-center gap-2">
+            <Switch checked={showPaymentDate} onCheckedChange={setShowPaymentDate} />
+            <span className="text-xs text-muted-foreground">Data de pagamento diferente</span>
+          </div>
+          {showPaymentDate && (
+            <div className="flex gap-2 items-center">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">Pagamento:</span>
+              <Input type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} className="w-36" />
+            </div>
+          )}
           <Input placeholder="Comentário (opcional)" value={comment} onChange={(e) => setComment(e.target.value)} />
           <div className="flex items-center gap-2">
             <Switch checked={isInstallment} onCheckedChange={setIsInstallment} />
