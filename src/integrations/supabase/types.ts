@@ -227,6 +227,7 @@ export type Database = {
           created_at: string
           id: string
           month: string
+          notes: string | null
           updated_at: string
           user_id: string
         }
@@ -236,6 +237,7 @@ export type Database = {
           created_at?: string
           id?: string
           month: string
+          notes?: string | null
           updated_at?: string
           user_id: string
         }
@@ -245,6 +247,7 @@ export type Database = {
           created_at?: string
           id?: string
           month?: string
+          notes?: string | null
           updated_at?: string
           user_id?: string
         }
