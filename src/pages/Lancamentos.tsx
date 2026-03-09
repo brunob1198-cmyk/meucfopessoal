@@ -193,10 +193,12 @@ function SubcategoryRow({ cat, onSubmit, parentCategories }: { cat: Category; on
   const [editing, setEditing] = useState(false);
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [paymentDate, setPaymentDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [comment, setComment] = useState('');
   const [isInstallment, setIsInstallment] = useState(false);
   const [installments, setInstallments] = useState('2');
   const [submitting, setSubmitting] = useState(false);
+  const [showPaymentDate, setShowPaymentDate] = useState(false);
 
   const handleSave = async () => {
     if (!amount || Number(amount) === 0) return;
@@ -205,6 +207,7 @@ function SubcategoryRow({ cat, onSubmit, parentCategories }: { cat: Category; on
       category_id: cat.id,
       amount: Number(amount),
       date,
+      payment_date: showPaymentDate ? paymentDate : date,
       comment: comment || undefined,
       is_installment: isInstallment,
       total_installments: isInstallment ? Number(installments) : undefined,
@@ -213,6 +216,7 @@ function SubcategoryRow({ cat, onSubmit, parentCategories }: { cat: Category; on
     setComment('');
     setIsInstallment(false);
     setInstallments('2');
+    setShowPaymentDate(false);
     setOpen(false);
     setSubmitting(false);
   };
