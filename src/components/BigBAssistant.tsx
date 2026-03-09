@@ -122,8 +122,8 @@ export function BigBAssistant() {
         title="Big B — Assistente Contábil"
       >
         <div className="relative">
-          <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center shadow-lg ring-2 ring-primary/30 transition-all group-hover:scale-110 group-hover:ring-primary/60">
-            <Bot className="h-6 w-6 text-primary-foreground" />
+          <div className="w-12 h-12 rounded-full overflow-hidden shadow-lg ring-2 ring-primary/30 transition-all group-hover:scale-110 group-hover:ring-primary/60">
+            <img src={bigbAvatar} alt="Big B" className="w-full h-full object-cover" />
           </div>
           {/* Pulse animation when closed */}
           {!open && (
