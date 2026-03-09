@@ -112,6 +112,7 @@ function ReplicateDialog({
       category_id: categoryId,
       amount: Number(amount),
       months: futureMonths,
+      notes,
     });
     toast.success(`Valor replicado para ${futureMonths.length} mês(es)`);
     setOpen(false);
