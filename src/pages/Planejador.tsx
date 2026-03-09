@@ -7,10 +7,12 @@ import { formatBRL } from '@/lib/dre';
 import { format, eachMonthOfInterval, addMonths, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, ChevronDown, ChevronRight, Copy, Save, ChevronsUpDown, Lock } from 'lucide-react';
+import { Loader2, ChevronDown, ChevronRight, Copy, Save, ChevronsUpDown, Lock, MessageSquare } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 
