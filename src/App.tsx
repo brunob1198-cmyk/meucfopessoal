@@ -18,6 +18,7 @@ import Perfil from "./pages/Perfil";
 import SimuladorFinanceiro from "./pages/SimuladorFinanceiro";
 import FluxoCaixa from "./pages/FluxoCaixa";
 import Tutorial from "./pages/Tutorial";
+import FinancialHealthScorePage from "./pages/FinancialHealthScore";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
