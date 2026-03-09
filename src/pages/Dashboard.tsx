@@ -1,4 +1,5 @@
-import { useMemo, useRef, useCallback } from 'react';
+import { useMemo, useRef } from 'react';
+import { FinancialHealthScoreCard } from '@/components/FinancialHealthScoreCard';
 import { YearlyEvolution } from '@/components/YearlyEvolution';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
