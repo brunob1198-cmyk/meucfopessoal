@@ -303,29 +303,44 @@ export default function Planejador() {
   };
 
   const handleSave = async () => {
-    if (draft.size === 0) return;
+    if (draft.size === 0 && draftNotes.size === 0) return;
 
-    const grouped = new Map<string, { months: string[]; amount: number }[]>();
-    draft.forEach((amount, key) => {
+    // Group both amounts and notes
+    const allKeys = new Set([...draft.keys(), ...draftNotes.keys()]);
+    const grouped = new Map<string, { months: string[]; amount: number; notes?: string }[]>();
+    
+    allKeys.forEach(key => {
       const [catId, month] = key.split(':');
-      if (!isMonthEditable(month)) return; // skip past/current
+      if (!isMonthEditable(month)) return;
+      
+      const amount = draft.get(key) ?? getDraftValue(catId, month) ?? 0;
+      const notes = draftNotes.get(key) ?? getDraftNotes(catId, month);
+      
       if (!grouped.has(catId)) grouped.set(catId, []);
-      grouped.get(catId)!.push({ months: [month], amount });
+      grouped.get(catId)!.push({ months: [month], amount, notes });
     });
 
     for (const [catId, entries] of grouped) {
-      const byAmount = new Map<number, string[]>();
+      const byAmountAndNotes = new Map<string, string[]>();
       entries.forEach(e => {
-        if (!byAmount.has(e.amount)) byAmount.set(e.amount, []);
-        byAmount.get(e.amount)!.push(e.months[0]);
+        const keyStr = `${e.amount}::${e.notes || ''}`;
+        if (!byAmountAndNotes.has(keyStr)) byAmountAndNotes.set(keyStr, []);
+        byAmountAndNotes.get(keyStr)!.push(e.months[0]);
       });
 
-      for (const [amount, monthList] of byAmount) {
-        await replicate.mutateAsync({ category_id: catId, amount, months: monthList });
+      for (const [keyStr, monthList] of byAmountAndNotes) {
+        const [amountStr, notesStr] = keyStr.split('::');
+        await replicate.mutateAsync({ 
+          category_id: catId, 
+          amount: Number(amountStr), 
+          months: monthList, 
+          notes: notesStr || undefined,
+        });
       }
     }
 
     setDraft(new Map());
+    setDraftNotes(new Map());
     setIsDirty(false);
     toast.success('Projeções salvas com sucesso!');
   };
