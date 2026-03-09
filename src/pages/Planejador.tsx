@@ -520,7 +520,12 @@ function CategoryRowMultiMonth({
             );
           })}
           <td className="py-1.5 px-1">
-            <ReplicateDialog categoryName={sub.name} categoryId={sub.id} currentAmount={getDraftValue(sub.id, months[0]) || 0} />
+            <ReplicateDialog 
+              categoryName={sub.name} 
+              categoryId={sub.id} 
+              currentAmount={getDraftValue(sub.id, months[0]) || 0} 
+              currentNotes={getDraftNotes(sub.id, months[0])}
+            />
           </td>
         </tr>
       ))}
