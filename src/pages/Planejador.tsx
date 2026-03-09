@@ -148,6 +148,15 @@ function ReplicateDialog({
             <label className="text-sm font-medium">Valor projetado</label>
             <Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} step="0.01" className="mt-1" />
           </div>
+          <div>
+            <label className="text-sm font-medium">Comentário</label>
+            <Textarea 
+              value={notes} 
+              onChange={(e) => setNotes(e.target.value)} 
+              placeholder="Descreva do que se trata esta despesa projetada..."
+              className="mt-1 min-h-[80px]"
+            />
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-muted-foreground">Início</label>
