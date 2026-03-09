@@ -31,10 +31,17 @@ export default function DREDetalhado() {
   const { data: projections } = useProjections(filter.startDate, filter.endDate);
   const updateTransaction = useUpdateTransaction();
   const deleteTransaction = useDeleteTransaction();
+  const createTransaction = useCreateTransaction();
   const loading = txLoading || catLoading;
   const now = new Date();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editComment, setEditComment] = useState('');
+  const [showNewTx, setShowNewTx] = useState(false);
+  const [newAmount, setNewAmount] = useState('');
+  const [newDate, setNewDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [newComment, setNewComment] = useState('');
+  const [newIsInstallment, setNewIsInstallment] = useState(false);
+  const [newInstallments, setNewInstallments] = useState('2');
   const currentMonthEnd = endOfMonth(now);
 
   const months = useMemo(() => {
