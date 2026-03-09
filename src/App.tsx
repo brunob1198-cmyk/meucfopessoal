@@ -16,6 +16,7 @@ import Compromissos from "./pages/Compromissos";
 import BalancoPatrimonial from "./pages/BalancoPatrimonial";
 import Perfil from "./pages/Perfil";
 import SimuladorFinanceiro from "./pages/SimuladorFinanceiro";
+import FluxoCaixa from "./pages/FluxoCaixa";
 import Tutorial from "./pages/Tutorial";
 import NotFound from "./pages/NotFound";
 
@@ -49,6 +50,7 @@ const App = () => (
             <Route path="/dre-ajustado" element={<ProtectedRoute><DREAjustado /></ProtectedRoute>} />
             <Route path="/planejador" element={<ProtectedRoute><Planejador /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/fluxo-caixa" element={<ProtectedRoute><FluxoCaixa /></ProtectedRoute>} />
             <Route path="/inteligencia" element={<ProtectedRoute><Inteligencia /></ProtectedRoute>} />
             <Route path="/compromissos" element={<ProtectedRoute><Compromissos /></ProtectedRoute>} />
             <Route path="/balanco" element={<ProtectedRoute><BalancoPatrimonial /></ProtectedRoute>} />

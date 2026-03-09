@@ -193,10 +193,12 @@ function SubcategoryRow({ cat, onSubmit, parentCategories }: { cat: Category; on
   const [editing, setEditing] = useState(false);
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [paymentDate, setPaymentDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [comment, setComment] = useState('');
   const [isInstallment, setIsInstallment] = useState(false);
   const [installments, setInstallments] = useState('2');
   const [submitting, setSubmitting] = useState(false);
+  const [showPaymentDate, setShowPaymentDate] = useState(false);
 
   const handleSave = async () => {
     if (!amount || Number(amount) === 0) return;
@@ -205,6 +207,7 @@ function SubcategoryRow({ cat, onSubmit, parentCategories }: { cat: Category; on
       category_id: cat.id,
       amount: Number(amount),
       date,
+      payment_date: showPaymentDate ? paymentDate : date,
       comment: comment || undefined,
       is_installment: isInstallment,
       total_installments: isInstallment ? Number(installments) : undefined,
@@ -213,6 +216,7 @@ function SubcategoryRow({ cat, onSubmit, parentCategories }: { cat: Category; on
     setComment('');
     setIsInstallment(false);
     setInstallments('2');
+    setShowPaymentDate(false);
     setOpen(false);
     setSubmitting(false);
   };
@@ -242,6 +246,16 @@ function SubcategoryRow({ cat, onSubmit, parentCategories }: { cat: Category; on
             <Input type="number" placeholder="Valor (R$) — negativo para estorno" value={amount} onChange={(e) => setAmount(e.target.value)} className="flex-1" autoFocus step="0.01" />
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-36" />
           </div>
+          <div className="flex items-center gap-2">
+            <Switch checked={showPaymentDate} onCheckedChange={setShowPaymentDate} />
+            <span className="text-xs text-muted-foreground">Data de pagamento diferente</span>
+          </div>
+          {showPaymentDate && (
+            <div className="flex gap-2 items-center">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">Pagamento:</span>
+              <Input type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} className="w-36" />
+            </div>
+          )}
           <Input placeholder="Comentário (opcional)" value={comment} onChange={(e) => setComment(e.target.value)} />
           <div className="flex items-center gap-2">
             <Switch checked={isInstallment} onCheckedChange={setIsInstallment} />

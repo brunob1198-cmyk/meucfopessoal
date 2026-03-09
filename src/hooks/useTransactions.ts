@@ -36,6 +36,7 @@ export function useCreateTransaction() {
       category_id: string;
       amount: number;
       date: string;
+      payment_date?: string;
       comment?: string;
       is_installment?: boolean;
       total_installments?: number;
@@ -49,7 +50,8 @@ export function useCreateTransaction() {
           user_id: user.id,
           category_id: input.category_id,
           amount: installmentAmount,
-          date: format(addMonths(parseLocalDate(input.date), i), 'yyyy-MM-dd'),
+          date: input.date,
+          payment_date: format(addMonths(parseLocalDate(input.payment_date || input.date), i), 'yyyy-MM-dd'),
           comment: input.comment || null,
           is_installment: true,
           installment_group: installmentGroup,
@@ -67,6 +69,7 @@ export function useCreateTransaction() {
         category_id: input.category_id,
         amount: input.amount,
         date: input.date,
+        payment_date: input.payment_date || input.date,
         comment: input.comment || null,
       });
       if (error) throw error;
