@@ -7,10 +7,12 @@ import { formatBRL } from '@/lib/dre';
 import { format, eachMonthOfInterval, addMonths, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, ChevronDown, ChevronRight, Copy, Save, ChevronsUpDown, Lock } from 'lucide-react';
+import { Loader2, ChevronDown, ChevronRight, Copy, Save, ChevronsUpDown, Lock, MessageSquare } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 
@@ -57,13 +59,16 @@ function ReplicateDialog({
   categoryName,
   categoryId,
   currentAmount,
+  currentNotes,
 }: {
   categoryName: string;
   categoryId: string;
   currentAmount: number;
+  currentNotes?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState(String(currentAmount || ''));
+  const [notes, setNotes] = useState(currentNotes || '');
   
   const savedPeriod = loadReplicatePeriod();
   const firstFuture = getFirstFutureMonth();
@@ -107,6 +112,7 @@ function ReplicateDialog({
       category_id: categoryId,
       amount: Number(amount),
       months: futureMonths,
+      notes,
     });
     toast.success(`Valor replicado para ${futureMonths.length} mês(es)`);
     setOpen(false);
@@ -141,6 +147,15 @@ function ReplicateDialog({
           <div>
             <label className="text-sm font-medium">Valor projetado</label>
             <Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} step="0.01" className="mt-1" />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Comentário</label>
+            <Textarea 
+              value={notes} 
+              onChange={(e) => setNotes(e.target.value)} 
+              placeholder="Descreva do que se trata esta despesa projetada..."
+              className="mt-1 min-h-[80px]"
+            />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -189,6 +204,7 @@ function ReplicateDialog({
 }
 
 type DraftMap = Map<string, number>;
+type NotesMap = Map<string, string>;
 
 export default function Planejador() {
   const filter = usePersistedFilter('planejador');
@@ -215,7 +231,19 @@ export default function Planejador() {
     return map;
   }, [projections]);
 
+  const savedNotesMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (!projections) return map;
+    projections.forEach((p: any) => {
+      const monthKey = typeof p.month === 'string' ? p.month.substring(0, 7) : p.month;
+      const key = `${p.category_id}:${monthKey}`;
+      if (p.notes) map.set(key, p.notes);
+    });
+    return map;
+  }, [projections]);
+
   const [draft, setDraft] = useState<DraftMap>(new Map());
+  const [draftNotes, setDraftNotes] = useState<NotesMap>(new Map());
   const [isDirty, setIsDirty] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => loadExpandedGroups());
 
@@ -247,6 +275,13 @@ export default function Planejador() {
     return undefined;
   };
 
+  const getDraftNotes = (catId: string, month: string): string | undefined => {
+    const key = `${catId}:${month}`;
+    if (draftNotes.has(key)) return draftNotes.get(key);
+    if (savedNotesMap.has(key)) return savedNotesMap.get(key);
+    return undefined;
+  };
+
   const setDraftValue = (catId: string, month: string, value: number) => {
     if (!isMonthEditable(month)) return;
     setDraft(prev => {
@@ -257,30 +292,55 @@ export default function Planejador() {
     setIsDirty(true);
   };
 
-  const handleSave = async () => {
-    if (draft.size === 0) return;
+  const setDraftNotesValue = (catId: string, month: string, notes: string) => {
+    if (!isMonthEditable(month)) return;
+    setDraftNotes(prev => {
+      const next = new Map(prev);
+      next.set(`${catId}:${month}`, notes);
+      return next;
+    });
+    setIsDirty(true);
+  };
 
-    const grouped = new Map<string, { months: string[]; amount: number }[]>();
-    draft.forEach((amount, key) => {
+  const handleSave = async () => {
+    if (draft.size === 0 && draftNotes.size === 0) return;
+
+    // Group both amounts and notes
+    const allKeys = new Set([...draft.keys(), ...draftNotes.keys()]);
+    const grouped = new Map<string, { months: string[]; amount: number; notes?: string }[]>();
+    
+    allKeys.forEach(key => {
       const [catId, month] = key.split(':');
-      if (!isMonthEditable(month)) return; // skip past/current
+      if (!isMonthEditable(month)) return;
+      
+      const amount = draft.get(key) ?? getDraftValue(catId, month) ?? 0;
+      const notes = draftNotes.get(key) ?? getDraftNotes(catId, month);
+      
       if (!grouped.has(catId)) grouped.set(catId, []);
-      grouped.get(catId)!.push({ months: [month], amount });
+      grouped.get(catId)!.push({ months: [month], amount, notes });
     });
 
     for (const [catId, entries] of grouped) {
-      const byAmount = new Map<number, string[]>();
+      const byAmountAndNotes = new Map<string, string[]>();
       entries.forEach(e => {
-        if (!byAmount.has(e.amount)) byAmount.set(e.amount, []);
-        byAmount.get(e.amount)!.push(e.months[0]);
+        const keyStr = `${e.amount}::${e.notes || ''}`;
+        if (!byAmountAndNotes.has(keyStr)) byAmountAndNotes.set(keyStr, []);
+        byAmountAndNotes.get(keyStr)!.push(e.months[0]);
       });
 
-      for (const [amount, monthList] of byAmount) {
-        await replicate.mutateAsync({ category_id: catId, amount, months: monthList });
+      for (const [keyStr, monthList] of byAmountAndNotes) {
+        const [amountStr, notesStr] = keyStr.split('::');
+        await replicate.mutateAsync({ 
+          category_id: catId, 
+          amount: Number(amountStr), 
+          months: monthList, 
+          notes: notesStr || undefined,
+        });
       }
     }
 
     setDraft(new Map());
+    setDraftNotes(new Map());
     setIsDirty(false);
     toast.success('Projeções salvas com sucesso!');
   };
@@ -352,7 +412,9 @@ export default function Planejador() {
                       cat={cat}
                       months={months}
                       getDraftValue={getDraftValue}
+                      getDraftNotes={getDraftNotes}
                       setDraftValue={setDraftValue}
+                      setDraftNotesValue={setDraftNotesValue}
                       expanded={expandedGroups.has(cat.id)}
                       onToggle={() => toggleGroup(cat.id)}
                     />
@@ -377,12 +439,14 @@ export default function Planejador() {
 }
 
 function CategoryRowMultiMonth({
-  cat, months, getDraftValue, setDraftValue, expanded, onToggle,
+  cat, months, getDraftValue, getDraftNotes, setDraftValue, setDraftNotesValue, expanded, onToggle,
 }: {
   cat: Category;
   months: string[];
   getDraftValue: (catId: string, month: string) => number | undefined;
+  getDraftNotes: (catId: string, month: string) => string | undefined;
   setDraftValue: (catId: string, month: string, value: number) => void;
+  setDraftNotesValue: (catId: string, month: string, notes: string) => void;
   expanded: boolean;
   onToggle: () => void;
 }) {
@@ -414,18 +478,39 @@ function CategoryRowMultiMonth({
           <td className="py-1.5 px-4 pl-10 text-sm">{sub.name}</td>
           {months.map(m => {
             const val = getDraftValue(sub.id, m);
+            const notes = getDraftNotes(sub.id, m);
             const editable = isMonthEditable(m);
             return (
               <td key={m} className={`py-1.5 px-1 ${!editable ? 'bg-muted/20' : ''}`}>
                 {editable ? (
-                  <Input
-                    type="number"
-                    className="w-full text-center h-7 text-xs"
-                    value={val !== undefined ? val : ''}
-                    onChange={(e) => setDraftValue(sub.id, m, Number(e.target.value) || 0)}
-                    placeholder="0"
-                    step="0.01"
-                  />
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      className="w-full text-center h-7 text-xs"
+                      value={val !== undefined ? val : ''}
+                      onChange={(e) => setDraftValue(sub.id, m, Number(e.target.value) || 0)}
+                      placeholder="0"
+                      step="0.01"
+                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button className="p-0.5 hover:bg-muted rounded shrink-0" title="Adicionar comentário">
+                          <MessageSquare className={`h-3.5 w-3.5 ${notes ? 'text-primary' : 'text-muted-foreground'}`} />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Comentário</label>
+                          <Textarea 
+                            value={notes || ''} 
+                            onChange={(e) => setDraftNotesValue(sub.id, m, e.target.value)} 
+                            placeholder="Descreva do que se trata esta despesa..."
+                            className="min-h-[100px]"
+                          />
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                 ) : (
                   <div className="w-full text-center h-7 text-xs flex items-center justify-center text-muted-foreground/60">
                     {val !== undefined ? formatBRL(val) : '—'}
@@ -435,7 +520,12 @@ function CategoryRowMultiMonth({
             );
           })}
           <td className="py-1.5 px-1">
-            <ReplicateDialog categoryName={sub.name} categoryId={sub.id} currentAmount={getDraftValue(sub.id, months[0]) || 0} />
+            <ReplicateDialog 
+              categoryName={sub.name} 
+              categoryId={sub.id} 
+              currentAmount={getDraftValue(sub.id, months[0]) || 0} 
+              currentNotes={getDraftNotes(sub.id, months[0])}
+            />
           </td>
         </tr>
       ))}
