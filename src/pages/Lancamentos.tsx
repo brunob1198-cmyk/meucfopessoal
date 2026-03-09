@@ -318,9 +318,7 @@ function CategoryGroup({ cat, onSubmit, parentCategories }: { cat: Category; onS
           <button onClick={() => setEditing(true)} className="p-1 hover:bg-muted rounded transition-colors" title="Editar">
             <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
           </button>
-          {!cat.is_default && (
-            <DeleteCategoryButton categoryId={cat.id} categoryName={cat.name} hasChildren={(cat.children?.length || 0) > 0} />
-          )}
+          <DeleteCategoryButton categoryId={cat.id} categoryName={cat.name} hasChildren={(cat.children?.length || 0) > 0} />
         </div>
       </div>
       {expanded && (
