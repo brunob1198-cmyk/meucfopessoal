@@ -50,6 +50,7 @@ const App = () => (
             <Route path="/dre-ajustado" element={<ProtectedRoute><DREAjustado /></ProtectedRoute>} />
             <Route path="/planejador" element={<ProtectedRoute><Planejador /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/fluxo-caixa" element={<ProtectedRoute><FluxoCaixa /></ProtectedRoute>} />
             <Route path="/inteligencia" element={<ProtectedRoute><Inteligencia /></ProtectedRoute>} />
             <Route path="/compromissos" element={<ProtectedRoute><Compromissos /></ProtectedRoute>} />
             <Route path="/balanco" element={<ProtectedRoute><BalancoPatrimonial /></ProtectedRoute>} />
