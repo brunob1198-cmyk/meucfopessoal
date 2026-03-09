@@ -243,6 +243,7 @@ export default function Planejador() {
   }, [projections]);
 
   const [draft, setDraft] = useState<DraftMap>(new Map());
+  const [draftNotes, setDraftNotes] = useState<NotesMap>(new Map());
   const [isDirty, setIsDirty] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => loadExpandedGroups());
 
