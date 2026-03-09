@@ -227,7 +227,7 @@ export default function DREDetalhado() {
                           return (
                             <td key={md.month} className={cn('text-right py-2 px-3 tabular-nums relative group/cell', md.isProjected && !row.isTotal && !row.isGroupHeader && 'text-emerald-600')}>
                               {line ? (isMargem ? `${val.toFixed(1)}%` : formatBRL(val)) : '-'}
-                              {row.isSubcategory && row.categoryId && val !== 0 && (
+                              {row.isSubcategory && row.categoryId && (
                                 <button
                                   onClick={() => setAuditCategory({ id: row.categoryId!, name: row.label, month: md.month })}
                                   className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-muted opacity-0 group-hover/cell:opacity-100 transition-opacity"
