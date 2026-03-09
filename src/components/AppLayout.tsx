@@ -10,10 +10,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 flex items-center border-b border-border px-4 shrink-0 text-secondary-foreground bg-muted-foreground relative">
-            <SidebarTrigger className="mr-4" />
+          <header className="h-14 flex items-center border-b border-border/30 px-4 shrink-0 fintech-gradient relative">
+            <SidebarTrigger className="mr-4 text-primary-foreground/70 hover:text-primary-foreground" />
             <LogoUpload />
-            <div className="absolute left-1/2 -translate-x-1/2 text-[18px] font-semibold tracking-[0.25em] uppercase text-primary-foreground/80 whitespace-nowrap hidden sm:block">
+            <div className="absolute left-1/2 -translate-x-1/2 text-[15px] font-medium tracking-[0.3em] uppercase text-primary-foreground/60 whitespace-nowrap hidden sm:block">
               Sistema Operacional da Vida Financeira
             </div>
           </header>

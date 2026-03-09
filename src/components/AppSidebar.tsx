@@ -58,9 +58,15 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="gap-2">
-            <TrendingUp className="h-4 w-4" />
-            {!collapsed && <span className="font-bold">CFO Pessoal</span>}
+          <SidebarGroupLabel className="gap-2 py-5">
+            <div className="h-7 w-7 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center flex-shrink-0">
+              <TrendingUp className="h-4 w-4 text-sidebar-primary" />
+            </div>
+            {!collapsed && (
+              <span className="font-bold text-sm tracking-tight text-sidebar-foreground">
+                CFO <span className="text-sidebar-primary">Pessoal</span>
+              </span>
+            )}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -70,11 +76,11 @@ export function AppSidebar() {
                     <NavLink
                     to={item.url}
                     end={item.url === '/'}
-                    className="hover:bg-sidebar-accent"
-                    activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                    className="hover:bg-sidebar-accent transition-all duration-200 rounded-lg"
+                    activeClassName="bg-sidebar-accent text-sidebar-primary font-medium border-l-2 border-sidebar-primary">
                     
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span className="font-medium text-neutral-50">{item.title}</span>}
+                      <item.icon className="mr-2 h-4 w-4 flex-shrink-0" />
+                      {!collapsed && <span className="font-medium text-sidebar-foreground text-[13px]">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -83,12 +89,12 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="border-t border-sidebar-border">
         <Button
           variant="ghost"
           size={collapsed ? 'icon' : 'default'}
           onClick={signOut}
-          className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent">
+          className="w-full justify-start text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-200">
           
           <LogOut className="h-4 w-4 mr-2" />
           {!collapsed && 'Sair'}
