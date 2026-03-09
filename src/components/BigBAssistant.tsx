@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bot, X, Send, Loader2 } from 'lucide-react';
+import { X, Send, Loader2 } from 'lucide-react';
+import bigbAvatar from '@/assets/bigb-avatar.png';
 import { Button } from '@/components/ui/button';
 import ReactMarkdown from 'react-markdown';
 
@@ -121,8 +122,8 @@ export function BigBAssistant() {
         title="Big B — Assistente Contábil"
       >
         <div className="relative">
-          <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center shadow-lg ring-2 ring-primary/30 transition-all group-hover:scale-110 group-hover:ring-primary/60">
-            <Bot className="h-6 w-6 text-primary-foreground" />
+          <div className="w-12 h-12 rounded-full overflow-hidden shadow-lg ring-2 ring-primary/30 transition-all group-hover:scale-110 group-hover:ring-primary/60">
+            <img src={bigbAvatar} alt="Big B" className="w-full h-full object-cover" />
           </div>
           {/* Pulse animation when closed */}
           {!open && (
@@ -139,8 +140,8 @@ export function BigBAssistant() {
         <div className="fixed top-[90px] right-4 z-50 w-[360px] max-h-[520px] flex flex-col bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-top-2 fade-in duration-200">
           {/* Header */}
           <div className="flex items-center gap-3 px-4 py-3 bg-primary text-primary-foreground">
-            <div className="w-8 h-8 rounded-full bg-primary-foreground/20 flex items-center justify-center">
-              <Bot className="h-5 w-5" />
+            <div className="w-8 h-8 rounded-full overflow-hidden bg-primary-foreground/20">
+              <img src={bigbAvatar} alt="Big B" className="w-full h-full object-cover" />
             </div>
             <div className="flex-1">
               <p className="font-semibold text-sm">Big B</p>
@@ -155,9 +156,9 @@ export function BigBAssistant() {
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[200px] max-h-[340px]">
             {messages.length === 0 && (
               <div className="text-center py-6 space-y-2">
-                <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                  <Bot className="h-7 w-7 text-primary" />
-                </div>
+              <div className="w-14 h-14 rounded-full overflow-hidden mx-auto">
+                <img src={bigbAvatar} alt="Big B" className="w-full h-full object-cover" />
+              </div>
                 <p className="text-sm font-medium text-foreground">Olá! Eu sou o Big B 🤖</p>
                 <p className="text-xs text-muted-foreground">
                   Seu assistente contábil pessoal. Pergunte sobre conceitos financeiros ou funcionalidades do app!
