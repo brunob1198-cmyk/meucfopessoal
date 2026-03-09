@@ -36,6 +36,7 @@ export function useCreateTransaction() {
       category_id: string;
       amount: number;
       date: string;
+      payment_date?: string;
       comment?: string;
       is_installment?: boolean;
       total_installments?: number;
