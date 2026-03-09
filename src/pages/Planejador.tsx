@@ -386,7 +386,7 @@ export default function Planejador() {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-auto max-h-[75vh]">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 z-10">
                   <tr className="bg-[hsl(var(--table-total-bg))] text-[hsl(var(--table-total-fg))]">
