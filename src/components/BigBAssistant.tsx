@@ -69,9 +69,21 @@ async function streamChat({
 
 export function BigBAssistant() {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<Msg[]>([]);
+  const [messages, setMessages] = useState<Msg[]>(() => {
+    try {
+      const saved = localStorage.getItem('bigb-chat-history');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Persist messages to localStorage
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem('bigb-chat-history', JSON.stringify(messages));
+    }
+  }, [messages]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Draggable state
