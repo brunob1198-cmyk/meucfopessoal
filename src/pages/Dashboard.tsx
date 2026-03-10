@@ -17,7 +17,7 @@ import { exportChartAsPNG } from '@/lib/exportChart';
 import { Button } from '@/components/ui/button';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
-  CartesianGrid, Tooltip, Legend, LineChart, Line } from
+  CartesianGrid, Tooltip, Legend, LineChart, Line, LabelList } from
 'recharts';
 
 const COLORS = [
