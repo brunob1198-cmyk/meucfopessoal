@@ -17,21 +17,21 @@ import { exportChartAsPNG } from '@/lib/exportChart';
 import { Button } from '@/components/ui/button';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
-  CartesianGrid, Tooltip, Legend, LineChart, Line,
-} from 'recharts';
+  CartesianGrid, Tooltip, Legend, LineChart, Line } from
+'recharts';
 
 const COLORS = [
-  'hsl(160, 78%, 49%)', 'hsl(195, 100%, 59%)', 'hsl(28, 100%, 63%)',
-  'hsl(280, 60%, 55%)', 'hsl(340, 70%, 55%)', 'hsl(50, 90%, 55%)',
-  'hsl(130, 50%, 45%)', 'hsl(210, 80%, 55%)',
-];
+'hsl(160, 78%, 49%)', 'hsl(195, 100%, 59%)', 'hsl(28, 100%, 63%)',
+'hsl(280, 60%, 55%)', 'hsl(340, 70%, 55%)', 'hsl(50, 90%, 55%)',
+'hsl(130, 50%, 45%)', 'hsl(210, 80%, 55%)'];
+
 
 const cardVariant = {
   hidden: { opacity: 0, y: 20 },
   visible: (i: number) => ({
     opacity: 1, y: 0,
-    transition: { delay: i * 0.08, duration: 0.5, ease: 'easeOut' as const },
-  }),
+    transition: { delay: i * 0.08, duration: 0.5, ease: 'easeOut' as const }
+  })
 };
 
 export default function Dashboard() {
@@ -52,7 +52,7 @@ export default function Dashboard() {
   const months = useMemo(() => {
     const start = filter.parseMonth(filter.startMonth);
     const end = filter.parseMonth(filter.endMonth);
-    return eachMonthOfInterval({ start, end }).map(d => format(d, 'yyyy-MM'));
+    return eachMonthOfInterval({ start, end }).map((d) => format(d, 'yyyy-MM'));
   }, [filter.startMonth, filter.endMonth]);
 
   const allData = useMemo(() => {
@@ -75,7 +75,7 @@ export default function Dashboard() {
           category_id: p.category_id,
           categories: p.categories,
           date: p.month,
-          _projected: true,
+          _projected: true
         });
       }
     });
@@ -85,7 +85,7 @@ export default function Dashboard() {
 
   const sumByType = (type: string) => {
     let total = 0;
-    allData.txByMonth.forEach(txs => {
+    allData.txByMonth.forEach((txs) => {
       txs.forEach((t: any) => {
         if (t.categories?.dre_type === type) total += Number(t.amount);
       });
@@ -109,8 +109,8 @@ export default function Dashboard() {
       const children = categories.filter((c) => c.parent_id === parent.id);
       const childIds = new Set(children.map((c) => c.id));
       let total = 0;
-      allData.txByMonth.forEach(txs => {
-        txs.forEach((t: any) => { if (childIds.has(t.category_id)) total += Number(t.amount); });
+      allData.txByMonth.forEach((txs) => {
+        txs.forEach((t: any) => {if (childIds.has(t.category_id)) total += Number(t.amount);});
       });
       return { name: parent.name, value: total };
     }).filter((d) => d.value > 0).sort((a, b) => b.value - a.value);
@@ -119,17 +119,17 @@ export default function Dashboard() {
   const stackedBarData = useMemo(() => {
     if (!categories) return { data: [] as any[], keys: [] as string[] };
     const parentCats = categories.filter((c) => !c.parent_id && c.dre_type === 'despesa');
-    const catNames = parentCats.map(c => c.name);
+    const catNames = parentCats.map((c) => c.name);
     const childMap = new Map<string, string>();
-    parentCats.forEach(p => {
-      categories.filter(c => c.parent_id === p.id).forEach(c => childMap.set(c.id, p.name));
+    parentCats.forEach((p) => {
+      categories.filter((c) => c.parent_id === p.id).forEach((c) => childMap.set(c.id, p.name));
     });
 
-    const data = months.map(m => {
+    const data = months.map((m) => {
       const row: any = {
-        mes: format(new Date(Number(m.split('-')[0]), Number(m.split('-')[1]) - 1, 1), 'MMM/yy', { locale: ptBR }),
+        mes: format(new Date(Number(m.split('-')[0]), Number(m.split('-')[1]) - 1, 1), 'MMM/yy', { locale: ptBR })
       };
-      catNames.forEach(n => row[n] = 0);
+      catNames.forEach((n) => row[n] = 0);
       const txs = allData.txByMonth.get(m) || [];
       txs.forEach((t: any) => {
         const pName = childMap.get(t.category_id);
@@ -138,12 +138,12 @@ export default function Dashboard() {
       return row;
     });
 
-    return { data, keys: catNames.filter(n => data.some(d => d[n] > 0)) };
+    return { data, keys: catNames.filter((n) => data.some((d) => d[n] > 0)) };
   }, [categories, months, allData]);
 
   const lineData = useMemo(() => {
     if (!categories) return [];
-    return months.map(m => {
+    return months.map((m) => {
       const txs = allData.txByMonth.get(m) || [];
       const sumType = (type: string) => txs.filter((t: any) => t.categories?.dre_type === type).reduce((s: number, t: any) => s + Number(t.amount), 0);
       const rec = sumType('receita');
@@ -162,13 +162,13 @@ export default function Dashboard() {
         mes: format(new Date(Number(m.split('-')[0]), Number(m.split('-')[1]) - 1, 1), 'MMM/yy', { locale: ptBR }),
         'Receita Bruta': rec,
         'Despesas + Custos': desp + cust,
-        'Lucro Líquido': ll,
+        'Lucro Líquido': ll
       };
     });
   }, [categories, months, allData]);
 
   const detailedTableData = useMemo(() => {
-    const rows: { [key: string]: string | number }[] = [];
+    const rows: {[key: string]: string | number;}[] = [];
     rows.push({ Indicador: 'Receita Bruta', Valor: formatBRL(receitaBruta) });
     rows.push({ Indicador: '(-) Descontos', Valor: formatBRL(descontos) });
     rows.push({ Indicador: '= Receita Líquida', Valor: formatBRL(receitaLiquida) });
@@ -179,42 +179,42 @@ export default function Dashboard() {
     rows.push({ Indicador: '= LUCRO LÍQUIDO', Valor: formatBRL(lucroLiquido) });
     rows.push({ Indicador: '', Valor: '' });
     rows.push({ Indicador: 'EVOLUÇÃO MENSAL', Valor: '' });
-    lineData.forEach(d => {
+    lineData.forEach((d) => {
       rows.push({
         Indicador: d.mes,
         'Receita Bruta': formatBRL(d['Receita Bruta']),
         'Despesas + Custos': formatBRL(d['Despesas + Custos']),
-        'Lucro Líquido': formatBRL(d['Lucro Líquido']),
+        'Lucro Líquido': formatBRL(d['Lucro Líquido'])
       });
     });
     if (pieData.length > 0) {
       rows.push({ Indicador: '', Valor: '' });
       rows.push({ Indicador: 'DISTRIBUIÇÃO DE DESPESAS', Valor: '' });
-      pieData.forEach(d => {
+      pieData.forEach((d) => {
         rows.push({ Indicador: d.name, Valor: formatBRL(d.value) });
       });
     }
     return rows;
   }, [receitaBruta, descontos, receitaLiquida, custos, lucroBruto, despesas, ebitda, lucroLiquido, lineData, pieData]);
 
-  const periodLabel = filter.startMonth === filter.endMonth
-    ? format(filter.parseMonth(filter.startMonth), "MMMM 'de' yyyy", { locale: ptBR })
-    : `${format(filter.parseMonth(filter.startMonth), 'MMM/yy', { locale: ptBR })} a ${format(filter.parseMonth(filter.endMonth), 'MMM/yy', { locale: ptBR })}`;
+  const periodLabel = filter.startMonth === filter.endMonth ?
+  format(filter.parseMonth(filter.startMonth), "MMMM 'de' yyyy", { locale: ptBR }) :
+  `${format(filter.parseMonth(filter.startMonth), 'MMM/yy', { locale: ptBR })} a ${format(filter.parseMonth(filter.endMonth), 'MMM/yy', { locale: ptBR })}`;
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+      </div>);
+
   }
 
   const kpis = [
-    { label: 'Receita Líquida', value: receitaLiquida, icon: DollarSign, glowClass: 'glow-border' },
-    { label: 'Despesas', value: despesas, icon: TrendingDown, glowClass: 'glow-border-orange' },
-    { label: 'EBITDA', value: ebitda, icon: Wallet, glowClass: 'glow-border-blue' },
-    { label: 'Lucro Líquido', value: lucroLiquido, icon: TrendingUp, glowClass: 'glow-border' },
-  ];
+  { label: 'Receita Líquida', value: receitaLiquida, icon: DollarSign, glowClass: 'glow-border' },
+  { label: 'Despesas', value: despesas, icon: TrendingDown, glowClass: 'glow-border-orange' },
+  { label: 'EBITDA', value: ebitda, icon: Wallet, glowClass: 'glow-border-blue' },
+  { label: 'Lucro Líquido', value: lucroLiquido, icon: TrendingUp, glowClass: 'glow-border' }];
+
 
   const tooltipStyle = {
     contentStyle: {
@@ -222,15 +222,15 @@ export default function Dashboard() {
       border: '1px solid hsl(200 25% 20%)',
       borderRadius: '8px',
       backdropFilter: 'blur(8px)',
-      color: '#fff',
-    },
+      color: '#fff'
+    }
   };
 
   return (
     <div ref={dashboardRef} className="max-w-6xl mx-auto space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-display font-bold text-foreground">Dashboard</h1>
+          <h1 className="font-display font-bold text-orange-500 text-2xl">Dashboard</h1>
           <p className="text-sm text-muted-foreground capitalize">{periodLabel}</p>
         </div>
         <MonthRangePicker
@@ -238,27 +238,27 @@ export default function Dashboard() {
           endMonth={filter.endMonth}
           onStartChange={filter.setStartMonth}
           onEndChange={filter.setEndMonth}
-          onYearClick={() => filter.setFullYear()}
-        />
+          onYearClick={() => filter.setFullYear()} />
+        
         <ExportMenu
           filename={`dashboard-${filter.startMonth}-${filter.endMonth}`}
           title={`Dashboard — ${periodLabel}`}
           getData={() => detailedTableData}
           chartRefs={[pieChartRef, lineChartRef, barChartRef]}
-          screenshotRef={dashboardRef}
-        />
+          screenshotRef={dashboardRef} />
+        
       </div>
 
       {/* KPI Cards with glassmorphism */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpis.map((kpi, i) => (
-          <motion.div
-            key={kpi.label}
-            custom={i}
-            initial="hidden"
-            animate="visible"
-            variants={cardVariant}
-          >
+        {kpis.map((kpi, i) =>
+        <motion.div
+          key={kpi.label}
+          custom={i}
+          initial="hidden"
+          animate="visible"
+          variants={cardVariant}>
+          
             <Card className={`glass-card float-card ${kpi.glowClass} border-border/30`}>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
@@ -275,7 +275,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </motion.div>
-        ))}
+        )}
       </div>
 
       {/* Financial Health Score Card */}
@@ -294,22 +294,22 @@ export default function Dashboard() {
               </Button>
             </CardHeader>
             <CardContent>
-              {pieData.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">Sem dados para o período</p>
-              ) : (
-                <div ref={pieChartRef}>
+              {pieData.length === 0 ?
+              <p className="text-sm text-muted-foreground text-center py-8">Sem dados para o período</p> :
+
+              <div ref={pieChartRef}>
                   <ResponsiveContainer width="100%" height={280}>
                     <PieChart>
                       <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={2} dataKey="value"
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}
-                        stroke="hsl(200 35% 12%)" strokeWidth={2}>
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}
+                    stroke="hsl(200 35% 12%)" strokeWidth={2}>
                         {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                       </Pie>
                       <Tooltip formatter={(v: number) => formatBRL(v)} {...tooltipStyle} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-              )}
+              }
             </CardContent>
           </Card>
         </motion.div>
@@ -323,10 +323,10 @@ export default function Dashboard() {
               </Button>
             </CardHeader>
             <CardContent>
-              {lineData.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">Sem dados</p>
-              ) : (
-                <div ref={lineChartRef} className="chart-glow-green">
+              {lineData.length === 0 ?
+              <p className="text-sm text-muted-foreground text-center py-8">Sem dados</p> :
+
+              <div ref={lineChartRef} className="chart-glow-green">
                   <ResponsiveContainer width="100%" height={280}>
                     <LineChart data={lineData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(200 25% 18% / 0.5)" />
@@ -340,7 +340,7 @@ export default function Dashboard() {
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-              )}
+              }
             </CardContent>
           </Card>
         </motion.div>
@@ -356,10 +356,10 @@ export default function Dashboard() {
             </Button>
           </CardHeader>
           <CardContent>
-            {stackedBarData.data.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">Sem dados</p>
-            ) : (
-              <div ref={barChartRef}>
+            {stackedBarData.data.length === 0 ?
+            <p className="text-sm text-muted-foreground text-center py-8">Sem dados</p> :
+
+            <div ref={barChartRef}>
                 <ResponsiveContainer width="100%" height={320}>
                   <BarChart data={stackedBarData.data}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(200 25% 18% / 0.5)" />
@@ -367,13 +367,13 @@ export default function Dashboard() {
                     <YAxis tick={{ fontSize: 11, fill: 'hsl(207 25% 60%)' }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                     <Tooltip formatter={(v: number) => formatBRL(v)} {...tooltipStyle} />
                     <Legend />
-                    {stackedBarData.keys.map((key, i) => (
-                      <Bar key={key} dataKey={key} stackId="expenses" fill={COLORS[i % COLORS.length]} radius={i === stackedBarData.keys.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]} />
-                    ))}
+                    {stackedBarData.keys.map((key, i) =>
+                  <Bar key={key} dataKey={key} stackId="expenses" fill={COLORS[i % COLORS.length]} radius={i === stackedBarData.keys.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]} />
+                  )}
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-            )}
+            }
           </CardContent>
         </Card>
       </motion.div>
@@ -382,6 +382,6 @@ export default function Dashboard() {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55, duration: 0.5 }}>
         <YearlyEvolution />
       </motion.div>
-    </div>
-  );
+    </div>);
+
 }
