@@ -361,16 +361,61 @@ export default function Dashboard() {
             <p className="text-sm text-muted-foreground text-center py-8">Sem dados</p> :
 
             <div ref={barChartRef}>
-                <ResponsiveContainer width="100%" height={320}>
-                  <BarChart data={stackedBarData.data}>
+                <ResponsiveContainer width="100%" height={380}>
+                  <BarChart data={stackedBarData.data} barCategoryGap="35%" barGap={1} maxBarSize={40} margin={{ top: 20, right: 25, bottom: 5, left: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(200 25% 18% / 0.5)" />
                     <XAxis dataKey="mes" tick={{ fontSize: 11, fill: 'hsl(207 25% 60%)' }} />
                     <YAxis tick={{ fontSize: 11, fill: 'hsl(207 25% 60%)' }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                     <Tooltip formatter={(v: number) => formatBRL(v)} {...tooltipStyle} />
-                    <Legend />
-                    {stackedBarData.keys.map((key, i) =>
-                  <Bar key={key} dataKey={key} stackId="expenses" fill={COLORS[i % COLORS.length]} radius={i === stackedBarData.keys.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]} />
-                  )}
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    {stackedBarData.keys.map((key, i) => {
+                      const color = COLORS[i % COLORS.length];
+                      const { h, s, l } = (() => {
+                        const m = color.match(/hsl\(\s*([\d.]+)\s*,\s*([\d.]+)%?\s*,\s*([\d.]+)%?\s*\)/);
+                        if (!m) return { h: 0, s: 50, l: 50 };
+                        return { h: parseFloat(m[1]), s: parseFloat(m[2]), l: parseFloat(m[3]) };
+                      })();
+                      return (
+                        <Bar
+                          key={key}
+                          dataKey={key}
+                          stackId="expenses"
+                          fill={color}
+                          shape={(props: any) => {
+                            const { x, y, width, height } = props;
+                            if (!height || height <= 0) return null;
+                            const depth = Math.min(width * 0.3, 8);
+                            const frontId = `grad-dash-${h}-${s}-${l}-${y}`.replace(/\./g, '_');
+                            return (
+                              <g>
+                                <defs>
+                                  <linearGradient id={frontId} x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor={`hsl(${h}, ${s}%, ${Math.min(100, l + 6)}%)`} />
+                                    <stop offset="100%" stopColor={`hsl(${h}, ${s}%, ${Math.max(0, l - 6)}%)`} />
+                                  </linearGradient>
+                                </defs>
+                                <rect x={x} y={y} width={width} height={height} fill={`url(#${frontId})`} />
+                                <polygon
+                                  points={`${x},${y} ${x + depth},${y - depth} ${x + width + depth},${y - depth} ${x + width},${y}`}
+                                  fill={`hsl(${h}, ${s}%, ${Math.min(100, l + 18)}%)`}
+                                />
+                                <polygon
+                                  points={`${x + width},${y} ${x + width + depth},${y - depth} ${x + width + depth},${y + height - depth} ${x + width},${y + height}`}
+                                  fill={`hsl(${h}, ${s}%, ${Math.max(0, l - 18)}%)`}
+                                />
+                              </g>
+                            );
+                          }}
+                        >
+                          <LabelList
+                            dataKey={key}
+                            position="inside"
+                            style={{ fontSize: 9, fill: '#fff', fontWeight: 500 }}
+                            formatter={(v: number) => v > 0 ? `${(v / 1000).toFixed(1)}k` : ''}
+                          />
+                        </Bar>
+                      );
+                    })}
                   </BarChart>
                 </ResponsiveContainer>
               </div>
