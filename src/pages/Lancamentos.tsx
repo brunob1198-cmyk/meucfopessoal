@@ -22,7 +22,7 @@ const DRE_TYPE_COLORS: Record<string, string> = {
   desconto: 'border-l-[hsl(var(--chart-desconto))]',
   custo: 'border-l-[hsl(var(--chart-custo))]',
   despesa: 'border-l-[hsl(var(--chart-despesa))]',
-  investimento: 'border-l-[hsl(var(--chart-investimento))]',
+  investimento: 'border-l-[hsl(var(--chart-investimento))]'
 };
 
 const DRE_TYPE_LABELS: Record<string, string> = {
@@ -34,16 +34,16 @@ const DRE_TYPE_LABELS: Record<string, string> = {
   resultado_financeiro: 'Resultado Financeiro',
   outras_receitas: 'Outras Receitas',
   impostos: 'Impostos',
-  investimento: 'Investimento',
+  investimento: 'Investimento'
 };
 
-function EditCategoryInline({ categoryId, currentName, onDone }: { categoryId: string; currentName: string; onDone: () => void }) {
+function EditCategoryInline({ categoryId, currentName, onDone }: {categoryId: string;currentName: string;onDone: () => void;}) {
   const [name, setName] = useState(currentName);
   const [saving, setSaving] = useState(false);
   const queryClient = useQueryClient();
 
   const handleSave = async () => {
-    if (!name.trim() || name.trim() === currentName) { onDone(); return; }
+    if (!name.trim() || name.trim() === currentName) {onDone();return;}
     setSaving(true);
     const { error } = await supabase.from('categories').update({ name: name.trim() }).eq('id', categoryId);
     if (error) {
@@ -63,19 +63,19 @@ function EditCategoryInline({ categoryId, currentName, onDone }: { categoryId: s
         onChange={(e) => setName(e.target.value)}
         className="h-7 text-xs w-40"
         autoFocus
-        onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') onDone(); }}
-      />
+        onKeyDown={(e) => {if (e.key === 'Enter') handleSave();if (e.key === 'Escape') onDone();}} />
+      
       <button onClick={handleSave} disabled={saving} className="p-1 hover:bg-primary/10 rounded">
         {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3 text-primary" />}
       </button>
       <button onClick={onDone} className="p-1 hover:bg-muted rounded">
         <X className="h-3 w-3 text-muted-foreground" />
       </button>
-    </div>
-  );
+    </div>);
+
 }
 
-function DeleteCategoryButton({ categoryId, categoryName, hasChildren }: { categoryId: string; categoryName: string; hasChildren?: boolean }) {
+function DeleteCategoryButton({ categoryId, categoryName, hasChildren }: {categoryId: string;categoryName: string;hasChildren?: boolean;}) {
   const [deleting, setDeleting] = useState(false);
   const queryClient = useQueryClient();
 
@@ -114,9 +114,9 @@ function DeleteCategoryButton({ categoryId, categoryName, hasChildren }: { categ
         <AlertDialogHeader>
           <AlertDialogTitle>Excluir "{categoryName}"?</AlertDialogTitle>
           <AlertDialogDescription>
-            {hasChildren
-              ? 'Esta categoria e todas as suas subcategorias serão removidas. Lançamentos existentes vinculados impedirão a exclusão.'
-              : 'Esta subcategoria será removida. Lançamentos existentes vinculados impedirão a exclusão.'}
+            {hasChildren ?
+            'Esta categoria e todas as suas subcategorias serão removidas. Lançamentos existentes vinculados impedirão a exclusão.' :
+            'Esta subcategoria será removida. Lançamentos existentes vinculados impedirão a exclusão.'}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -126,25 +126,25 @@ function DeleteCategoryButton({ categoryId, categoryName, hasChildren }: { categ
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
-    </AlertDialog>
-  );
+    </AlertDialog>);
+
 }
 
-function MoveSubcategoryButton({ subcategory, parentCategories }: { subcategory: Category; parentCategories: Category[] }) {
+function MoveSubcategoryButton({ subcategory, parentCategories }: {subcategory: Category;parentCategories: Category[];}) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [targetParentId, setTargetParentId] = useState('');
   const queryClient = useQueryClient();
 
-  const available = parentCategories.filter(p => p.id !== subcategory.parent_id);
+  const available = parentCategories.filter((p) => p.id !== subcategory.parent_id);
 
   const handleMove = async () => {
     if (!targetParentId) return;
     setSaving(true);
-    const targetParent = parentCategories.find(p => p.id === targetParentId);
+    const targetParent = parentCategories.find((p) => p.id === targetParentId);
     const { error } = await supabase.from('categories').update({
       parent_id: targetParentId,
-      dre_type: (targetParent?.dre_type || subcategory.dre_type) as any,
+      dre_type: (targetParent?.dre_type || subcategory.dre_type) as any
     }).eq('id', subcategory.id);
     if (error) {
       toast.error('Erro ao mover: ' + error.message);
@@ -173,22 +173,22 @@ function MoveSubcategoryButton({ subcategory, parentCategories }: { subcategory:
         <Select value={targetParentId} onValueChange={setTargetParentId}>
           <SelectTrigger><SelectValue placeholder="Selecione a nova categoria..." /></SelectTrigger>
           <SelectContent>
-            {available.map(p => (
-              <SelectItem key={p.id} value={p.id}>
+            {available.map((p) =>
+            <SelectItem key={p.id} value={p.id}>
                 {p.name} <span className="text-muted-foreground ml-1">({DRE_TYPE_LABELS[p.dre_type] || p.dre_type})</span>
               </SelectItem>
-            ))}
+            )}
           </SelectContent>
         </Select>
         <Button onClick={handleMove} disabled={saving || !targetParentId} className="w-full">
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Mover Subcategoria'}
         </Button>
       </DialogContent>
-    </Dialog>
-  );
+    </Dialog>);
+
 }
 
-function SubcategoryRow({ cat, onSubmit, parentCategories }: { cat: Category; onSubmit: (data: any) => void; parentCategories: Category[] }) {
+function SubcategoryRow({ cat, onSubmit, parentCategories }: {cat: Category;onSubmit: (data: any) => void;parentCategories: Category[];}) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [amount, setAmount] = useState('');
@@ -210,7 +210,7 @@ function SubcategoryRow({ cat, onSubmit, parentCategories }: { cat: Category; on
       payment_date: showPaymentDate ? paymentDate : date,
       comment: comment || undefined,
       is_installment: isInstallment,
-      total_installments: isInstallment ? Number(installments) : undefined,
+      total_installments: isInstallment ? Number(installments) : undefined
     });
     setAmount('');
     setComment('');
@@ -224,13 +224,13 @@ function SubcategoryRow({ cat, onSubmit, parentCategories }: { cat: Category; on
   return (
     <div>
       <div className="w-full flex items-center justify-between py-2 px-3 text-sm hover:bg-muted/50 rounded transition-colors">
-        {editing ? (
-          <EditCategoryInline categoryId={cat.id} currentName={cat.name} onDone={() => setEditing(false)} />
-        ) : (
-          <button onClick={() => setOpen(!open)} className="flex-1 text-left flex items-center gap-1">
+        {editing ?
+        <EditCategoryInline categoryId={cat.id} currentName={cat.name} onDone={() => setEditing(false)} /> :
+
+        <button onClick={() => setOpen(!open)} className="flex-1 text-left flex items-center gap-1">
             <span>{cat.name}</span>
           </button>
-        )}
+        }
         <div className="flex items-center gap-1">
           <button onClick={() => setEditing(true)} className="p-1 hover:bg-muted rounded transition-colors" title="Editar">
             <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
@@ -240,8 +240,8 @@ function SubcategoryRow({ cat, onSubmit, parentCategories }: { cat: Category; on
           <Plus className="h-3.5 w-3.5 text-muted-foreground cursor-pointer" onClick={() => setOpen(!open)} />
         </div>
       </div>
-      {open && (
-        <div className="px-3 pb-3 space-y-2 bg-muted/30 rounded-b">
+      {open &&
+      <div className="px-3 pb-3 space-y-2 bg-muted/30 rounded-b">
           <div className="flex gap-2">
             <Input type="number" placeholder="Valor (R$) — negativo para estorno" value={amount} onChange={(e) => setAmount(e.target.value)} className="flex-1" autoFocus step="0.01" />
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-36" />
@@ -250,31 +250,31 @@ function SubcategoryRow({ cat, onSubmit, parentCategories }: { cat: Category; on
             <Switch checked={showPaymentDate} onCheckedChange={setShowPaymentDate} />
             <span className="text-xs text-muted-foreground">Data de pagamento diferente</span>
           </div>
-          {showPaymentDate && (
-            <div className="flex gap-2 items-center">
+          {showPaymentDate &&
+        <div className="flex gap-2 items-center">
               <span className="text-xs text-muted-foreground whitespace-nowrap">Pagamento:</span>
               <Input type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} className="w-36" />
             </div>
-          )}
+        }
           <Input placeholder="Comentário (opcional)" value={comment} onChange={(e) => setComment(e.target.value)} />
           <div className="flex items-center gap-2">
             <Switch checked={isInstallment} onCheckedChange={setIsInstallment} />
             <span className="text-xs text-muted-foreground">Parcelado</span>
-            {isInstallment && (
-              <Input type="number" placeholder="Parcelas" value={installments} onChange={(e) => setInstallments(e.target.value)} className="w-20" min="2" max="60" />
-            )}
+            {isInstallment &&
+          <Input type="number" placeholder="Parcelas" value={installments} onChange={(e) => setInstallments(e.target.value)} className="w-20" min="2" max="60" />
+          }
           </div>
           <p className="text-[10px] text-muted-foreground">💡 Use valor negativo para corrigir/estornar um lançamento</p>
           <Button onClick={handleSave} disabled={submitting || !amount} size="sm" className="w-full">
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'SALVAR'}
           </Button>
         </div>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 }
 
-function AddSubcategoryForm({ parentId, onDone }: { parentId: string; onDone: () => void }) {
+function AddSubcategoryForm({ parentId, onDone }: {parentId: string;onDone: () => void;}) {
   const [name, setName] = useState('');
   const [saving, setSaving] = useState(false);
   const { user } = useAuth();
@@ -288,7 +288,7 @@ function AddSubcategoryForm({ parentId, onDone }: { parentId: string; onDone: ()
       name: name.trim(),
       dre_type: 'despesa',
       parent_id: parentId,
-      sort_order: 99,
+      sort_order: 99
     });
     if (error) {
       toast.error('Erro: ' + error.message);
@@ -306,11 +306,11 @@ function AddSubcategoryForm({ parentId, onDone }: { parentId: string; onDone: ()
       <Button size="sm" onClick={handleAdd} disabled={saving} className="h-8 text-xs">
         {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Criar'}
       </Button>
-    </div>
-  );
+    </div>);
+
 }
 
-function CategoryGroup({ cat, onSubmit, parentCategories }: { cat: Category; onSubmit: (data: any) => void; parentCategories: Category[] }) {
+function CategoryGroup({ cat, onSubmit, parentCategories }: {cat: Category;onSubmit: (data: any) => void;parentCategories: Category[];}) {
   const [expanded, setExpanded] = useState(false);
   const [addingSub, setAddingSub] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -319,14 +319,14 @@ function CategoryGroup({ cat, onSubmit, parentCategories }: { cat: Category; onS
   return (
     <Card className={`border-l-4 ${colorClass} overflow-hidden`}>
       <div className="w-full flex items-center justify-between p-3 text-left font-semibold text-sm hover:bg-muted/30 transition-colors">
-        {editing ? (
-          <EditCategoryInline categoryId={cat.id} currentName={cat.name} onDone={() => setEditing(false)} />
-        ) : (
-          <button onClick={() => setExpanded(!expanded)} className="flex-1 flex items-center gap-1">
+        {editing ?
+        <EditCategoryInline categoryId={cat.id} currentName={cat.name} onDone={() => setEditing(false)} /> :
+
+        <button onClick={() => setExpanded(!expanded)} className="flex-1 flex items-center gap-1">
             {expanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
             <span>{cat.name}</span>
           </button>
-        )}
+        }
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground font-normal">{cat.children?.length || 0} sub</span>
           <button onClick={() => setEditing(true)} className="p-1 hover:bg-muted rounded transition-colors" title="Editar">
@@ -335,25 +335,25 @@ function CategoryGroup({ cat, onSubmit, parentCategories }: { cat: Category; onS
           <DeleteCategoryButton categoryId={cat.id} categoryName={cat.name} hasChildren={(cat.children?.length || 0) > 0} />
         </div>
       </div>
-      {expanded && (
-        <div className="border-t border-border divide-y divide-border/50">
-          {cat.children?.map((sub) => (
-            <SubcategoryRow key={sub.id} cat={sub} onSubmit={onSubmit} parentCategories={parentCategories} />
-          ))}
-          {addingSub ? (
-            <AddSubcategoryForm parentId={cat.id} onDone={() => setAddingSub(false)} />
-          ) : (
-            <button
-              onClick={() => setAddingSub(true)}
-              className="w-full flex items-center gap-1 py-2 px-3 text-xs text-muted-foreground hover:bg-muted/50 transition-colors"
-            >
+      {expanded &&
+      <div className="border-t border-border divide-y divide-border/50">
+          {cat.children?.map((sub) =>
+        <SubcategoryRow key={sub.id} cat={sub} onSubmit={onSubmit} parentCategories={parentCategories} />
+        )}
+          {addingSub ?
+        <AddSubcategoryForm parentId={cat.id} onDone={() => setAddingSub(false)} /> :
+
+        <button
+          onClick={() => setAddingSub(true)}
+          className="w-full flex items-center gap-1 py-2 px-3 text-xs text-muted-foreground hover:bg-muted/50 transition-colors">
+          
               <Plus className="h-3 w-3" /> Adicionar subcategoria
             </button>
-          )}
+        }
         </div>
-      )}
-    </Card>
-  );
+      }
+    </Card>);
+
 }
 
 function AddCategoryDialog() {
@@ -371,7 +371,7 @@ function AddCategoryDialog() {
       user_id: user.id,
       name: name.trim().toUpperCase(),
       dre_type: dreType as any,
-      sort_order: 99,
+      sort_order: 99
     });
     if (error) {
       toast.error('Erro: ' + error.message);
@@ -400,9 +400,9 @@ function AddCategoryDialog() {
           <Select value={dreType} onValueChange={setDreType}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              {Object.entries(DRE_TYPE_LABELS).map(([k, v]) => (
-                <SelectItem key={k} value={k}>{v}</SelectItem>
-              ))}
+              {Object.entries(DRE_TYPE_LABELS).map(([k, v]) =>
+              <SelectItem key={k} value={k}>{v}</SelectItem>
+              )}
             </SelectContent>
           </Select>
           <Button onClick={handleCreate} disabled={saving || !name.trim()} className="w-full">
@@ -410,8 +410,8 @@ function AddCategoryDialog() {
           </Button>
         </div>
       </DialogContent>
-    </Dialog>
-  );
+    </Dialog>);
+
 }
 
 export default function Lancamentos() {
@@ -435,32 +435,32 @@ export default function Lancamentos() {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+      </div>);
+
   }
 
   return (
     <div className="max-w-2xl mx-auto space-y-3">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold text-foreground">Lançamentos</h1>
+          <h1 className="font-bold text-orange-500 text-2xl">Lançamentos</h1>
           <p className="text-sm text-muted-foreground">Clique na subcategoria para lançar rapidamente</p>
-          {!isPremium && (
-            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+          {!isPremium &&
+          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
               {limitReached && <AlertTriangle className="h-3 w-3 text-destructive" />}
               {txCount || 0}/{FREE_TX_LIMIT} lançamentos este mês
               {limitReached && <span className="text-destructive font-medium"> — Limite atingido</span>}
             </p>
-          )}
+          }
         </div>
         <div className="flex items-center gap-2">
           <ExcelUpload />
           <AddCategoryDialog />
         </div>
       </div>
-      {tree.map((cat) => (
-        <CategoryGroup key={cat.id} cat={cat} onSubmit={handleSubmit} parentCategories={tree} />
-      ))}
-    </div>
-  );
+      {tree.map((cat) =>
+      <CategoryGroup key={cat.id} cat={cat} onSubmit={handleSubmit} parentCategories={tree} />
+      )}
+    </div>);
+
 }
