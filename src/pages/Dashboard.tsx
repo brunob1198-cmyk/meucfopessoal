@@ -337,7 +337,7 @@ export default function Dashboard() {
                       <Legend />
                       <Line type="monotone" dataKey="Receita Bruta" stroke="hsl(160, 78%, 49%)" strokeWidth={2.5} dot={false} />
                       <Line type="monotone" dataKey="Despesas + Custos" stroke="hsl(0, 72%, 51%)" strokeWidth={2.5} dot={false} />
-                      <Line type="monotone" dataKey="Lucro Líquido" stroke="hsl(195, 100%, 59%)" strokeWidth={2.5} dot={false} />
+                      <Line type="monotone" dataKey="Lucro Líquido" stroke="hsl(210, 60%, 50%)" strokeWidth={2.5} dot={false} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>

@@ -45,7 +45,7 @@ export default function Auth() {
 
       {/* Ambient glow effects */}
       <div className="absolute top-1/3 -left-40 w-[500px] h-[500px] rounded-full blur-[150px] pointer-events-none" style={{ background: 'hsl(160 78% 49% / 0.08)' }} />
-      <div className="absolute bottom-1/4 -right-40 w-[500px] h-[500px] rounded-full blur-[150px] pointer-events-none" style={{ background: 'hsl(195 100% 59% / 0.06)' }} />
+      <div className="absolute bottom-1/4 -right-40 w-[500px] h-[500px] rounded-full blur-[150px] pointer-events-none" style={{ background: 'hsl(160 60% 42% / 0.06)' }} />
       <div className="absolute top-10 right-1/4 w-[300px] h-[300px] rounded-full blur-[120px] pointer-events-none" style={{ background: 'hsl(28 100% 63% / 0.04)' }} />
 
       <motion.div
