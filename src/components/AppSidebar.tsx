@@ -1,7 +1,7 @@
 import {
   DollarSign, FileText, FileBarChart, Target, LayoutDashboard,
   LogOut, TrendingUp, Sparkles, CalendarRange, UserCircle,
-  Scale, Calculator, HelpCircle, Banknote, HeartPulse
+  Scale, Calculator, HelpCircle, Banknote, HeartPulse, Gem, Brain
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
@@ -23,6 +23,8 @@ const items = [
   { title: 'CFO Digital IA', url: '/inteligencia', icon: Sparkles },
   { title: 'Mapa de Compromissos', url: '/compromissos', icon: CalendarRange },
   { title: 'Balanço Patrimonial', url: '/balanco', icon: Scale },
+  { title: 'Mapa de Riqueza', url: '/mapa-riqueza', icon: Gem },
+  { title: 'Data Intelligence', url: '/data-intelligence', icon: Brain },
   { title: 'Visão Futuro Financeiro', url: '/simulador', icon: Calculator },
   { title: 'Tutorial & Ajuda', url: '/tutorial', icon: HelpCircle },
   { title: 'Meu Perfil', url: '/perfil', icon: UserCircle },

@@ -19,6 +19,8 @@ import SimuladorFinanceiro from "./pages/SimuladorFinanceiro";
 import FluxoCaixa from "./pages/FluxoCaixa";
 import Tutorial from "./pages/Tutorial";
 import FinancialHealthScorePage from "./pages/FinancialHealthScore";
+import MapaRiqueza from "./pages/MapaRiqueza";
+import DataIntelligence from "./pages/DataIntelligence";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -58,6 +60,8 @@ const App = () => (
             <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
             <Route path="/simulador" element={<ProtectedRoute><SimuladorFinanceiro /></ProtectedRoute>} />
             <Route path="/health-score" element={<ProtectedRoute><FinancialHealthScorePage /></ProtectedRoute>} />
+            <Route path="/mapa-riqueza" element={<ProtectedRoute><MapaRiqueza /></ProtectedRoute>} />
+            <Route path="/data-intelligence" element={<ProtectedRoute><DataIntelligence /></ProtectedRoute>} />
             <Route path="/tutorial" element={<ProtectedRoute><Tutorial /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>

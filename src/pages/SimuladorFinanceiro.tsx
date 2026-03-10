@@ -248,7 +248,7 @@ export default function SimuladorFinanceiro() {
 
   const addScenario = () => {
     const id = String(Date.now());
-    const names = ['Cenário Otimizado', 'Cenário Agressivo', 'Cenário Conservador'];
+    const names = ['Cenário Otimizado', 'Cenário Agressivo', 'Cenário Negativo'];
     const idx = scenarios.length;
     setScenarios(prev => [...prev, {
       ...scenario,
