@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { useFinancialHealthScore } from '@/hooks/useFinancialHealthScore';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
