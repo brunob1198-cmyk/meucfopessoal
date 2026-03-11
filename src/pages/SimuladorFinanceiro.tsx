@@ -13,12 +13,12 @@ import { useDREIntegration } from '@/hooks/useDREIntegration';
 import { formatBRL } from '@/lib/dre';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  LineChart, Line, Legend, ReferenceLine
-} from 'recharts';
+  LineChart, Line, Legend, ReferenceLine } from
+'recharts';
 import {
   TrendingUp, Target, Calculator, Lightbulb, DollarSign, Wallet,
-  PiggyBank, BarChart3, Plus, Trash2, AlertTriangle, CheckCircle2, Clock
-} from 'lucide-react';
+  PiggyBank, BarChart3, Plus, Trash2, AlertTriangle, CheckCircle2, Clock } from
+'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Scenario {
@@ -47,19 +47,19 @@ const EVENT_LABELS: Record<string, string> = {
   imovel: 'Compra de Imóvel',
   veiculo: 'Compra de Veículo',
   aumento_despesas: 'Aumento de Despesas',
-  aumento_renda: 'Aumento de Renda',
+  aumento_renda: 'Aumento de Renda'
 };
 
 const SCENARIO_COLORS = ['hsl(var(--primary))', '#10b981', '#f59e0b', '#ef4444'];
 
 function computeProjection(
-  scenario: Scenario,
-  monthlyIncome: number,
-  monthlyExpenses: number,
-  events: FinancialEvent[],
-  years: number = 30
-) {
-  const data: { year: number; patrimonio: number; renda: number; despesas: number; investido: number }[] = [];
+scenario: Scenario,
+monthlyIncome: number,
+monthlyExpenses: number,
+events: FinancialEvent[],
+years: number = 30)
+{
+  const data: {year: number;patrimonio: number;renda: number;despesas: number;investido: number;}[] = [];
   let patrimonio = scenario.currentInvestment;
   let renda = monthlyIncome;
   let despesas = monthlyExpenses;
@@ -67,7 +67,7 @@ function computeProjection(
 
   for (let y = 0; y <= years; y++) {
     // Apply events for this year
-    const yearEvents = events.filter(e => e.yearFromNow === y);
+    const yearEvents = events.filter((e) => e.yearFromNow === y);
     for (const ev of yearEvents) {
       if (ev.type === 'imovel' || ev.type === 'veiculo') {
         patrimonio -= ev.amount;
@@ -84,7 +84,7 @@ function computeProjection(
       patrimonio: Math.round(patrimonio),
       renda: Math.round(renda * 12),
       despesas: Math.round(despesas * 12),
-      investido: Math.round(totalInvestido),
+      investido: Math.round(totalInvestido)
     });
 
     if (y < years) {
@@ -95,8 +95,8 @@ function computeProjection(
         totalInvestido += scenario.monthlyInvestment;
       }
       // Annual growth
-      renda *= (1 + scenario.incomeGrowth / 100);
-      despesas *= (1 + scenario.expenseGrowth / 100);
+      renda *= 1 + scenario.incomeGrowth / 100;
+      despesas *= 1 + scenario.expenseGrowth / 100;
     }
   }
 
@@ -120,7 +120,7 @@ function parseNumberBR(value: string): number {
   return isNaN(num) ? 0 : num;
 }
 
-function CurrencyInput({ value, onChange, className }: { value: number; onChange: (v: number) => void; className?: string }) {
+function CurrencyInput({ value, onChange, className }: {value: number;onChange: (v: number) => void;className?: string;}) {
   const [display, setDisplay] = useState(formatNumberBR(value));
   const [focused, setFocused] = useState(false);
 
@@ -138,9 +138,9 @@ function CurrencyInput({ value, onChange, className }: { value: number; onChange
         onChange(parseNumberBR(display));
         setDisplay(formatNumberBR(parseNumberBR(display)));
       }}
-      onChange={e => setDisplay(e.target.value)}
-    />
-  );
+      onChange={(e) => setDisplay(e.target.value)} />);
+
+
 }
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -148,14 +148,14 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return (
     <div className="bg-popover border border-border rounded-lg p-3 shadow-lg text-sm">
       <p className="font-semibold mb-1">{label}</p>
-      {payload.map((p: any, i: number) => (
-        <p key={i} style={{ color: p.color }} className="flex justify-between gap-4">
+      {payload.map((p: any, i: number) =>
+      <p key={i} style={{ color: p.color }} className="flex justify-between gap-4">
           <span>{p.name}:</span>
           <span className="font-medium tabular-nums">{formatBRL(p.value)}</span>
         </p>
-      ))}
-    </div>
-  );
+      )}
+    </div>);
+
 };
 
 export default function SimuladorFinanceiro() {
@@ -169,12 +169,12 @@ export default function SimuladorFinanceiro() {
   const netWorth = totalAssets - totalLiabilities;
 
   const avgMonthlyIncome = useMemo(() => {
-    const profits = dreData.monthlyProfits.filter(p => p.receita > 0);
+    const profits = dreData.monthlyProfits.filter((p) => p.receita > 0);
     return profits.length > 0 ? profits.reduce((s, p) => s + p.receita, 0) / profits.length : 0;
   }, [dreData.monthlyProfits]);
 
   const avgMonthlyExpenses = useMemo(() => {
-    const profits = dreData.monthlyProfits.filter(p => p.despesas > 0);
+    const profits = dreData.monthlyProfits.filter((p) => p.despesas > 0);
     return profits.length > 0 ? profits.reduce((s, p) => s + p.despesas, 0) / profits.length : 0;
   }, [dreData.monthlyProfits]);
 
@@ -206,7 +206,7 @@ export default function SimuladorFinanceiro() {
         currentInvestment: Math.max(netWorth, 0),
         monthlyInvestment: Math.max(avgMonthlySavings, 0),
         incomeGrowth: 3,
-        expenseGrowth: 4,
+        expenseGrowth: 4
       }]);
     }
   }, [hasInitialized, netWorth, avgMonthlySavings]);
@@ -214,9 +214,9 @@ export default function SimuladorFinanceiro() {
   const [activeScenario, setActiveScenario] = useState(() => {
     try {
       return localStorage.getItem('simulador-active-scenario') || '1';
-    } catch { return '1'; }
+    } catch {return '1';}
   });
-  const scenario = scenarios.find(s => s.id === activeScenario) || scenarios[0];
+  const scenario = scenarios.find((s) => s.id === activeScenario) || scenarios[0];
 
   // Financial events - load from localStorage
   const [events, setEvents] = useState<FinancialEvent[]>(() => {
@@ -243,39 +243,39 @@ export default function SimuladorFinanceiro() {
   const [newEvent, setNewEvent] = useState<Partial<FinancialEvent>>({ type: 'imovel', yearFromNow: 5, amount: 0, monthlyImpact: 0 });
 
   const updateScenario = useCallback((field: keyof Scenario, value: any) => {
-    setScenarios(prev => prev.map(s => s.id === activeScenario ? { ...s, [field]: value } : s));
+    setScenarios((prev) => prev.map((s) => s.id === activeScenario ? { ...s, [field]: value } : s));
   }, [activeScenario]);
 
   const addScenario = () => {
     const id = String(Date.now());
     const names = ['Cenário Otimizado', 'Cenário Agressivo', 'Cenário Negativo'];
     const idx = scenarios.length;
-    setScenarios(prev => [...prev, {
+    setScenarios((prev) => [...prev, {
       ...scenario,
       id,
       name: names[idx - 1] || `Cenário ${idx + 1}`,
       color: SCENARIO_COLORS[idx % SCENARIO_COLORS.length],
       monthlyInvestment: scenario.monthlyInvestment * 1.5,
-      returnRate: scenario.returnRate + 2,
+      returnRate: scenario.returnRate + 2
     }]);
     setActiveScenario(id);
   };
 
   const removeScenario = (id: string) => {
     if (scenarios.length <= 1) return;
-    setScenarios(prev => prev.filter(s => s.id !== id));
+    setScenarios((prev) => prev.filter((s) => s.id !== id));
     if (activeScenario === id) setActiveScenario(scenarios[0].id);
   };
 
   const addEvent = () => {
     if (!newEvent.type || !newEvent.amount) return;
-    setEvents(prev => [...prev, {
+    setEvents((prev) => [...prev, {
       id: String(Date.now()),
       type: newEvent.type as any,
       label: EVENT_LABELS[newEvent.type!],
       amount: newEvent.amount || 0,
       yearFromNow: newEvent.yearFromNow || 5,
-      monthlyImpact: newEvent.monthlyImpact || 0,
+      monthlyImpact: newEvent.monthlyImpact || 0
     }]);
     setShowEventDialog(false);
     setNewEvent({ type: 'imovel', yearFromNow: 5, amount: 0, monthlyImpact: 0 });
@@ -283,20 +283,20 @@ export default function SimuladorFinanceiro() {
 
   // Projections
   const projections = useMemo(() => {
-    return scenarios.map(s => ({
+    return scenarios.map((s) => ({
       scenario: s,
-      data: computeProjection(s, avgMonthlyIncome, avgMonthlyExpenses, events),
+      data: computeProjection(s, avgMonthlyIncome, avgMonthlyExpenses, events)
     }));
   }, [scenarios, avgMonthlyIncome, avgMonthlyExpenses, events]);
 
-  const activeProjection = projections.find(p => p.scenario.id === activeScenario) || projections[0];
+  const activeProjection = projections.find((p) => p.scenario.id === activeScenario) || projections[0];
 
   // Independence calculation (4% rule)
   const annualExpenses = avgMonthlyExpenses * 12 * Math.pow(1 + scenario.expenseGrowth / 100, 10);
   const independenceTarget = annualExpenses / 0.04;
   const independenceYear = useMemo(() => {
     const data = activeProjection?.data || [];
-    const idx = data.findIndex(d => d.patrimonio >= independenceTarget);
+    const idx = data.findIndex((d) => d.patrimonio >= independenceTarget);
     return idx >= 0 ? data[idx].year : null;
   }, [activeProjection, independenceTarget]);
 
@@ -304,28 +304,28 @@ export default function SimuladorFinanceiro() {
   const milestones = useMemo(() => {
     const data = activeProjection?.data || [];
     const currentYear = new Date().getFullYear();
-    return [5, 10, 20, 30].map(y => {
-      const point = data.find(d => d.year === currentYear + y);
+    return [5, 10, 20, 30].map((y) => {
+      const point = data.find((d) => d.year === currentYear + y);
       return { years: y, year: currentYear + y, patrimonio: point?.patrimonio || 0 };
     });
   }, [activeProjection]);
 
   // Insights
   const insights = useMemo(() => {
-    const msgs: { icon: typeof Lightbulb; text: string; type: 'info' | 'warning' | 'success' }[] = [];
-    const data20 = activeProjection?.data.find(d => d.year === new Date().getFullYear() + 20);
+    const msgs: {icon: typeof Lightbulb;text: string;type: 'info' | 'warning' | 'success';}[] = [];
+    const data20 = activeProjection?.data.find((d) => d.year === new Date().getFullYear() + 20);
 
     // Insight 1: +500 monthly
     if (data20) {
       const altScenario = { ...scenario, monthlyInvestment: scenario.monthlyInvestment + 500 };
       const altData = computeProjection(altScenario, avgMonthlyIncome, avgMonthlyExpenses, events);
-      const altData20 = altData.find(d => d.year === new Date().getFullYear() + 20);
+      const altData20 = altData.find((d) => d.year === new Date().getFullYear() + 20);
       if (altData20) {
         const diff = altData20.patrimonio - data20.patrimonio;
         msgs.push({
           icon: Lightbulb,
           text: `Se você aumentar seus investimentos mensais em R$ 500, seu patrimônio em 20 anos aumenta em aproximadamente ${formatBRL(diff)}.`,
-          type: 'info',
+          type: 'info'
         });
       }
     }
@@ -335,7 +335,7 @@ export default function SimuladorFinanceiro() {
       msgs.push({
         icon: AlertTriangle,
         text: `Suas despesas crescem mais rápido (${scenario.expenseGrowth}%) que sua renda (${scenario.incomeGrowth}%). Isso pode comprometer sua independência financeira.`,
-        type: 'warning',
+        type: 'warning'
       });
     }
 
@@ -344,13 +344,13 @@ export default function SimuladorFinanceiro() {
       msgs.push({
         icon: CheckCircle2,
         text: `Com o cenário atual, você pode atingir independência financeira em ${independenceYear}, aos ${scenario.currentAge + (independenceYear - new Date().getFullYear())} anos.`,
-        type: 'success',
+        type: 'success'
       });
     } else {
       msgs.push({
         icon: Clock,
         text: `No cenário atual, a independência financeira não é atingida em 30 anos. Considere aumentar investimentos ou reduzir despesas.`,
-        type: 'warning',
+        type: 'warning'
       });
     }
 
@@ -363,7 +363,7 @@ export default function SimuladorFinanceiro() {
     const baseData = projections[0].data;
     return baseData.map((d, i) => {
       const point: any = { year: d.year };
-      projections.forEach(p => {
+      projections.forEach((p) => {
         point[p.scenario.name] = p.data[i]?.patrimonio || 0;
       });
       if (independenceTarget > 0) {
@@ -378,7 +378,7 @@ export default function SimuladorFinanceiro() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2 text-emerald-600">
             <Calculator className="h-7 w-7 text-primary" />
             Simulador Financeiro
           </h1>
@@ -444,31 +444,31 @@ export default function SimuladorFinanceiro() {
         <CardContent>
           {/* Scenario tabs */}
           <div className="flex flex-wrap gap-2 mb-6">
-            {scenarios.map(s => (
-              <div key={s.id} className="flex items-center gap-1">
+            {scenarios.map((s) =>
+            <div key={s.id} className="flex items-center gap-1">
                 <Button
-                  variant={activeScenario === s.id ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setActiveScenario(s.id)}
-                  className="gap-1.5"
-                >
+                variant={activeScenario === s.id ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setActiveScenario(s.id)}
+                className="gap-1.5">
+                
                   <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
                   {s.name}
                 </Button>
-                {scenarios.length > 1 && (
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeScenario(s.id)}>
+                {scenarios.length > 1 &&
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeScenario(s.id)}>
                     <Trash2 className="h-3 w-3" />
                   </Button>
-                )}
+              }
               </div>
-            ))}
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="space-y-4">
               <div>
                 <Label className="text-xs text-muted-foreground">Nome do Cenário</Label>
-                <Input value={scenario.name} onChange={e => updateScenario('name', e.target.value)} className="mt-1" />
+                <Input value={scenario.name} onChange={(e) => updateScenario('name', e.target.value)} className="mt-1" />
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground">Idade Atual: {scenario.currentAge} anos</Label>
@@ -486,13 +486,13 @@ export default function SimuladorFinanceiro() {
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground">Patrimônio Investido Atual</Label>
-                <CurrencyInput value={scenario.currentInvestment} onChange={v => updateScenario('currentInvestment', v)} className="mt-1" />
+                <CurrencyInput value={scenario.currentInvestment} onChange={(v) => updateScenario('currentInvestment', v)} className="mt-1" />
               </div>
             </div>
             <div className="space-y-4">
               <div>
                 <Label className="text-xs text-muted-foreground">Investimento Mensal</Label>
-                <CurrencyInput value={scenario.monthlyInvestment} onChange={v => updateScenario('monthlyInvestment', v)} className="mt-1" />
+                <CurrencyInput value={scenario.monthlyInvestment} onChange={(v) => updateScenario('monthlyInvestment', v)} className="mt-1" />
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground">Crescimento da Renda: {scenario.incomeGrowth}% a.a.</Label>
@@ -530,7 +530,7 @@ export default function SimuladorFinanceiro() {
                 <div className="space-y-4">
                   <div>
                     <Label>Tipo de Evento</Label>
-                    <Select value={newEvent.type} onValueChange={v => setNewEvent(prev => ({ ...prev, type: v as any }))}>
+                    <Select value={newEvent.type} onValueChange={(v) => setNewEvent((prev) => ({ ...prev, type: v as any }))}>
                       <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="imovel">Compra de Imóvel</SelectItem>
@@ -542,15 +542,15 @@ export default function SimuladorFinanceiro() {
                   </div>
                   <div>
                     <Label>Valor Total (R$)</Label>
-                    <Input type="number" value={newEvent.amount || ''} onChange={e => setNewEvent(prev => ({ ...prev, amount: Number(e.target.value) }))} className="mt-1" />
+                    <Input type="number" value={newEvent.amount || ''} onChange={(e) => setNewEvent((prev) => ({ ...prev, amount: Number(e.target.value) }))} className="mt-1" />
                   </div>
                   <div>
                     <Label>Impacto Mensal (R$)</Label>
-                    <Input type="number" value={newEvent.monthlyImpact || ''} onChange={e => setNewEvent(prev => ({ ...prev, monthlyImpact: Number(e.target.value) }))} className="mt-1" placeholder="Ex: parcela mensal, aumento salarial..." />
+                    <Input type="number" value={newEvent.monthlyImpact || ''} onChange={(e) => setNewEvent((prev) => ({ ...prev, monthlyImpact: Number(e.target.value) }))} className="mt-1" placeholder="Ex: parcela mensal, aumento salarial..." />
                   </div>
                   <div>
                     <Label>Em quantos anos a partir de agora?</Label>
-                    <Input type="number" value={newEvent.yearFromNow || ''} onChange={e => setNewEvent(prev => ({ ...prev, yearFromNow: Number(e.target.value) }))} className="mt-1" />
+                    <Input type="number" value={newEvent.yearFromNow || ''} onChange={(e) => setNewEvent((prev) => ({ ...prev, yearFromNow: Number(e.target.value) }))} className="mt-1" />
                   </div>
                   <Button onClick={addEvent} className="w-full">Adicionar Evento</Button>
                 </div>
@@ -559,20 +559,20 @@ export default function SimuladorFinanceiro() {
           </div>
         </CardHeader>
         <CardContent>
-          {events.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">Nenhum evento simulado. Adicione eventos para ver o impacto na sua projeção.</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {events.map(ev => (
-                <Badge key={ev.id} variant="secondary" className="gap-1.5 py-1.5 px-3">
+          {events.length === 0 ?
+          <p className="text-sm text-muted-foreground text-center py-4">Nenhum evento simulado. Adicione eventos para ver o impacto na sua projeção.</p> :
+
+          <div className="flex flex-wrap gap-2">
+              {events.map((ev) =>
+            <Badge key={ev.id} variant="secondary" className="gap-1.5 py-1.5 px-3">
                   {ev.label} — {formatBRL(ev.amount)} em {ev.yearFromNow} anos
-                  <button onClick={() => setEvents(prev => prev.filter(e => e.id !== ev.id))} className="ml-1 hover:text-destructive">
+                  <button onClick={() => setEvents((prev) => prev.filter((e) => e.id !== ev.id))} className="ml-1 hover:text-destructive">
                     <Trash2 className="h-3 w-3" />
                   </button>
                 </Badge>
-              ))}
+            )}
             </div>
-          )}
+          }
         </CardContent>
       </Card>
 
@@ -581,8 +581,8 @@ export default function SimuladorFinanceiro() {
         {/* Milestones */}
         <div className="space-y-3">
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Marcos Patrimoniais</h3>
-          {milestones.map(m => (
-            <Card key={m.years} className="border-border/50">
+          {milestones.map((m) =>
+          <Card key={m.years} className="border-border/50">
               <CardContent className="p-4 flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground">Em {m.years} anos ({m.year})</p>
@@ -593,7 +593,7 @@ export default function SimuladorFinanceiro() {
                 </p>
               </CardContent>
             </Card>
-          ))}
+          )}
 
           {/* Independence card */}
           <Card className="border-primary/30 bg-primary/5">
@@ -605,15 +605,15 @@ export default function SimuladorFinanceiro() {
               <p className="text-xs text-muted-foreground">Meta (regra dos 4%)</p>
               <p className="text-lg font-bold tabular-nums">{formatBRL(independenceTarget)}</p>
               <div className="mt-2 pt-2 border-t border-primary/20">
-                {independenceYear ? (
-                  <p className="text-sm font-medium text-emerald-600">
+                {independenceYear ?
+                <p className="text-sm font-medium text-emerald-600">
                     ✓ Atingível em {independenceYear} (aos {scenario.currentAge + (independenceYear - new Date().getFullYear())} anos)
-                  </p>
-                ) : (
-                  <p className="text-sm font-medium text-amber-600">
+                  </p> :
+
+                <p className="text-sm font-medium text-amber-600">
                     ⚠ Não atingível em 30 anos no cenário atual
                   </p>
-                )}
+                }
               </div>
             </CardContent>
           </Card>
@@ -636,28 +636,28 @@ export default function SimuladorFinanceiro() {
                     <LineChart data={comparisonData}>
                       <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                       <XAxis dataKey="year" tick={{ fontSize: 11 }} />
-                      <YAxis tickFormatter={v => formatCompact(v)} tick={{ fontSize: 11 }} width={80} />
+                      <YAxis tickFormatter={(v) => formatCompact(v)} tick={{ fontSize: 11 }} width={80} />
                       <Tooltip content={<CustomTooltip />} />
                       <Legend />
-                      {scenarios.map(s => (
-                        <Line
-                          key={s.id}
-                          type="monotone"
-                          dataKey={s.name}
-                          stroke={s.color}
-                          strokeWidth={activeScenario === s.id ? 3 : 1.5}
-                          dot={false}
-                          opacity={activeScenario === s.id ? 1 : 0.5}
-                        />
-                      ))}
-                      {independenceTarget > 0 && (
-                        <ReferenceLine
-                          y={independenceTarget}
-                          stroke="hsl(var(--destructive))"
-                          strokeDasharray="6 4"
-                          label={{ value: 'Meta IF', position: 'right', fontSize: 11 }}
-                        />
+                      {scenarios.map((s) =>
+                      <Line
+                        key={s.id}
+                        type="monotone"
+                        dataKey={s.name}
+                        stroke={s.color}
+                        strokeWidth={activeScenario === s.id ? 3 : 1.5}
+                        dot={false}
+                        opacity={activeScenario === s.id ? 1 : 0.5} />
+
                       )}
+                      {independenceTarget > 0 &&
+                      <ReferenceLine
+                        y={independenceTarget}
+                        stroke="hsl(var(--destructive))"
+                        strokeDasharray="6 4"
+                        label={{ value: 'Meta IF', position: 'right', fontSize: 11 }} />
+
+                      }
                     </LineChart>
                   </ResponsiveContainer>
                 </TabsContent>
@@ -666,7 +666,7 @@ export default function SimuladorFinanceiro() {
                     <AreaChart data={activeProjection?.data || []}>
                       <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                       <XAxis dataKey="year" tick={{ fontSize: 11 }} />
-                      <YAxis tickFormatter={v => formatCompact(v)} tick={{ fontSize: 11 }} width={80} />
+                      <YAxis tickFormatter={(v) => formatCompact(v)} tick={{ fontSize: 11 }} width={80} />
                       <Tooltip content={<CustomTooltip />} />
                       <Legend />
                       <Area type="monotone" dataKey="patrimonio" name="Patrimônio" fill="hsl(var(--primary) / 0.2)" stroke="hsl(var(--primary))" strokeWidth={2} />
@@ -689,22 +689,22 @@ export default function SimuladorFinanceiro() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {insights.map((insight, i) => (
-            <div
-              key={i}
-              className={cn(
-                'flex items-start gap-3 rounded-lg p-3 text-sm',
-                insight.type === 'info' && 'bg-primary/5 text-primary',
-                insight.type === 'warning' && 'bg-amber-500/10 text-amber-700',
-                insight.type === 'success' && 'bg-emerald-500/10 text-emerald-700',
-              )}
-            >
+          {insights.map((insight, i) =>
+          <div
+            key={i}
+            className={cn(
+              'flex items-start gap-3 rounded-lg p-3 text-sm',
+              insight.type === 'info' && 'bg-primary/5 text-primary',
+              insight.type === 'warning' && 'bg-amber-500/10 text-amber-700',
+              insight.type === 'success' && 'bg-emerald-500/10 text-emerald-700'
+            )}>
+            
               <insight.icon className="h-5 w-5 mt-0.5 shrink-0" />
               <p>{insight.text}</p>
             </div>
-          ))}
+          )}
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>);
+
 }
