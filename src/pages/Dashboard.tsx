@@ -13,6 +13,7 @@ import { ptBR } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, TrendingUp, TrendingDown, DollarSign, ImageDown, Wallet, BarChart3 } from 'lucide-react';
 import { ExportMenu } from '@/components/ExportMenu';
+import { FinancialTimeline } from '@/components/FinancialTimeline';
 import { exportChartAsPNG } from '@/lib/exportChart';
 import { Button } from '@/components/ui/button';
 import {
