@@ -50,7 +50,22 @@ const EVENT_LABELS: Record<string, string> = {
   aumento_renda: 'Aumento de Renda'
 };
 
-const SCENARIO_COLORS = ['hsl(var(--primary))', '#10b981', '#f59e0b', '#ef4444'];
+const SCENARIO_COLORS = ['hsl(var(--primary))', 'hsl(152 64% 44%)', 'hsl(38 92% 50%)', 'hsl(0 72% 51%)'];
+
+function createDefaultScenario(currentInvestment: number = 0, monthlyInvestment: number = 0): Scenario {
+  return {
+    id: '1',
+    name: 'Cenário Atual',
+    color: SCENARIO_COLORS[0],
+    currentAge: 30,
+    targetAge: 55,
+    returnRate: 8,
+    currentInvestment,
+    monthlyInvestment,
+    incomeGrowth: 3,
+    expenseGrowth: 4,
+  };
+}
 
 function computeProjection(
 scenario: Scenario,
