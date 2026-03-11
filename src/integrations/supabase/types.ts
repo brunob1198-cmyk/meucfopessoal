@@ -166,6 +166,38 @@ export type Database = {
           },
         ]
       }
+      category_rules: {
+        Row: {
+          category_id: string
+          created_at: string
+          id: string
+          keyword: string
+          user_id: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          id?: string
+          keyword: string
+          user_id: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          id?: string
+          keyword?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_rules_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       financial_health_history: {
         Row: {
           created_at: string

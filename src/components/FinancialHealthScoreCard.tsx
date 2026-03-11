@@ -50,14 +50,14 @@ export function FinancialHealthScoreCard() {
 
   return (
     <Card
-      className="cursor-pointer hover:shadow-md transition-shadow group"
+      className="cursor-pointer hover:shadow-md transition-shadow group glass-card float-card border-border/30 h-full"
       onClick={() => navigate('/health-score')}
     >
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <HeartPulse className="h-4 w-4 text-primary" />
-            <span className="text-sm font-semibold">Financial Health Score</span>
+            <span className="text-sm font-semibold">Score de Saúde Financeira</span>
           </div>
           <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
         </div>
@@ -77,9 +77,9 @@ export function FinancialHealthScoreCard() {
               {classification}
             </Badge>
             <div className="space-y-1.5">
-              {pillars.slice(0, 3).map((p, i) => (
+              {pillars.map((p, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground w-24 truncate">{p.name}</span>
+                  <span className="text-xs text-muted-foreground w-28 truncate">{p.name}</span>
                   <Progress
                     value={(p.score / p.max) * 100}
                     className="h-1.5 flex-1"

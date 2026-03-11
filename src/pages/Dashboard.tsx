@@ -280,15 +280,15 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Financial Health Score Card */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.5 }}>
-        <FinancialHealthScoreCard />
-      </motion.div>
-
-      {/* Financial Timeline - horizontal */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.37, duration: 0.5 }}>
-        <FinancialTimeline />
-      </motion.div>
+      {/* Score + Timeline side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.5 }}>
+          <FinancialHealthScoreCard />
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.37, duration: 0.5 }}>
+          <FinancialTimeline />
+        </motion.div>
+      </div>
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
