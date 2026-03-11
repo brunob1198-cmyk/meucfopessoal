@@ -377,7 +377,7 @@ export function YearlyEvolution() {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="ano" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip formatter={(v: number) => formatBRL(v)} />
+                  <Tooltip formatter={(v: number) => formatBRL(v)} {...CHART_TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
                   {chartKeys.map((key, i) => (
                     <Bar key={key} dataKey={key} stackId="yearly" fill={COLORS[i % COLORS.length]} shape={Bar3DShape(COLORS[i % COLORS.length])}>
