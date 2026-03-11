@@ -129,7 +129,7 @@ export default function FinancialHealthScore() {
     <div className="max-w-7xl mx-auto space-y-6 p-4 md:p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Financial Health Score</h1>
+          <h1 className="text-2xl font-bold text-foreground">Score de Saúde Financeira</h1>
           <p className="text-sm text-muted-foreground">
             Sua pontuação financeira baseada em 5 pilares fundamentais
           </p>
