@@ -24,6 +24,7 @@ const items = [
   { title: 'Mapa de Compromissos', url: '/compromissos', icon: CalendarRange },
   { title: 'Balanço Patrimonial', url: '/balanco', icon: Scale },
   { title: 'Mapa de Riqueza', url: '/mapa-riqueza', icon: Gem },
+  { title: 'Mapa de Sonhos', url: '/mapa-sonhos', icon: Star },
   { title: 'Inteligência de Dados', url: '/data-intelligence', icon: Brain },
   { title: 'Visão Futuro Financeiro', url: '/simulador', icon: Calculator },
   { title: 'Tutorial & Ajuda', url: '/tutorial', icon: HelpCircle },

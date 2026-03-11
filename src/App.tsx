@@ -62,6 +62,7 @@ const App = () => (
             <Route path="/simulador" element={<ProtectedRoute><SimuladorFinanceiro /></ProtectedRoute>} />
             <Route path="/health-score" element={<ProtectedRoute><FinancialHealthScorePage /></ProtectedRoute>} />
             <Route path="/mapa-riqueza" element={<ProtectedRoute><MapaRiqueza /></ProtectedRoute>} />
+            <Route path="/mapa-sonhos" element={<ProtectedRoute><MapaSonhos /></ProtectedRoute>} />
             <Route path="/data-intelligence" element={<ProtectedRoute><DataIntelligence /></ProtectedRoute>} />
             <Route path="/tutorial" element={<ProtectedRoute><Tutorial /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
