@@ -425,15 +425,10 @@ export default function Dashboard() {
         </Card>
       </motion.div>
 
-      {/* Financial Timeline + Yearly Evolution */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55, duration: 0.5 }}>
-          <FinancialTimeline />
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6, duration: 0.5 }}>
-          <YearlyEvolution />
-        </motion.div>
-      </div>
+      {/* Yearly Evolution */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55, duration: 0.5 }}>
+        <YearlyEvolution />
+      </motion.div>
     </div>);
 
 }
