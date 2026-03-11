@@ -67,7 +67,7 @@ export function FinancialHealthScoreCard() {
               <Progress
                 value={(p.score / p.max) * 100}
                 className="h-2 flex-1"
-                style={{ '--progress-background': p.color } as React.CSSProperties}
+                style={{ '--progress-background': p.color } as CSSProperties}
               />
               <span className="text-xs font-semibold w-8 text-right">{p.score}</span>
             </div>
