@@ -152,7 +152,7 @@ export default function Inteligencia() {
         <div>
           <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            CFO Pessoal Digital
+            Consultor Financeiro IA
           </h1>
           <p className="text-sm text-muted-foreground">
             Análise inteligente dos seus dados financeiros com IA

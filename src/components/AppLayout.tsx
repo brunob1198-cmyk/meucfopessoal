@@ -19,7 +19,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 flex items-center border-b border-border/30 px-4 shrink-0 relative" style={{ background: 'hsl(200 45% 6% / 0.8)', backdropFilter: 'blur(12px)' }}>
+          <header className="h-20 flex items-center border-b border-border/30 px-4 shrink-0 relative" style={{ background: 'hsl(200 45% 6% / 0.8)', backdropFilter: 'blur(12px)' }}>
             <SidebarTrigger className="mr-4 text-muted-foreground hover:text-foreground transition-colors" />
             <LogoUpload />
             <div className="absolute left-1/2 -translate-x-1/2 text-[13px] font-display font-medium tracking-[0.4em] uppercase text-muted-foreground whitespace-nowrap hidden sm:block">
