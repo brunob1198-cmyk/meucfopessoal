@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ChevronDown, ChevronRight, Plus, Loader2, FolderPlus, Trash2, AlertTriangle, Pencil, Check, X, ArrowRightLeft } from 'lucide-react';
 import { ExcelUpload } from '@/components/ExcelUpload';
+import { BankStatementUpload } from '@/components/BankStatementUpload';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
