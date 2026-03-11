@@ -198,6 +198,51 @@ export type Database = {
           },
         ]
       }
+      financial_dreams: {
+        Row: {
+          accumulated_value: number
+          category: Database["public"]["Enums"]["dream_category"]
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          status: Database["public"]["Enums"]["dream_status"]
+          target_date: string | null
+          target_value: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accumulated_value?: number
+          category?: Database["public"]["Enums"]["dream_category"]
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          status?: Database["public"]["Enums"]["dream_status"]
+          target_date?: string | null
+          target_value?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accumulated_value?: number
+          category?: Database["public"]["Enums"]["dream_category"]
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          status?: Database["public"]["Enums"]["dream_status"]
+          target_date?: string | null
+          target_value?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       financial_health_history: {
         Row: {
           created_at: string
@@ -481,6 +526,16 @@ export type Database = {
         | "outras_receitas"
         | "impostos"
         | "investimento"
+      dream_category:
+        | "casa_propria"
+        | "carro"
+        | "viagem"
+        | "cirurgia"
+        | "educacao"
+        | "aposentadoria"
+        | "independencia_financeira"
+        | "outro"
+      dream_status: "em_progresso" | "proximo" | "em_risco" | "concluido"
       liability_category:
         | "cartao_credito"
         | "emprestimo"
@@ -640,6 +695,17 @@ export const Constants = {
         "impostos",
         "investimento",
       ],
+      dream_category: [
+        "casa_propria",
+        "carro",
+        "viagem",
+        "cirurgia",
+        "educacao",
+        "aposentadoria",
+        "independencia_financeira",
+        "outro",
+      ],
+      dream_status: ["em_progresso", "proximo", "em_risco", "concluido"],
       liability_category: [
         "cartao_credito",
         "emprestimo",
