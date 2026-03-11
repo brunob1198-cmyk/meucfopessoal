@@ -205,7 +205,7 @@ export default function DataIntelligence() {
       <div>
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
           <Brain className="h-7 w-7 text-primary" />
-          Financial Data Intelligence
+          Inteligência de Dados Financeiros
         </h1>
         <p className="text-muted-foreground mt-1">Benchmarks, insights e recomendações baseados em dados agregados</p>
       </div>

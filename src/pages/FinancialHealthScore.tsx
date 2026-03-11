@@ -275,7 +275,7 @@ export default function FinancialHealthScore() {
                 <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p className="text-lg font-medium">Em desenvolvimento</p>
                 <p className="text-sm">
-                  Em breve você poderá acompanhar a evolução do seu Financial Health Score ao longo do tempo.
+                  Em breve você poderá acompanhar a evolução do seu Score de Saúde Financeira ao longo do tempo.
                 </p>
               </div>
             </CardContent>
