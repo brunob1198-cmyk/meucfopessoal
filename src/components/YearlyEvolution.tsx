@@ -94,6 +94,18 @@ const ALL_YEARS = generateYearRange();
 
 const STORAGE_KEY = 'yearly-evolution-filters';
 
+const CHART_TOOLTIP_STYLE = {
+  contentStyle: {
+    background: 'hsl(200 35% 12% / 0.95)',
+    border: '1px solid hsl(200 25% 20%)',
+    borderRadius: '8px',
+    backdropFilter: 'blur(8px)',
+    color: 'hsl(var(--foreground))',
+  },
+  labelStyle: { color: 'hsl(var(--foreground))' },
+  itemStyle: { color: 'hsl(var(--foreground))' },
+};
+
 function loadFilters() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
