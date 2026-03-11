@@ -20,7 +20,7 @@ const items = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
   { title: 'Fluxo de Caixa', url: '/fluxo-caixa', icon: Banknote },
   { title: 'Score de Saúde Financeira', url: '/health-score', icon: HeartPulse },
-  { title: 'CFO Digital IA', url: '/inteligencia', icon: Sparkles },
+  { title: 'Consultor Financeiro IA', url: '/inteligencia', icon: Sparkles },
   { title: 'Mapa de Compromissos', url: '/compromissos', icon: CalendarRange },
   { title: 'Balanço Patrimonial', url: '/balanco', icon: Scale },
   { title: 'Mapa de Riqueza', url: '/mapa-riqueza', icon: Gem },

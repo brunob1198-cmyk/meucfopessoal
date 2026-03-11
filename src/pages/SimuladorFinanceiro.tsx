@@ -50,7 +50,22 @@ const EVENT_LABELS: Record<string, string> = {
   aumento_renda: 'Aumento de Renda'
 };
 
-const SCENARIO_COLORS = ['hsl(var(--primary))', '#10b981', '#f59e0b', '#ef4444'];
+const SCENARIO_COLORS = ['hsl(var(--primary))', 'hsl(152 64% 44%)', 'hsl(38 92% 50%)', 'hsl(0 72% 51%)'];
+
+function createDefaultScenario(currentInvestment: number = 0, monthlyInvestment: number = 0): Scenario {
+  return {
+    id: '1',
+    name: 'Cenário Atual',
+    color: SCENARIO_COLORS[0],
+    currentAge: 30,
+    targetAge: 55,
+    returnRate: 8,
+    currentInvestment,
+    monthlyInvestment,
+    incomeGrowth: 3,
+    expenseGrowth: 4,
+  };
+}
 
 function computeProjection(
 scenario: Scenario,
@@ -189,34 +204,31 @@ export default function SimuladorFinanceiro() {
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch {}
-    return [];
+    return [createDefaultScenario()];
   });
 
-  // Initialize default scenario from live data when no saved scenarios exist
-  const hasInitialized = scenarios.length > 0;
   useEffect(() => {
-    if (!hasInitialized) {
-      setScenarios([{
-        id: '1',
-        name: 'Cenário Atual',
-        color: SCENARIO_COLORS[0],
-        currentAge: 30,
-        targetAge: 55,
-        returnRate: 8,
-        currentInvestment: Math.max(netWorth, 0),
-        monthlyInvestment: Math.max(avgMonthlySavings, 0),
-        incomeGrowth: 3,
-        expenseGrowth: 4
-      }]);
-    }
-  }, [hasInitialized, netWorth, avgMonthlySavings]);
+    setScenarios((prev) => {
+      if (prev.length !== 1 || prev[0].id !== '1') return prev;
+      const current = prev[0];
+      const shouldSync = current.currentInvestment === 0 && current.monthlyInvestment === 0;
+      if (!shouldSync) return prev;
+      return [createDefaultScenario(Math.max(netWorth, 0), Math.max(avgMonthlySavings, 0))];
+    });
+  }, [netWorth, avgMonthlySavings]);
 
   const [activeScenario, setActiveScenario] = useState(() => {
     try {
       return localStorage.getItem('simulador-active-scenario') || '1';
-    } catch {return '1';}
+    } catch {
+      return '1';
+    }
   });
-  const scenario = scenarios.find((s) => s.id === activeScenario) || scenarios[0];
+
+  const scenario =
+    scenarios.find((s) => s.id === activeScenario) ||
+    scenarios[0] ||
+    createDefaultScenario(Math.max(netWorth, 0), Math.max(avgMonthlySavings, 0));
 
   // Financial events - load from localStorage
   const [events, setEvents] = useState<FinancialEvent[]>(() => {
@@ -229,15 +241,21 @@ export default function SimuladorFinanceiro() {
 
   // Persist to localStorage
   useEffect(() => {
-    localStorage.setItem('simulador-scenarios', JSON.stringify(scenarios));
+    try {
+      localStorage.setItem('simulador-scenarios', JSON.stringify(scenarios));
+    } catch {}
   }, [scenarios]);
 
   useEffect(() => {
-    localStorage.setItem('simulador-active-scenario', activeScenario);
+    try {
+      localStorage.setItem('simulador-active-scenario', activeScenario);
+    } catch {}
   }, [activeScenario]);
 
   useEffect(() => {
-    localStorage.setItem('simulador-events', JSON.stringify(events));
+    try {
+      localStorage.setItem('simulador-events', JSON.stringify(events));
+    } catch {}
   }, [events]);
   const [showEventDialog, setShowEventDialog] = useState(false);
   const [newEvent, setNewEvent] = useState<Partial<FinancialEvent>>({ type: 'imovel', yearFromNow: 5, amount: 0, monthlyImpact: 0 });

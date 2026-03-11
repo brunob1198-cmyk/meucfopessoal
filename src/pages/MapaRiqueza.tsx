@@ -30,8 +30,10 @@ const tooltipStyle = {
     border: '1px solid hsl(200 25% 20%)',
     borderRadius: '8px',
     backdropFilter: 'blur(8px)',
-    color: '#fff'
-  }
+    color: 'hsl(var(--foreground))'
+  },
+  labelStyle: { color: 'hsl(var(--foreground))' },
+  itemStyle: { color: 'hsl(var(--foreground))' }
 };
 
 // Group asset categories for composition

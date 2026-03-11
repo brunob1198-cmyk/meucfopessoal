@@ -94,6 +94,18 @@ const ALL_YEARS = generateYearRange();
 
 const STORAGE_KEY = 'yearly-evolution-filters';
 
+const CHART_TOOLTIP_STYLE = {
+  contentStyle: {
+    background: 'hsl(200 35% 12% / 0.95)',
+    border: '1px solid hsl(200 25% 20%)',
+    borderRadius: '8px',
+    backdropFilter: 'blur(8px)',
+    color: 'hsl(var(--foreground))',
+  },
+  labelStyle: { color: 'hsl(var(--foreground))' },
+  itemStyle: { color: 'hsl(var(--foreground))' },
+};
+
 function loadFilters() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -365,7 +377,7 @@ export function YearlyEvolution() {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="ano" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip formatter={(v: number) => formatBRL(v)} />
+                  <Tooltip formatter={(v: number) => formatBRL(v)} {...CHART_TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
                   {chartKeys.map((key, i) => (
                     <Bar key={key} dataKey={key} stackId="yearly" fill={COLORS[i % COLORS.length]} shape={Bar3DShape(COLORS[i % COLORS.length])}>

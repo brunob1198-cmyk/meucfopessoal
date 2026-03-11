@@ -224,8 +224,10 @@ export default function Dashboard() {
       border: '1px solid hsl(200 25% 20%)',
       borderRadius: '8px',
       backdropFilter: 'blur(8px)',
-      color: '#fff'
-    }
+      color: 'hsl(var(--foreground))'
+    },
+    labelStyle: { color: 'hsl(var(--foreground))' },
+    itemStyle: { color: 'hsl(var(--foreground))' }
   };
 
   return (
@@ -357,7 +359,7 @@ export default function Dashboard() {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.5 }}>
         <Card className="glass-card float-card border-border/30">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-base font-display">Gastos por Categoria (Coluna Empilhada)</CardTitle>
+            <CardTitle className="text-base font-display">Evolução de Gastos por Categoria (Coluna Empilhada)</CardTitle>
             <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => exportChartAsPNG(barChartRef.current, 'gastos-por-categoria')} title="Exportar gráfico">
               <ImageDown className="h-4 w-4" />
             </Button>
