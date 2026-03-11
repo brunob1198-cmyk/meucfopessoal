@@ -20,6 +20,7 @@ import FluxoCaixa from "./pages/FluxoCaixa";
 import Tutorial from "./pages/Tutorial";
 import FinancialHealthScorePage from "./pages/FinancialHealthScore";
 import MapaRiqueza from "./pages/MapaRiqueza";
+import MapaSonhos from "./pages/MapaSonhos";
 import DataIntelligence from "./pages/DataIntelligence";
 import NotFound from "./pages/NotFound";
 
