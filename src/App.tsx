@@ -23,6 +23,7 @@ import MapaRiqueza from "./pages/MapaRiqueza";
 import MapaSonhos from "./pages/MapaSonhos";
 import DataIntelligence from "./pages/DataIntelligence";
 import NotFound from "./pages/NotFound";
+import LandingPage from "./pages/LandingPage";
 
 const queryClient = new QueryClient();
 
@@ -36,8 +37,15 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function AuthRoute() {
   const { user, loading } = useAuth();
   if (loading) return null;
-  if (user) return <Navigate to="/" replace />;
+  if (user) return <Navigate to="/app" replace />;
   return <Auth />;
+}
+
+function LandingRoute() {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (user) return <Navigate to="/app" replace />;
+  return <LandingPage />;
 }
 
 const App = () => (
