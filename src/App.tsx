@@ -23,6 +23,7 @@ import MapaRiqueza from "./pages/MapaRiqueza";
 import MapaSonhos from "./pages/MapaSonhos";
 import DataIntelligence from "./pages/DataIntelligence";
 import NotFound from "./pages/NotFound";
+import LandingPage from "./pages/LandingPage";
 
 const queryClient = new QueryClient();
 
@@ -36,8 +37,15 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function AuthRoute() {
   const { user, loading } = useAuth();
   if (loading) return null;
-  if (user) return <Navigate to="/" replace />;
+  if (user) return <Navigate to="/app" replace />;
   return <Auth />;
+}
+
+function LandingRoute() {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (user) return <Navigate to="/app" replace />;
+  return <LandingPage />;
 }
 
 const App = () => (
@@ -48,8 +56,9 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            <Route path="/" element={<LandingRoute />} />
             <Route path="/auth" element={<AuthRoute />} />
-            <Route path="/" element={<ProtectedRoute><Lancamentos /></ProtectedRoute>} />
+            <Route path="/app" element={<ProtectedRoute><Lancamentos /></ProtectedRoute>} />
             <Route path="/dre" element={<ProtectedRoute><DREDetalhado /></ProtectedRoute>} />
             <Route path="/dre-ajustado" element={<ProtectedRoute><DREAjustado /></ProtectedRoute>} />
             <Route path="/planejador" element={<ProtectedRoute><Planejador /></ProtectedRoute>} />
