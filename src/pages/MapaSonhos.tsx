@@ -471,11 +471,11 @@ export default function MapaSonhos() {
 
                     {/* Progress */}
                     <div>
-                      <div className="flex justify-between items-center mb-1.5">
-                        <span className="text-xs text-muted-foreground">Progresso</span>
-                        <span className="text-sm font-bold" style={{ color: cfg.color }}>{Math.round(pct)}%</span>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-[11px] text-muted-foreground">Progresso</span>
+                        <span className="text-xs font-bold" style={{ color: cfg.color }}>{Math.round(pct)}%</span>
                       </div>
-                      <div className="h-2.5 rounded-full overflow-hidden" style={{ background: 'hsl(200 30% 16%)' }}>
+                      <div className="h-2 rounded-full overflow-hidden" style={{ background: 'hsl(200 30% 16%)' }}>
                         <motion.div
                           className="h-full rounded-full"
                           style={{ background: cfg.color }}
