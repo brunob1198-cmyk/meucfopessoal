@@ -22,6 +22,8 @@ import FinancialHealthScorePage from "./pages/FinancialHealthScore";
 import MapaRiqueza from "./pages/MapaRiqueza";
 import MapaSonhos from "./pages/MapaSonhos";
 import DataIntelligence from "./pages/DataIntelligence";
+import ContasConectadas from "./pages/ContasConectadas";
+import RevisarTransacoes from "./pages/RevisarTransacoes";
 import NotFound from "./pages/NotFound";
 import LandingPage from "./pages/LandingPage";
 
