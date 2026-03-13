@@ -249,6 +249,7 @@ export type Database = {
           category: Database["public"]["Enums"]["dream_category"]
           completed_at: string | null
           created_at: string
+          custom_category: string | null
           description: string | null
           id: string
           name: string
@@ -263,6 +264,7 @@ export type Database = {
           category?: Database["public"]["Enums"]["dream_category"]
           completed_at?: string | null
           created_at?: string
+          custom_category?: string | null
           description?: string | null
           id?: string
           name: string
@@ -277,6 +279,7 @@ export type Database = {
           category?: Database["public"]["Enums"]["dream_category"]
           completed_at?: string | null
           created_at?: string
+          custom_category?: string | null
           description?: string | null
           id?: string
           name?: string
