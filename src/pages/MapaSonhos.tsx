@@ -37,7 +37,7 @@ interface Dream {
   created_at: string;
 }
 
-const categoryConfig: Record<DreamCategory, { label: string; icon: typeof Home; color: string }> = {
+const defaultCategoryConfig: Record<string, { label: string; icon: typeof Home; color: string }> = {
   casa_propria: { label: 'Casa Própria', icon: Home, color: 'hsl(160 78% 49%)' },
   carro: { label: 'Carro', icon: Car, color: 'hsl(210 60% 50%)' },
   viagem: { label: 'Viagem', icon: Plane, color: 'hsl(28 100% 63%)' },
@@ -47,6 +47,11 @@ const categoryConfig: Record<DreamCategory, { label: string; icon: typeof Home; 
   independencia_financeira: { label: 'Independência Financeira', icon: TrendingUp, color: 'hsl(160 78% 49%)' },
   outro: { label: 'Outro', icon: Star, color: 'hsl(207 25% 60%)' },
 };
+
+const CUSTOM_COLORS = [
+  'hsl(340 65% 50%)', 'hsl(190 70% 45%)', 'hsl(120 50% 40%)',
+  'hsl(260 55% 55%)', 'hsl(30 80% 50%)', 'hsl(170 60% 45%)',
+];
 
 const statusConfig: Record<DreamStatus, { label: string; color: string; bg: string }> = {
   em_progresso: { label: 'Em Progresso', color: 'hsl(210 60% 50%)', bg: 'hsl(210 60% 50% / 0.15)' },
