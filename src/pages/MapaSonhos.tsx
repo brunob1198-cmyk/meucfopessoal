@@ -420,7 +420,7 @@ export default function MapaSonhos() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {dreams.map((dream, i) => {
-            const cfg = categoryConfig[dream.category];
+            const cfg = getCfg(dream);
             const Icon = cfg.icon;
             const pct = dream.target_value > 0 ? Math.min(100, (dream.accumulated_value / dream.target_value) * 100) : 0;
             const remaining = Math.max(0, dream.target_value - dream.accumulated_value);
