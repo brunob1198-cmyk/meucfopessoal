@@ -71,6 +71,27 @@ export default function MapaSonhos() {
   const [editingDream, setEditingDream] = useState<Dream | null>(null);
   const [celebrationDream, setCelebrationDream] = useState<Dream | null>(null);
   const [suggestions, setSuggestions] = useState<{ dreamId: string; transactionDesc: string }[]>([]);
+  const [customCategoryName, setCustomCategoryName] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
+
+  // Build dynamic categoryConfig from dreams
+  const categoryConfig = useMemo(() => {
+    const config: Record<string, { label: string; icon: typeof Home; color: string }> = { ...defaultCategoryConfig };
+    let customIdx = 0;
+    dreams.forEach(d => {
+      if (!config[d.category]) {
+        config[d.category] = {
+          label: d.category,
+          icon: Star,
+          color: CUSTOM_COLORS[customIdx % CUSTOM_COLORS.length],
+        };
+        customIdx++;
+      }
+    });
+    return config;
+  }, [dreams]);
+
+  const getCfg = (cat: string) => categoryConfig[cat] || { label: cat, icon: Star, color: 'hsl(207 25% 60%)' };
 
   // Form state
   const [formName, setFormName] = useState('');
