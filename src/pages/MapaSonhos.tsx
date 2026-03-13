@@ -166,13 +166,22 @@ export default function MapaSonhos() {
   const resetForm = () => {
     setFormName(''); setFormCategory('outro'); setFormValue('');
     setFormDate(''); setFormDesc(''); setFormAccumulated('');
+    setCustomCategoryName(''); setShowCustomInput(false);
     setEditingDream(null);
   };
 
   const openEdit = (dream: Dream) => {
     setEditingDream(dream);
     setFormName(dream.name);
-    setFormCategory(dream.category);
+    if (dream.custom_category) {
+      setFormCategory('_custom');
+      setCustomCategoryName(dream.custom_category);
+      setShowCustomInput(true);
+    } else {
+      setFormCategory(dream.category);
+      setCustomCategoryName('');
+      setShowCustomInput(false);
+    }
     setFormValue(String(dream.target_value));
     setFormDate(dream.target_date || '');
     setFormDesc(dream.description || '');
@@ -182,6 +191,7 @@ export default function MapaSonhos() {
 
   const handleSave = async () => {
     if (!user || !formName || !formValue) return;
+    if (formCategory === '_custom' && !customCategoryName.trim()) return;
     const target = Number(formValue);
     const accumulated = Number(formAccumulated || 0);
     const pct = target > 0 ? accumulated / target : 0;
@@ -191,17 +201,19 @@ export default function MapaSonhos() {
     else if (pct >= 0.75) status = 'proximo';
     else if (formDate && differenceInMonths(parseISO(formDate), new Date()) <= 2 && pct < 0.5) status = 'em_risco';
 
+    const isCustom = formCategory === '_custom';
     const payload = {
       user_id: user.id,
       name: formName,
-      category: formCategory,
+      category: isCustom ? 'outro' : formCategory,
+      custom_category: isCustom ? customCategoryName.trim() : null,
       target_value: target,
       accumulated_value: accumulated,
       target_date: formDate || null,
       description: formDesc || null,
       status,
       completed_at: status === 'concluido' ? new Date().toISOString() : null,
-    };
+    } as any;
 
     if (editingDream) {
       await supabase.from('financial_dreams').update(payload).eq('id', editingDream.id);
