@@ -82,9 +82,10 @@ export default function MapaSonhos() {
     const config: Record<string, { label: string; icon: typeof Home; color: string }> = { ...defaultCategoryConfig };
     let customIdx = 0;
     dreams.forEach(d => {
-      if (!config[d.category]) {
-        config[d.category] = {
-          label: d.category,
+      const displayCat = getDisplayCategory(d);
+      if (!config[displayCat]) {
+        config[displayCat] = {
+          label: displayCat,
           icon: Star,
           color: CUSTOM_COLORS[customIdx % CUSTOM_COLORS.length],
         };
@@ -94,7 +95,10 @@ export default function MapaSonhos() {
     return config;
   }, [dreams]);
 
-  const getCfg = (cat: string) => categoryConfig[cat] || { label: cat, icon: Star, color: 'hsl(207 25% 60%)' };
+  const getCfg = (dream: Dream) => {
+    const displayCat = getDisplayCategory(dream);
+    return categoryConfig[displayCat] || defaultCategoryConfig[dream.category] || { label: displayCat, icon: Star, color: 'hsl(207 25% 60%)' };
+  };
 
   // Form state
   const [formName, setFormName] = useState('');
