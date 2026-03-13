@@ -1,7 +1,8 @@
 import {
   DollarSign, FileText, FileBarChart, Target, LayoutDashboard,
   LogOut, TrendingUp, Sparkles, CalendarRange, UserCircle,
-  Scale, Calculator, HelpCircle, Banknote, HeartPulse, Gem, Brain, Star
+  Scale, Calculator, HelpCircle, Banknote, HeartPulse, Gem, Brain, Star,
+  Landmark, ArrowDownUp
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
