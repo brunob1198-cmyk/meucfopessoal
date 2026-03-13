@@ -437,20 +437,20 @@ export default function MapaSonhos() {
               >
                 <Card className="h-full relative overflow-hidden group hover:border-primary/30 transition-colors">
                   {/* Glow effect */}
-                  <div className="absolute top-0 left-0 right-0 h-1 rounded-t-lg" style={{ background: cfg.color }} />
+                  <div className="absolute top-0 left-0 right-0 h-0.5 rounded-t-lg" style={{ background: cfg.color }} />
 
-                  <CardHeader className="pb-3">
+                  <CardHeader className="pb-2 pt-4 px-4">
                     <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: `${cfg.color}20` }}>
-                          <Icon className="h-5 w-5" style={{ color: cfg.color }} />
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: `${cfg.color}20` }}>
+                          <Icon className="h-4 w-4" style={{ color: cfg.color }} />
                         </div>
                         <div>
-                          <CardTitle className="text-base">{dream.name}</CardTitle>
-                          <span className="text-xs text-muted-foreground">{cfg.label}</span>
+                          <CardTitle className="text-sm leading-tight">{dream.name}</CardTitle>
+                          <span className="text-[11px] text-muted-foreground">{cfg.label}</span>
                         </div>
                       </div>
-                      <Badge variant="outline" className="text-[10px] px-2 py-0.5 border-0" style={{ background: stCfg.bg, color: stCfg.color }}>
+                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-0" style={{ background: stCfg.bg, color: stCfg.color }}>
                         {stCfg.label}
                       </Badge>
                     </div>
