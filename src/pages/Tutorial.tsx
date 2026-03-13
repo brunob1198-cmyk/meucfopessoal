@@ -446,22 +446,25 @@ Para realizar uma simulação precisa, configure os seguintes pilares:
     icon: UserCircle,
     title: 'Meu Perfil',
     route: '/perfil',
-    description: 'Configurações da sua conta e compartilhamento.',
+    description: 'Configurações da sua conta, dados pessoais e compartilhamento.',
     details: [
       `### Para que serve?
 A tela **Meu Perfil** é onde você configura suas preferências pessoais, personaliza a aparência do sistema e gerencia o compartilhamento dos seus dados com outras pessoas (cônjuge, contador, consultor financeiro).`,
 
-      `### Nome de Exibição
-- O nome que aparece no cabeçalho do sistema e nos relatórios exportados.
-- **Como alterar:** Clique no campo de nome, edite e clique em "Salvar".
-- **Exemplo:** Alterar de "joao@email.com" para "João Silva" para que os relatórios PDF fiquem com seu nome.`,
+      `### Informações Pessoais
+A seção de **Informações Pessoais** permite cadastrar dados adicionais para personalizar sua experiência:
+- **Nome de Exibição**: O nome que aparece no cabeçalho do sistema e nos relatórios exportados. Edite e clique em "Salvar Perfil".
+- **Gênero**: Selecione entre Masculino, Feminino, Não-binário ou Prefiro não dizer. Campo opcional.
+- **Data de Nascimento**: Informe sua data de nascimento. Campo opcional, útil para projeções de aposentadoria.
+- **Profissão**: Informe sua profissão. Campo opcional, útil para contextualização nas análises de IA.
+
+Todos os campos são opcionais. Clique em **"Salvar Perfil"** para gravar as alterações.`,
 
       `### Logo Personalizado
 - Faça **upload de uma imagem** para personalizar o sistema com sua identidade visual.
 - A logo aparece no **cabeçalho** (ao lado do nome) e nos **relatórios exportados** (PDF/Excel).
 - **Formatos aceitos:** PNG, JPG, SVG.
-- **Tamanho recomendado:** Imagem quadrada, mínimo 200x200 pixels.
-- **Como fazer:** Clique na área de upload, selecione o arquivo e aguarde o processamento.`,
+- **Tamanho recomendado:** Imagem quadrada, mínimo 200x200 pixels.`,
 
       `### Compartilhamento de Acesso
 Convide outras pessoas para acessar seus dados financeiros:
@@ -473,9 +476,177 @@ Convide outras pessoas para acessar seus dados financeiros:
 4. O convite fica como **"Pendente"** até a pessoa aceitar.
 5. Você pode **revogar** o acesso a qualquer momento clicando no ícone de lixeira ao lado do convite.
 
-**Exemplo:** Você compartilha com seu cônjuge com permissão de edição. Ambos registram lançamentos na mesma base, e os relatórios consolidam tudo automaticamente.
-
 **Dica do Especialista:** Se você usa um contador, compartilhe com permissão de **visualização**. Assim ele pode gerar relatórios e análises sem risco de alterar seus dados acidentalmente.`,
+    ],
+  },
+  {
+    icon: Star,
+    title: 'Mapa de Sonhos Financeiros',
+    route: '/mapa-sonhos',
+    description: 'Vincule disciplina financeira a objetivos de vida concretos.',
+    details: [
+      `### Para que serve?
+O **Mapa de Sonhos Financeiros** permite vincular sua disciplina financeira a **objetivos de vida concretos** — comprar uma casa, fazer uma viagem, conquistar a independência financeira. O sistema monitora automaticamente o progresso, calcula o esforço mensal necessário e prevê a data de conclusão.`,
+
+      `### Como criar um sonho (passo a passo)
+1. Clique em **"Novo Sonho"**.
+2. Preencha:
+   - **Nome do Sonho**: Identifique seu objetivo. Ex: "Viagem para Europa".
+   - **Categoria**: Selecione entre as categorias pré-definidas (Casa Própria, Carro, Viagem, Cirurgia, Educação, Aposentadoria, Independência Financeira, Outro) ou clique em **"+ Nova Categoria"** para criar uma categoria personalizada com o nome que desejar.
+   - **Valor Necessário (R$)**: Quanto custa realizar o sonho. Ex: R$ 25.000.
+   - **Valor Acumulado (R$)**: Quanto já foi poupado. Ex: R$ 5.000.
+   - **Data Desejada**: Quando pretende realizar. Ex: 12/2027.
+   - **Descrição**: Observação opcional. Ex: "15 dias, 3 países".
+3. Clique em **"Criar Sonho"**.`,
+
+      `### Categorias personalizadas
+Além das 8 categorias padrão, você pode criar **quantas categorias quiser**:
+- Na tela de criação/edição de sonho, selecione **"+ Nova Categoria"** no dropdown.
+- Digite o nome da nova categoria (ex: "Reforma", "Casamento", "Negócio Próprio").
+- A nova categoria recebe automaticamente um ícone de estrela e uma cor diferenciada.
+- Categorias personalizadas funcionam exatamente como as padrão em termos de acompanhamento e detecção.`,
+
+      `### Status dos sonhos
+O sistema calcula automaticamente o status de cada sonho:
+- **Em Progresso** (azul): Acumulou menos de 75% do valor necessário e tem tempo adequado.
+- **Próximo de Realizar** (verde): Acumulou 75% ou mais do valor necessário.
+- **Em Risco** (laranja): Faltam 2 meses ou menos para a data desejada e o progresso está abaixo de 50%.
+- **Concluído** (verde): Acumulou 100% ou mais do valor necessário, ou marcado manualmente.`,
+
+      `### Recomendações automáticas
+Para cada sonho com data definida, o sistema calcula automaticamente:
+- **Valor mensal necessário**: Quanto poupar por mês para atingir o objetivo na data desejada.
+- **Exemplo**: Faltam R$ 20.000 e 10 meses → "Poupe R$ 2.000/mês para alcançar esse sonho até Out de 2027."`,
+
+      `### Detecção inteligente de conquistas
+O sistema analisa seus lançamentos recentes e, quando encontra uma transação que pode corresponder à realização de um sonho (baseado em palavras-chave e valores próximos), exibe um banner de sugestão:
+- "Parece que você realizou o sonho: **Viagem para Europa**"
+- Clique em **"Concluir"** para confirmar e celebrar com animação de parabéns.
+
+**Dica do Especialista:** Atualize o valor acumulado de cada sonho mensalmente. Use o resultado líquido positivo do DRE como base para decidir quanto alocar em cada sonho.`,
+    ],
+  },
+  {
+    icon: Activity,
+    title: 'Score de Saúde Financeira',
+    route: '/saude-financeira',
+    description: 'Nota geral da sua saúde financeira com 5 indicadores-chave.',
+    details: [
+      `### Para que serve?
+O **Score de Saúde Financeira** calcula uma nota de 0 a 100 para sua situação financeira, baseada em 5 pilares fundamentais:
+1. **Capacidade de Poupança** — Quanto da sua receita você consegue guardar.
+2. **Controle de Despesas** — Se seus gastos estão dentro de padrões saudáveis.
+3. **Liquidez** — Se você tem ativos líquidos suficientes para emergências.
+4. **Endividamento** — Proporção entre passivos e ativos.
+5. **Reserva de Emergência** — Se possui pelo menos 6 meses de despesas em reserva.`,
+
+      `### Como funciona
+O score é calculado automaticamente com base nos seus dados do DRE (receitas e despesas) e do Balanço Patrimonial (ativos e passivos). Cada pilar recebe uma nota individual, e a média ponderada gera o score total.
+
+- **80-100**: Excelente saúde financeira.
+- **60-79**: Boa, com pontos de melhoria.
+- **40-59**: Atenção necessária em alguns pilares.
+- **0-39**: Situação crítica, priorize ações corretivas.`,
+
+      `### Histórico
+O sistema salva o score mensalmente, permitindo acompanhar a evolução ao longo do tempo. Um gráfico mostra a tendência — verifique se sua nota está subindo consistentemente.
+
+**Dica do Especialista:** Foque no pilar com menor nota para obter o maior impacto. Geralmente, controlar despesas e construir reserva de emergência geram os ganhos mais rápidos.`,
+    ],
+  },
+  {
+    icon: Landmark,
+    title: 'Contas Conectadas (Open Finance)',
+    route: '/contas-conectadas',
+    description: 'Sincronize contas bancárias e cartões via Open Finance para importação automática.',
+    details: [
+      `### Para que serve?
+A tela **Contas Conectadas** permite vincular suas contas bancárias e cartões de crédito ao sistema via **Open Finance (Pluggy)**. Uma vez conectada, as transações são importadas automaticamente, eliminando a necessidade de lançamentos manuais.`,
+
+      `### Como conectar uma conta (passo a passo)
+1. Clique em **"Conectar Banco"**.
+2. O sistema abre o widget do Pluggy, onde você:
+   - Seleciona seu banco (ex: Nubank, Itaú, Bradesco).
+   - Faz a autenticação com suas credenciais bancárias (os dados são criptografados e não ficam armazenados no sistema).
+   - Autoriza o acesso.
+3. Após a autorização, a conta aparece na lista com:
+   - **Nome do banco/conector** e logo.
+   - **Tipo da conta** (corrente, crédito, poupança).
+   - **Saldo atual**.
+   - **Data da última sincronização**.`,
+
+      `### Sincronização de transações
+- Clique em **"Sincronizar"** para importar as transações mais recentes de uma conta.
+- O sistema aplica **categorização automática** em 3 níveis:
+  1. **Regras personalizadas**: Se você já categorizou uma transação com determinada descrição, a mesma regra é aplicada automaticamente.
+  2. **Regras padrão**: Palavras-chave conhecidas são mapeadas (ex: IFOOD → Alimentação, UBER → Transporte, NETFLIX → Assinaturas).
+  3. **Revisão manual**: Transações sem regra ficam como "pendentes" para revisão na tela de Revisar Transações.`,
+
+      `### Segurança
+- **Credenciais bancárias** nunca são armazenadas no sistema — o acesso é feito exclusivamente via API Open Finance.
+- A conexão pode ser **desconectada** a qualquer momento clicando no botão de desconectar.
+- Todos os dados sensíveis são criptografados em trânsito e em repouso.
+
+**Dica do Especialista:** Conecte todas as suas contas e cartões para ter uma visão financeira completa. Sincronize semanalmente para manter os dados atualizados e reduzir o acúmulo de transações para revisão.`,
+    ],
+  },
+  {
+    icon: ArrowDownUp,
+    title: 'Revisar Transações',
+    route: '/revisar-transacoes',
+    description: 'Revise e confirme a categorização de transações importadas automaticamente.',
+    details: [
+      `### Para que serve?
+A tela **Revisar Transações** é onde você valida as transações importadas via Open Finance antes que elas alimentem o DRE e os relatórios. Cada transação importada passa por aqui para garantir que a categorização esteja correta.`,
+
+      `### Status das transações
+- **Pendente**: Transação importada que ainda não foi revisada. Pode ter uma sugestão de categoria.
+- **Confirmada**: Transação aprovada e já integrada ao DRE.
+- **Ignorada**: Transação descartada (ex: transferências entre contas próprias que não devem afetar o DRE).`,
+
+      `### Como revisar (passo a passo)
+1. A tela mostra todas as transações pendentes com: data, descrição, valor e categoria sugerida.
+2. Para cada transação, você pode:
+   - **Confirmar** a categoria sugerida clicando em ✓.
+   - **Alterar** a categoria selecionando outra no dropdown.
+   - **Ignorar** clicando no botão de ignorar.
+3. Ao alterar uma categoria, o sistema **salva automaticamente uma regra**: transações futuras com a mesma descrição receberão a mesma categoria.
+4. Para processar em lote, use **"Confirmar Todas"** para aceitar todas as sugestões de uma vez.
+
+**Exemplo:** A transação "PADARIA DO BAIRRO R$ 15,00" veio como "Sem categoria". Você seleciona "Alimentação" → a regra é salva → próximas compras na "PADARIA DO BAIRRO" serão categorizadas automaticamente.`,
+
+      `### Integração com o DRE
+Transações **confirmadas** são automaticamente convertidas em lançamentos no sistema e passam a alimentar:
+- **DRE Detalhado e Ajustado**
+- **Dashboard**
+- **CFO Digital IA**
+- **Mapa de Compromissos**
+
+**Dica do Especialista:** Revise as transações pelo menos uma vez por semana. Quanto mais transações você categorizar corretamente, mais inteligente o sistema fica — as regras aprendidas reduzem drasticamente a necessidade de revisão futura.`,
+    ],
+  },
+  {
+    icon: Heart,
+    title: 'Fluxo de Caixa',
+    route: '/fluxo-caixa',
+    description: 'Visão do fluxo de entrada e saída de caixa.',
+    details: [
+      `### Para que serve?
+O **Fluxo de Caixa** oferece uma visão consolidada das entradas e saídas financeiras ao longo do tempo, complementando o DRE com foco na **movimentação real de dinheiro**.
+
+**Dica do Especialista:** Use o Fluxo de Caixa em conjunto com o Mapa de Compromissos para antecipar meses em que o fluxo pode ficar negativo e tomar ações preventivas.`,
+    ],
+  },
+  {
+    icon: LayoutDashboard,
+    title: 'Inteligência de Dados',
+    route: '/inteligencia-dados',
+    description: 'Análises avançadas e visualizações dos seus dados financeiros.',
+    details: [
+      `### Para que serve?
+A tela **Inteligência de Dados** oferece análises visuais avançadas sobre seus dados financeiros, com gráficos interativos e comparativos que complementam o Dashboard principal com visões mais analíticas.
+
+**Dica do Especialista:** Utilize a Inteligência de Dados para apresentações a consultores financeiros ou para análises trimestrais aprofundadas.`,
     ],
   },
 ];
