@@ -21,7 +21,7 @@ import {
   Target, PartyPopper, AlertTriangle, Clock, Edit2
 } from 'lucide-react';
 
-type DreamCategory = 'casa_propria' | 'carro' | 'viagem' | 'cirurgia' | 'educacao' | 'aposentadoria' | 'independencia_financeira' | 'outro';
+type DreamCategory = string;
 type DreamStatus = 'em_progresso' | 'proximo' | 'em_risco' | 'concluido';
 
 interface Dream {
