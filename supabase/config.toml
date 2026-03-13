@@ -2,3 +2,6 @@ project_id = "krfbtzrqkaorhmfpoygp"
 
 [functions.financial-insights]
 verify_jwt = false
+
+[functions.pluggy-connect]
+verify_jwt = false
