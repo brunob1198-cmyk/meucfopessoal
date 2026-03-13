@@ -500,23 +500,23 @@ export default function MapaSonhos() {
 
                     {/* Recommendation */}
                     {recommendation && dream.status !== 'concluido' && (
-                      <div className="text-xs rounded-lg p-2.5 flex items-start gap-2" style={{ background: 'hsl(160 78% 49% / 0.06)' }}>
-                        <Sparkles className="h-3.5 w-3.5 text-primary flex-shrink-0 mt-0.5" />
+                      <div className="text-[11px] rounded-md p-2 flex items-start gap-1.5" style={{ background: 'hsl(160 78% 49% / 0.06)' }}>
+                        <Sparkles className="h-3 w-3 text-primary flex-shrink-0 mt-0.5" />
                         <span className="text-muted-foreground">{recommendation}</span>
                       </div>
                     )}
 
                     {/* Actions */}
-                    <div className="flex gap-2 pt-1">
-                      <Button size="sm" variant="ghost" className="flex-1 text-xs h-8" onClick={() => openEdit(dream)}>
+                    <div className="flex gap-1 pt-0.5">
+                      <Button size="sm" variant="ghost" className="flex-1 text-[11px] h-7" onClick={() => openEdit(dream)}>
                         <Edit2 className="h-3 w-3 mr-1" /> Editar
                       </Button>
                       {dream.status !== 'concluido' && (
-                        <Button size="sm" variant="ghost" className="flex-1 text-xs h-8 text-primary" onClick={() => markCompleted(dream)}>
+                        <Button size="sm" variant="ghost" className="flex-1 text-[11px] h-7 text-primary" onClick={() => markCompleted(dream)}>
                           <Check className="h-3 w-3 mr-1" /> Concluir
                         </Button>
                       )}
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive" onClick={() => handleDelete(dream.id)}>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => handleDelete(dream.id)}>
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
