@@ -28,6 +28,7 @@ interface Dream {
   id: string;
   name: string;
   category: DreamCategory;
+  custom_category: string | null;
   target_value: number;
   accumulated_value: number;
   target_date: string | null;
@@ -36,6 +37,8 @@ interface Dream {
   completed_at: string | null;
   created_at: string;
 }
+
+const getDisplayCategory = (dream: Dream): string => dream.custom_category || dream.category;
 
 const defaultCategoryConfig: Record<string, { label: string; icon: typeof Home; color: string }> = {
   casa_propria: { label: 'Casa Própria', icon: Home, color: 'hsl(160 78% 49%)' },
