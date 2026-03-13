@@ -21,13 +21,14 @@ import {
   Target, PartyPopper, AlertTriangle, Clock, Edit2
 } from 'lucide-react';
 
-type DreamCategory = 'casa_propria' | 'carro' | 'viagem' | 'cirurgia' | 'educacao' | 'aposentadoria' | 'independencia_financeira' | 'outro';
+type DreamCategory = string;
 type DreamStatus = 'em_progresso' | 'proximo' | 'em_risco' | 'concluido';
 
 interface Dream {
   id: string;
   name: string;
   category: DreamCategory;
+  custom_category: string | null;
   target_value: number;
   accumulated_value: number;
   target_date: string | null;
@@ -37,7 +38,9 @@ interface Dream {
   created_at: string;
 }
 
-const categoryConfig: Record<DreamCategory, { label: string; icon: typeof Home; color: string }> = {
+const getDisplayCategory = (dream: Dream): string => dream.custom_category || dream.category;
+
+const defaultCategoryConfig: Record<string, { label: string; icon: typeof Home; color: string }> = {
   casa_propria: { label: 'Casa Própria', icon: Home, color: 'hsl(160 78% 49%)' },
   carro: { label: 'Carro', icon: Car, color: 'hsl(210 60% 50%)' },
   viagem: { label: 'Viagem', icon: Plane, color: 'hsl(28 100% 63%)' },
@@ -47,6 +50,11 @@ const categoryConfig: Record<DreamCategory, { label: string; icon: typeof Home; 
   independencia_financeira: { label: 'Independência Financeira', icon: TrendingUp, color: 'hsl(160 78% 49%)' },
   outro: { label: 'Outro', icon: Star, color: 'hsl(207 25% 60%)' },
 };
+
+const CUSTOM_COLORS = [
+  'hsl(340 65% 50%)', 'hsl(190 70% 45%)', 'hsl(120 50% 40%)',
+  'hsl(260 55% 55%)', 'hsl(30 80% 50%)', 'hsl(170 60% 45%)',
+];
 
 const statusConfig: Record<DreamStatus, { label: string; color: string; bg: string }> = {
   em_progresso: { label: 'Em Progresso', color: 'hsl(210 60% 50%)', bg: 'hsl(210 60% 50% / 0.15)' },
@@ -66,6 +74,31 @@ export default function MapaSonhos() {
   const [editingDream, setEditingDream] = useState<Dream | null>(null);
   const [celebrationDream, setCelebrationDream] = useState<Dream | null>(null);
   const [suggestions, setSuggestions] = useState<{ dreamId: string; transactionDesc: string }[]>([]);
+  const [customCategoryName, setCustomCategoryName] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
+
+  // Build dynamic categoryConfig from dreams
+  const categoryConfig = useMemo(() => {
+    const config: Record<string, { label: string; icon: typeof Home; color: string }> = { ...defaultCategoryConfig };
+    let customIdx = 0;
+    dreams.forEach(d => {
+      const displayCat = getDisplayCategory(d);
+      if (!config[displayCat]) {
+        config[displayCat] = {
+          label: displayCat,
+          icon: Star,
+          color: CUSTOM_COLORS[customIdx % CUSTOM_COLORS.length],
+        };
+        customIdx++;
+      }
+    });
+    return config;
+  }, [dreams]);
+
+  const getCfg = (dream: Dream) => {
+    const displayCat = getDisplayCategory(dream);
+    return categoryConfig[displayCat] || defaultCategoryConfig[dream.category] || { label: displayCat, icon: Star, color: 'hsl(207 25% 60%)' };
+  };
 
   // Form state
   const [formName, setFormName] = useState('');
@@ -133,13 +166,22 @@ export default function MapaSonhos() {
   const resetForm = () => {
     setFormName(''); setFormCategory('outro'); setFormValue('');
     setFormDate(''); setFormDesc(''); setFormAccumulated('');
+    setCustomCategoryName(''); setShowCustomInput(false);
     setEditingDream(null);
   };
 
   const openEdit = (dream: Dream) => {
     setEditingDream(dream);
     setFormName(dream.name);
-    setFormCategory(dream.category);
+    if (dream.custom_category) {
+      setFormCategory('_custom');
+      setCustomCategoryName(dream.custom_category);
+      setShowCustomInput(true);
+    } else {
+      setFormCategory(dream.category);
+      setCustomCategoryName('');
+      setShowCustomInput(false);
+    }
     setFormValue(String(dream.target_value));
     setFormDate(dream.target_date || '');
     setFormDesc(dream.description || '');
@@ -149,6 +191,7 @@ export default function MapaSonhos() {
 
   const handleSave = async () => {
     if (!user || !formName || !formValue) return;
+    if (formCategory === '_custom' && !customCategoryName.trim()) return;
     const target = Number(formValue);
     const accumulated = Number(formAccumulated || 0);
     const pct = target > 0 ? accumulated / target : 0;
@@ -158,17 +201,19 @@ export default function MapaSonhos() {
     else if (pct >= 0.75) status = 'proximo';
     else if (formDate && differenceInMonths(parseISO(formDate), new Date()) <= 2 && pct < 0.5) status = 'em_risco';
 
+    const isCustom = formCategory === '_custom';
     const payload = {
       user_id: user.id,
       name: formName,
-      category: formCategory,
+      category: isCustom ? 'outro' : formCategory,
+      custom_category: isCustom ? customCategoryName.trim() : null,
       target_value: target,
       accumulated_value: accumulated,
       target_date: formDate || null,
       description: formDesc || null,
       status,
       completed_at: status === 'concluido' ? new Date().toISOString() : null,
-    };
+    } as any;
 
     if (editingDream) {
       await supabase.from('financial_dreams').update(payload).eq('id', editingDream.id);
@@ -244,14 +289,27 @@ export default function MapaSonhos() {
               </div>
               <div>
                 <Label>Categoria</Label>
-                <Select value={formCategory} onValueChange={v => setFormCategory(v as DreamCategory)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Select value={formCategory} onValueChange={v => {
+                  if (v === '_custom') {
+                    setShowCustomInput(true);
+                    setFormCategory('_custom');
+                  } else {
+                    setShowCustomInput(false);
+                    setCustomCategoryName('');
+                    setFormCategory(v);
+                  }
+                }}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
-                    {Object.entries(categoryConfig).map(([k, v]) => (
+                    {Object.entries(defaultCategoryConfig).map(([k, v]) => (
                       <SelectItem key={k} value={k}>{v.label}</SelectItem>
                     ))}
+                    <SelectItem value="_custom">+ Nova Categoria</SelectItem>
                   </SelectContent>
                 </Select>
+                {showCustomInput && (
+                  <Input className="mt-2" value={customCategoryName} onChange={e => setCustomCategoryName(e.target.value)} placeholder="Nome da nova categoria" />
+                )}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -360,9 +418,9 @@ export default function MapaSonhos() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {dreams.map((dream, i) => {
-            const cfg = categoryConfig[dream.category];
+            const cfg = getCfg(dream);
             const Icon = cfg.icon;
             const pct = dream.target_value > 0 ? Math.min(100, (dream.accumulated_value / dream.target_value) * 100) : 0;
             const remaining = Math.max(0, dream.target_value - dream.accumulated_value);
@@ -379,26 +437,26 @@ export default function MapaSonhos() {
               >
                 <Card className="h-full relative overflow-hidden group hover:border-primary/30 transition-colors">
                   {/* Glow effect */}
-                  <div className="absolute top-0 left-0 right-0 h-1 rounded-t-lg" style={{ background: cfg.color }} />
+                  <div className="absolute top-0 left-0 right-0 h-0.5 rounded-t-lg" style={{ background: cfg.color }} />
 
-                  <CardHeader className="pb-3">
+                  <CardHeader className="pb-2 pt-4 px-4">
                     <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: `${cfg.color}20` }}>
-                          <Icon className="h-5 w-5" style={{ color: cfg.color }} />
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: `${cfg.color}20` }}>
+                          <Icon className="h-4 w-4" style={{ color: cfg.color }} />
                         </div>
                         <div>
-                          <CardTitle className="text-base">{dream.name}</CardTitle>
-                          <span className="text-xs text-muted-foreground">{cfg.label}</span>
+                          <CardTitle className="text-sm leading-tight">{dream.name}</CardTitle>
+                          <span className="text-[11px] text-muted-foreground">{cfg.label}</span>
                         </div>
                       </div>
-                      <Badge variant="outline" className="text-[10px] px-2 py-0.5 border-0" style={{ background: stCfg.bg, color: stCfg.color }}>
+                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-0" style={{ background: stCfg.bg, color: stCfg.color }}>
                         {stCfg.label}
                       </Badge>
                     </div>
                   </CardHeader>
 
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-3 px-4 pb-4 pt-0">
                     {/* Values */}
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div>
@@ -413,11 +471,11 @@ export default function MapaSonhos() {
 
                     {/* Progress */}
                     <div>
-                      <div className="flex justify-between items-center mb-1.5">
-                        <span className="text-xs text-muted-foreground">Progresso</span>
-                        <span className="text-sm font-bold" style={{ color: cfg.color }}>{Math.round(pct)}%</span>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-[11px] text-muted-foreground">Progresso</span>
+                        <span className="text-xs font-bold" style={{ color: cfg.color }}>{Math.round(pct)}%</span>
                       </div>
-                      <div className="h-2.5 rounded-full overflow-hidden" style={{ background: 'hsl(200 30% 16%)' }}>
+                      <div className="h-2 rounded-full overflow-hidden" style={{ background: 'hsl(200 30% 16%)' }}>
                         <motion.div
                           className="h-full rounded-full"
                           style={{ background: cfg.color }}
@@ -442,23 +500,23 @@ export default function MapaSonhos() {
 
                     {/* Recommendation */}
                     {recommendation && dream.status !== 'concluido' && (
-                      <div className="text-xs rounded-lg p-2.5 flex items-start gap-2" style={{ background: 'hsl(160 78% 49% / 0.06)' }}>
-                        <Sparkles className="h-3.5 w-3.5 text-primary flex-shrink-0 mt-0.5" />
+                      <div className="text-[11px] rounded-md p-2 flex items-start gap-1.5" style={{ background: 'hsl(160 78% 49% / 0.06)' }}>
+                        <Sparkles className="h-3 w-3 text-primary flex-shrink-0 mt-0.5" />
                         <span className="text-muted-foreground">{recommendation}</span>
                       </div>
                     )}
 
                     {/* Actions */}
-                    <div className="flex gap-2 pt-1">
-                      <Button size="sm" variant="ghost" className="flex-1 text-xs h-8" onClick={() => openEdit(dream)}>
+                    <div className="flex gap-1 pt-0.5">
+                      <Button size="sm" variant="ghost" className="flex-1 text-[11px] h-7" onClick={() => openEdit(dream)}>
                         <Edit2 className="h-3 w-3 mr-1" /> Editar
                       </Button>
                       {dream.status !== 'concluido' && (
-                        <Button size="sm" variant="ghost" className="flex-1 text-xs h-8 text-primary" onClick={() => markCompleted(dream)}>
+                        <Button size="sm" variant="ghost" className="flex-1 text-[11px] h-7 text-primary" onClick={() => markCompleted(dream)}>
                           <Check className="h-3 w-3 mr-1" /> Concluir
                         </Button>
                       )}
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive" onClick={() => handleDelete(dream.id)}>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => handleDelete(dream.id)}>
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>

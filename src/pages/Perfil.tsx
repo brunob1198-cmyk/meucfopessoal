@@ -1,13 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMyShares, useSharedWithMe, useInviteUser, useRespondInvite, useRevokeShare } from '@/hooks/useSharedAccess';
 import { useUserPlan, FREE_TX_LIMIT } from '@/hooks/useUserPlan';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, UserPlus, Trash2, Check, X, Crown, User } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2, UserPlus, Trash2, Check, X, Crown, User, Save } from 'lucide-react';
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Pendente',
@@ -23,6 +26,7 @@ const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | '
 
 export default function Perfil() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const { plan, isPremium, isLoading: planLoading } = useUserPlan();
   const { data: myShares, isLoading: sharesLoading } = useMyShares();
   const { data: sharedWithMe, isLoading: withMeLoading } = useSharedWithMe();
@@ -32,6 +36,53 @@ export default function Perfil() {
 
   const [email, setEmail] = useState('');
   const [permission, setPermission] = useState<'view' | 'edit'>('view');
+
+  // Profile fields
+  const [displayName, setDisplayName] = useState('');
+  const [gender, setGender] = useState('');
+  const [birthDate, setBirthDate] = useState('');
+  const [profession, setProfession] = useState('');
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    const load = async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('display_name, gender, birth_date, profession')
+        .eq('user_id', user.id)
+        .single();
+      if (data) {
+        setDisplayName(data.display_name || '');
+        setGender((data as any).gender || '');
+        setBirthDate((data as any).birth_date || '');
+        setProfession((data as any).profession || '');
+      }
+      setProfileLoading(false);
+    };
+    load();
+  }, [user]);
+
+  const handleSaveProfile = async () => {
+    if (!user) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        display_name: displayName || null,
+        gender: gender || null,
+        birth_date: birthDate || null,
+        profession: profession || null,
+      } as any)
+      .eq('user_id', user.id);
+    setSaving(false);
+    if (error) {
+      toast({ title: 'Erro ao salvar perfil', variant: 'destructive' });
+    } else {
+      toast({ title: 'Perfil atualizado com sucesso!' });
+    }
+  };
 
   const handleInvite = () => {
     if (!email.trim()) return;
@@ -79,6 +130,54 @@ export default function Perfil() {
                 Upgrade para <span className="font-semibold text-primary">Premium</span>: lançamentos ilimitados, projeções, insights de IA e dashboards avançados.
               </p>
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Personal Info */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Informações Pessoais</CardTitle>
+          <CardDescription>Dados opcionais para personalizar sua experiência</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {profileLoading ? (
+            <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="displayName">Nome de Exibição</Label>
+                  <Input id="displayName" value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="Seu nome" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="profession">Profissão (opcional)</Label>
+                  <Input id="profession" value={profession} onChange={e => setProfession(e.target.value)} placeholder="Ex: Engenheiro, Médica" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="gender">Gênero</Label>
+                  <Select value={gender} onValueChange={setGender}>
+                    <SelectTrigger id="gender"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="masculino">Masculino</SelectItem>
+                      <SelectItem value="feminino">Feminino</SelectItem>
+                      <SelectItem value="nao_binario">Não-binário</SelectItem>
+                      <SelectItem value="prefiro_nao_dizer">Prefiro não dizer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="birthDate">Data de Nascimento</Label>
+                  <Input id="birthDate" type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)} />
+                </div>
+              </div>
+              <Button onClick={handleSaveProfile} disabled={saving} className="gap-2">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Salvar Perfil
+              </Button>
+            </>
           )}
         </CardContent>
       </Card>

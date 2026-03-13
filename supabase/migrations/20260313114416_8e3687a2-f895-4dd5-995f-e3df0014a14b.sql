@@ -1,0 +1,1 @@
+ALTER TABLE public.financial_dreams ADD COLUMN custom_category text DEFAULT NULL;
