@@ -198,6 +198,51 @@ export type Database = {
           },
         ]
       }
+      connected_accounts: {
+        Row: {
+          account_name: string | null
+          account_type: string
+          balance: number | null
+          connector_logo: string | null
+          connector_name: string
+          created_at: string
+          id: string
+          last_sync_at: string | null
+          pluggy_item_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_name?: string | null
+          account_type?: string
+          balance?: number | null
+          connector_logo?: string | null
+          connector_name: string
+          created_at?: string
+          id?: string
+          last_sync_at?: string | null
+          pluggy_item_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_name?: string | null
+          account_type?: string
+          balance?: number | null
+          connector_logo?: string | null
+          connector_name?: string
+          created_at?: string
+          id?: string
+          last_sync_at?: string | null
+          pluggy_item_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       financial_dreams: {
         Row: {
           accumulated_value: number
@@ -284,6 +329,76 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      imported_transactions: {
+        Row: {
+          amount: number
+          confirmed_category_id: string | null
+          connected_account_id: string
+          created_at: string
+          date: string
+          description: string | null
+          external_id: string | null
+          id: string
+          status: string
+          suggested_category_id: string | null
+          transaction_type: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          confirmed_category_id?: string | null
+          connected_account_id: string
+          created_at?: string
+          date: string
+          description?: string | null
+          external_id?: string | null
+          id?: string
+          status?: string
+          suggested_category_id?: string | null
+          transaction_type?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          confirmed_category_id?: string | null
+          connected_account_id?: string
+          created_at?: string
+          date?: string
+          description?: string | null
+          external_id?: string | null
+          id?: string
+          status?: string
+          suggested_category_id?: string | null
+          transaction_type?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "imported_transactions_confirmed_category_id_fkey"
+            columns: ["confirmed_category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "imported_transactions_connected_account_id_fkey"
+            columns: ["connected_account_id"]
+            isOneToOne: false
+            referencedRelation: "connected_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "imported_transactions_suggested_category_id_fkey"
+            columns: ["suggested_category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       net_worth_history: {
         Row: {
