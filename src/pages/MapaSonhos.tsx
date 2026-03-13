@@ -456,7 +456,7 @@ export default function MapaSonhos() {
                     </div>
                   </CardHeader>
 
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-3 px-4 pb-4 pt-0">
                     {/* Values */}
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div>
