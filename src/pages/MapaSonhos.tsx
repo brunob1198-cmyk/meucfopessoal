@@ -289,14 +289,27 @@ export default function MapaSonhos() {
               </div>
               <div>
                 <Label>Categoria</Label>
-                <Select value={formCategory} onValueChange={v => setFormCategory(v as DreamCategory)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Select value={formCategory} onValueChange={v => {
+                  if (v === '_custom') {
+                    setShowCustomInput(true);
+                    setFormCategory('_custom');
+                  } else {
+                    setShowCustomInput(false);
+                    setCustomCategoryName('');
+                    setFormCategory(v);
+                  }
+                }}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
-                    {Object.entries(categoryConfig).map(([k, v]) => (
+                    {Object.entries(defaultCategoryConfig).map(([k, v]) => (
                       <SelectItem key={k} value={k}>{v.label}</SelectItem>
                     ))}
+                    <SelectItem value="_custom">+ Nova Categoria</SelectItem>
                   </SelectContent>
                 </Select>
+                {showCustomInput && (
+                  <Input className="mt-2" value={customCategoryName} onChange={e => setCustomCategoryName(e.target.value)} placeholder="Nome da nova categoria" />
+                )}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
