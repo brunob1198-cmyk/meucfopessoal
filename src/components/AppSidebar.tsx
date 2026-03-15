@@ -52,7 +52,7 @@ export function AppSidebar() {
             </div>
             {!collapsed && (
               <span className="font-display font-bold text-sm tracking-tight text-foreground">
-                CFO <span className="text-gradient">Pessoal</span>
+                Meu CFO <span className="text-gradient">Pessoal</span>
               </span>
             )}
           </SidebarGroupLabel>

@@ -40,17 +40,30 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    // Get action from URL params or from request body
     const url = new URL(req.url);
-    const action = url.searchParams.get("action");
+    let action = url.searchParams.get("action");
+    
+    let body: any = {};
+    try {
+      body = await req.json();
+    } catch {
+      // No body or invalid JSON
+    }
+    
+    // Allow action to come from body as well
+    if (!action && body?.action) {
+      action = body.action;
+    }
+
     const pluggyToken = await getPluggyToken();
 
     // Action: create connect token (for Pluggy Connect widget)
@@ -72,17 +85,15 @@ Deno.serve(async (req) => {
 
     // Action: fetch item details + accounts after user connects
     if (action === "fetch-item") {
-      const { itemId } = await req.json();
+      const itemId = body?.itemId;
       if (!itemId) throw new Error("itemId required");
 
-      // Get item info
       const itemRes = await fetch(`https://api.pluggy.ai/items/${itemId}`, {
         headers: { "X-API-KEY": pluggyToken },
       });
       if (!itemRes.ok) throw new Error(`Item fetch failed: ${itemRes.status}`);
       const item = await itemRes.json();
 
-      // Get accounts
       const accountsRes = await fetch(
         `https://api.pluggy.ai/accounts?itemId=${itemId}`,
         { headers: { "X-API-KEY": pluggyToken } }
@@ -98,10 +109,9 @@ Deno.serve(async (req) => {
 
     // Action: sync transactions for a connected account
     if (action === "sync-transactions") {
-      const { itemId, accountId, connectedAccountId } = await req.json();
-      const userId = claimsData.claims.sub;
+      const { itemId, accountId, connectedAccountId } = body;
+      const userId = user.id;
 
-      // Fetch transactions from Pluggy
       const txRes = await fetch(
         `https://api.pluggy.ai/transactions?accountId=${accountId}&pageSize=500`,
         { headers: { "X-API-KEY": pluggyToken } }
@@ -109,7 +119,6 @@ Deno.serve(async (req) => {
       if (!txRes.ok) throw new Error(`Transactions fetch failed: ${txRes.status}`);
       const txData = await txRes.json();
 
-      // Get user category rules for auto-categorization
       const { data: rules } = await supabase
         .from("category_rules")
         .select("keyword, category_id")
@@ -120,7 +129,6 @@ Deno.serve(async (req) => {
         .select("id, name, dre_type")
         .eq("user_id", userId);
 
-      // Default keyword mappings
       const defaultKeywords: Record<string, string> = {
         ifood: "Alimentação",
         uber: "Transporte",
@@ -139,8 +147,6 @@ Deno.serve(async (req) => {
 
       function suggestCategory(description: string) {
         const desc = (description || "").toLowerCase();
-
-        // Level 1: user custom rules
         if (rules) {
           for (const rule of rules) {
             if (desc.includes(rule.keyword.toLowerCase())) {
@@ -148,8 +154,6 @@ Deno.serve(async (req) => {
             }
           }
         }
-
-        // Level 2: default keyword rules
         for (const [keyword, catName] of Object.entries(defaultKeywords)) {
           if (desc.includes(keyword)) {
             const cat = categories?.find(
@@ -158,11 +162,9 @@ Deno.serve(async (req) => {
             if (cat) return cat.id;
           }
         }
-
         return null;
       }
 
-      // Prepare rows for upsert
       const rows = txData.results.map((tx: any) => ({
         user_id: userId,
         connected_account_id: connectedAccountId,
@@ -184,7 +186,6 @@ Deno.serve(async (req) => {
         if (error) throw error;
       }
 
-      // Update account balance
       const accRes = await fetch(
         `https://api.pluggy.ai/accounts/${accountId}`,
         { headers: { "X-API-KEY": pluggyToken } }
@@ -208,7 +209,7 @@ Deno.serve(async (req) => {
 
     // Action: delete item from Pluggy
     if (action === "delete-item") {
-      const { itemId } = await req.json();
+      const itemId = body?.itemId;
       await fetch(`https://api.pluggy.ai/items/${itemId}`, {
         method: "DELETE",
         headers: { "X-API-KEY": pluggyToken },

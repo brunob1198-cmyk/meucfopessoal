@@ -55,19 +55,17 @@ export default function ContasConectadas() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Não autenticado');
 
-      // Get connect token from edge function
+      // Get connect token from edge function - pass action in body
       const { data, error } = await supabase.functions.invoke('pluggy-connect', {
-        body: null,
-        headers: {},
+        body: { action: 'connect-token' },
       });
 
-      // For Pluggy Connect Widget, we use the connect token
-      // Since Pluggy requires their widget SDK, we'll use a simulated flow
-      // In production, you'd embed the Pluggy Connect widget here
+      if (error) throw new Error(error.message || 'Erro ao chamar função');
+
       const connectToken = data?.accessToken;
       if (!connectToken) throw new Error('Falha ao obter token de conexão');
 
-      // Open Pluggy Connect in a new window (simplified)
+      // Open Pluggy Connect in a new window
       const pluggyUrl = `https://connect.pluggy.ai/?connectToken=${connectToken}`;
       const popup = window.open(pluggyUrl, 'pluggy-connect', 'width=450,height=700');
 
@@ -79,8 +77,8 @@ export default function ContasConectadas() {
 
           // Fetch item details
           const { data: itemData, error: fetchError } = await supabase.functions.invoke(
-            'pluggy-connect?action=fetch-item',
-            { body: { itemId: event.data.itemId } }
+            'pluggy-connect',
+            { body: { action: 'fetch-item', itemId: event.data.itemId } }
           );
           if (fetchError) throw fetchError;
 
@@ -124,11 +122,12 @@ export default function ContasConectadas() {
   const syncMutation = useMutation({
     mutationFn: async (account: any) => {
       const { data, error } = await supabase.functions.invoke(
-        'pluggy-connect?action=sync-transactions',
+        'pluggy-connect',
         {
           body: {
+            action: 'sync-transactions',
             itemId: account.pluggy_item_id,
-            accountId: account.pluggy_item_id, // In real impl, store actual account ID
+            accountId: account.pluggy_item_id,
             connectedAccountId: account.id,
           },
         }
@@ -148,8 +147,8 @@ export default function ContasConectadas() {
     mutationFn: async (accountId: string) => {
       const account = accounts?.find((a) => a.id === accountId);
       if (account) {
-        await supabase.functions.invoke('pluggy-connect?action=delete-item', {
-          body: { itemId: account.pluggy_item_id },
+        await supabase.functions.invoke('pluggy-connect', {
+          body: { action: 'delete-item', itemId: account.pluggy_item_id },
         });
       }
       const { error } = await supabase.from('connected_accounts').delete().eq('id', accountId);
