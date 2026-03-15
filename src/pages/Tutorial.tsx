@@ -405,7 +405,7 @@ O sistema salva um **snapshot mensal** automático do seu patrimônio e exibe um
   },
   {
     icon: Calculator,
-    title: 'Visão Futuro Financeiro',
+    title: 'Simulador Financeiro',
     route: '/simulador',
     description: 'Simulador de cenários financeiros futuros.',
     details: [
