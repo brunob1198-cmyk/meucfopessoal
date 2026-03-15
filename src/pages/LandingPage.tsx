@@ -401,7 +401,7 @@ function Hero() {
         <motion.div initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8, delay: 0.3 }} className="hidden lg:block">
           <div className="relative">
             <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 to-primary/5 rounded-2xl blur-xl" />
-            <img src={dashboardMockup} alt="Dashboard do CFO Pessoal mostrando gráficos financeiros" className="relative rounded-2xl border border-border shadow-2xl shadow-primary/10 w-full" />
+            <img src={dashboardMockup} alt="Dashboard do Meu CFO Pessoal mostrando gráficos financeiros" className="relative rounded-2xl border border-border shadow-2xl shadow-primary/10 w-full" />
           </div>
         </motion.div>
       </div>
