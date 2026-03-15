@@ -107,7 +107,7 @@ Para cada compromisso: subcategoria, valor da parcela, número da parcela e come
 **Ativos:** Contas, investimentos, imóveis, veículos. **Passivos:** Cartão de crédito, empréstimos, financiamentos. Gráfico de evolução histórica com snapshot mensal automático.`
   },
   simulador: {
-    title: "Visão Futuro Financeiro",
+    title: "Simulador Financeiro",
     icon: Calculator,
     content: `Projete cenários e entenda como suas decisões de hoje impactarão seu patrimônio nos próximos meses ou anos.
 
