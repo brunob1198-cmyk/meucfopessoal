@@ -678,7 +678,7 @@ function Footer() {
     <footer className="border-t border-border py-12 bg-card/30">
       <div className="max-w-6xl mx-auto px-6">
         <div className="border-t border-border pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} CFO Pessoal — BSS Assessoria. Todos os direitos reservados.</p>
+          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Meu CFO Pessoal — BSS Assessoria. Todos os direitos reservados.</p>
           <div className="flex gap-4">
             <Instagram size={20} className="text-muted-foreground hover:text-primary cursor-pointer transition-colors" />
             <Linkedin size={20} className="text-muted-foreground hover:text-primary cursor-pointer transition-colors" />
