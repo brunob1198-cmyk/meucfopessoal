@@ -410,7 +410,7 @@ O sistema salva um **snapshot mensal** automático do seu patrimônio e exibe um
     description: 'Simulador de cenários financeiros futuros.',
     details: [
       `### Para que serve?
-A ferramenta **Visão Futuro Financeiro** foi desenhada para ajudar você a projetar cenários e entender como suas decisões de hoje impactarão seu patrimônio e caixa nos próximos meses ou anos.
+A ferramenta **Simulador Financeiro** foi desenhada para ajudar você a projetar cenários e entender como suas decisões de hoje impactarão seu patrimônio e caixa nos próximos meses ou anos.
 
 Diferente do Planejador (que foca em orçamento mensal), o Simulador é voltado para **projeções de longo prazo**.`,
 
