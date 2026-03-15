@@ -610,7 +610,7 @@ function FAQ() {
 /* ───── SOCIAL PROOF ───── */
 function SocialProof() {
   const testimonials = [
-    { name: "Mariana S.", role: "Empresária", text: "Com o CFO Pessoal, finalmente consigo visualizar para onde vai cada centavo. Já organizei minhas metas e estou a caminho da minha independência financeira." },
+    { name: "Mariana S.", role: "Empresária", text: "Com o Meu CFO Pessoal, finalmente consigo visualizar para onde vai cada centavo. Já organizei minhas metas e estou a caminho da minha independência financeira." },
     { name: "Lucas R.", role: "Desenvolvedor", text: "A importação automática de extratos e a inteligência artificial mudaram completamente minha relação com o dinheiro. Recomendo!" },
     { name: "Camila F.", role: "Médica", text: "O Mapa de Sonhos me ajudou a planejar minha viagem dos sonhos com disciplina. Realizei em 8 meses!" },
   ];
