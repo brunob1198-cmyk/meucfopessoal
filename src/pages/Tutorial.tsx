@@ -439,7 +439,7 @@ Para realizar uma simulação precisa, configure os seguintes pilares:
 
 **Exemplo:** Com receita de R$ 10.000, despesas de R$ 7.000 e aporte de R$ 2.500/mês a 1% ao mês, em 10 anos você acumula aproximadamente R$ 575.000 em investimentos.`,
 
-      `**Dica do Especialista:** Use a Visão Futuro em conjunto com o **CFO Digital IA** para validar se as suas projeções são realistas com base no seu histórico real de gastos registrados na tela de Lançamentos. Simule pelo menos 3 cenários: pessimista, realista e otimista.`,
+      `**Dica do Especialista:** Use o Simulador Financeiro em conjunto com o **CFO Digital IA** para validar se as suas projeções são realistas com base no seu histórico real de gastos registrados na tela de Lançamentos. Simule pelo menos 3 cenários: pessimista, realista e otimista.`,
     ],
   },
   {
