@@ -29,7 +29,7 @@ const items = [
   { title: 'Inteligência de Dados', url: '/data-intelligence', icon: Brain },
   { title: 'Contas Conectadas', url: '/contas-conectadas', icon: Landmark },
   { title: 'Revisar Transações', url: '/revisar-transacoes', icon: ArrowDownUp },
-  { title: 'Visão Futuro Financeiro', url: '/simulador', icon: Calculator },
+  { title: 'Simulador Financeiro', url: '/simulador', icon: Calculator },
   { title: 'Tutorial & Ajuda', url: '/tutorial', icon: HelpCircle },
   { title: 'Meu Perfil', url: '/perfil', icon: UserCircle },
 ];
@@ -52,7 +52,7 @@ export function AppSidebar() {
             </div>
             {!collapsed && (
               <span className="font-display font-bold text-sm tracking-tight text-foreground">
-                CFO <span className="text-gradient">Pessoal</span>
+                Meu CFO <span className="text-gradient">Pessoal</span>
               </span>
             )}
           </SidebarGroupLabel>

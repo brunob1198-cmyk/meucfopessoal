@@ -63,7 +63,7 @@ Aqui estão as telas e funcionalidades do sistema:
 - Calcula patrimônio líquido = ativos - passivos.
 - Histórico de evolução do patrimônio ao longo do tempo.
 
-## VISÃO FUTURO FINANCEIRO (/simulador)
+## SIMULADOR FINANCEIRO (/simulador)
 - Simulador que projeta cenários financeiros futuros.
 - Permite simular diferentes cenários de receita, despesa e investimento.
 - Gráfico de evolução e análise de sustentabilidade.

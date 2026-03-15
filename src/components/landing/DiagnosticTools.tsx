@@ -9,7 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "@/components/ui/progress";
 import {
   ArrowRight, Heart, Shield, TrendingUp, ChevronLeft,
-  Sparkles, CheckCircle2
+  Sparkles, CheckCircle2, Target
 } from "lucide-react";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis,
@@ -36,24 +36,20 @@ function HealthTest() {
     const ratio = gastos / renda;
 
     let score = 0;
-    // Ratio gastos/receita (max 30pts)
     if (ratio <= 0.5) score += 30;
     else if (ratio <= 0.7) score += 22;
     else if (ratio <= 0.9) score += 12;
     else score += 5;
 
-    // Reserva (max 25pts)
     if (form.reserva === "mais6") score += 25;
     else if (form.reserva === "3a6") score += 18;
     else if (form.reserva === "menos3") score += 8;
 
-    // Dívidas (max 25pts)
     if (form.dividas === "nao") score += 25;
     else if (form.dividas === "pequenas") score += 18;
     else if (form.dividas === "moderadas") score += 10;
     else score += 3;
 
-    // Investimento (max 20pts)
     if (form.investe === "sim") score += 20;
     else if (form.investe === "asvezes") score += 12;
 
@@ -252,40 +248,100 @@ function EmergencyCalc() {
 
 /* ════════════════════════════════════════════
    3 — Simulador de Liberdade Financeira
+   (Progressive levels + 4% rule)
    ════════════════════════════════════════════ */
 function FreedomSimulator() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ renda: "", gastos: "", patrimonio: "", rendimento: "8" });
-  const [result, setResult] = useState<null | { rendaPassiva: number; percentual: number; label: string; projecao: string }>(null);
+  const [form, setForm] = useState({ renda: "", gastos: "", patrimonio: "", rendimento: "8", investMensal: "500" });
+  const [result, setResult] = useState<null | {
+    rendaPassiva: number;
+    percentual: number;
+    levels: { name: string; desc: string; reached: boolean; target: number; icon: string }[];
+    metas: { label: string; target: number; reached: boolean }[];
+    projecoes: { label: string; anos: number }[];
+  }>(null);
+
+  const fmtBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
   const calc = () => {
     const gastos = Number(form.gastos) || 1;
     const patrimonio = Number(form.patrimonio) || 0;
     const rendAnual = (Number(form.rendimento) || 8) / 100;
+    const investMensal = Number(form.investMensal) || 0;
     const rendaPassiva = (patrimonio * rendAnual) / 12;
-    const percentual = Math.round((rendaPassiva / gastos) * 100);
+    const percentual = Math.min(Math.round((rendaPassiva / gastos) * 100), 200);
 
-    let label = "";
-    if (percentual <= 10) label = "Dependência total do trabalho";
-    else if (percentual <= 40) label = "Início de construção de patrimônio";
-    else if (percentual <= 70) label = "Semi-independência financeira";
-    else if (percentual < 100) label = "Quase independente";
-    else label = "Independência financeira!";
+    // Progressive levels
+    const reserva6m = gastos * 6;
+    const reserva12m = gastos * 12;
+    const independenciaTarget = (gastos * 12) / 0.04; // 4% rule
 
-    // Simple projection: how long to reach 50% with extra R$500/mo
-    const target50 = (gastos * 0.5 * 12) / rendAnual;
-    let p = patrimonio;
-    let years = 0;
-    const monthlyInv = 500;
-    while (p < target50 && years < 50) {
-      p = p * (1 + rendAnual) + monthlyInv * 12;
-      years++;
+    const levels = [
+      {
+        name: "Segurança Financeira Moderada",
+        desc: "3 a 6 meses de reserva",
+        reached: patrimonio >= gastos * 3,
+        target: gastos * 3,
+        icon: "🛡️",
+      },
+      {
+        name: "Segurança Financeira Forte",
+        desc: "6 a 12 meses de reserva",
+        reached: patrimonio >= reserva6m,
+        target: reserva6m,
+        icon: "💪",
+      },
+      {
+        name: "Renda Complementar",
+        desc: "Investimentos pagam parte das despesas",
+        reached: percentual >= 10,
+        target: (gastos * 0.1 * 12) / rendAnual,
+        icon: "📈",
+      },
+      {
+        name: "Independência Total",
+        desc: "Investimentos pagam 100% das despesas (regra dos 4%)",
+        reached: percentual >= 100,
+        target: independenciaTarget,
+        icon: "🏆",
+      },
+    ];
+
+    // Progressive milestones
+    const metas = [
+      { label: "Reserva de emergência", target: gastos * 6, reached: patrimonio >= gastos * 6 },
+      { label: "Patrimônio financeiro", target: 100000, reached: patrimonio >= 100000 },
+      { label: "Patrimônio investido", target: 500000, reached: patrimonio >= 500000 },
+      { label: "Independência financeira", target: independenciaTarget, reached: patrimonio >= independenciaTarget },
+    ];
+
+    // Projections: how long to reach each level
+    const projecoes: { label: string; anos: number }[] = [];
+    const targets = [
+      { label: "50% de liberdade financeira", target: (gastos * 0.5 * 12) / rendAnual },
+      { label: "Independência total (100%)", target: independenciaTarget },
+    ];
+
+    for (const t of targets) {
+      if (patrimonio >= t.target) {
+        projecoes.push({ label: t.label, anos: 0 });
+      } else if (investMensal > 0) {
+        let p = patrimonio;
+        let years = 0;
+        while (p < t.target && years < 60) {
+          p = p * (1 + rendAnual) + investMensal * 12;
+          years++;
+        }
+        if (years < 60) projecoes.push({ label: t.label, anos: years });
+      }
     }
-    const projecao = percentual < 50
-      ? `Se você investir R$ 500 por mês, pode atingir 50% de liberdade financeira em aproximadamente ${years} anos.`
-      : `Parabéns! Você já ultrapassou 50% de liberdade financeira.`;
 
-    setResult({ rendaPassiva, percentual: Math.min(percentual, 200), label, projecao });
+    setResult({ rendaPassiva, percentual, levels, metas, projecoes });
+  };
+
+  const progressBarBlocks = (pct: number) => {
+    const filled = Math.min(Math.round(pct / 10), 10);
+    return "█".repeat(filled) + "░".repeat(10 - filled);
   };
 
   return (
@@ -296,8 +352,9 @@ function FreedomSimulator() {
           { key: "gastos", label: "Gastos mensais (R$)", ph: "7000" },
           { key: "patrimonio", label: "Valor total investido (R$)", ph: "100000" },
           { key: "rendimento", label: "Rendimento anual (%)", ph: "8" },
+          { key: "investMensal", label: "Investimento mensal (R$)", ph: "500" },
         ].map(f => (
-          <div key={f.key} className="space-y-1">
+          <div key={f.key} className={f.key === "investMensal" ? "col-span-2 space-y-1" : "space-y-1"}>
             <Label className="text-xs text-muted-foreground">{f.label}</Label>
             <Input type="number" placeholder={f.ph} value={(form as any)[f.key]} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))} className="bg-muted border-border" />
           </div>
@@ -308,26 +365,95 @@ function FreedomSimulator() {
       </Button>
 
       {result && (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 pt-2">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-5 pt-2">
+          {/* Main score */}
           <div className="bg-muted/30 rounded-xl p-5 space-y-3">
             <div className="text-center">
-              <p className="text-sm text-muted-foreground">Renda passiva mensal estimada</p>
-              <p className="text-2xl font-bold text-primary font-['Space_Grotesk']">
-                {result.rendaPassiva.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 })}
+              <p className="text-sm text-muted-foreground">Quanto da sua vida financeira já está livre?</p>
+              <p className="text-4xl font-bold text-primary font-['Space_Grotesk'] mt-1">
+                {Math.min(result.percentual, 100)}%
+              </p>
+              <p className="text-lg font-mono text-primary mt-1 tracking-wider">
+                {progressBarBlocks(result.percentual)}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Renda passiva: {result.rendaPassiva.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 })}/mês
               </p>
             </div>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Liberdade financeira</span>
-                <span className="font-bold text-foreground">{Math.min(result.percentual, 100)}%</span>
+          </div>
+
+          {/* Progressive Levels */}
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Target size={16} className="text-primary" /> Níveis de Liberdade Financeira
+            </p>
+            {result.levels.map((level, i) => (
+              <div key={i} className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
+                level.reached
+                  ? "bg-primary/10 border-primary/30"
+                  : "bg-muted/20 border-border"
+              }`}>
+                <span className="text-xl">{level.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className={`text-sm font-medium ${level.reached ? "text-primary" : "text-foreground"}`}>
+                      {level.name}
+                    </p>
+                    {level.reached && <CheckCircle2 size={16} className="text-primary shrink-0" />}
+                  </div>
+                  <p className="text-xs text-muted-foreground">{level.desc}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Meta: {fmtBRL(level.target)}
+                  </p>
+                </div>
               </div>
-              <Progress value={Math.min(result.percentual, 100)} className="h-3" />
-              <p className="text-sm font-medium text-center text-foreground">{result.label}</p>
+            ))}
+          </div>
+
+          {/* Progressive milestones */}
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-foreground">🎯 Metas Progressivas</p>
+            {result.metas.map((meta, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                  meta.reached ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                }`}>
+                  {i + 1}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className={`text-sm ${meta.reached ? "text-primary font-medium" : "text-muted-foreground"}`}>
+                      {meta.label}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{fmtBRL(meta.target)}</span>
+                  </div>
+                  <Progress value={Math.min(100, (Number(form.patrimonio) / meta.target) * 100)} className="h-1.5 mt-1" />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Projections */}
+          {result.projecoes.length > 0 && (
+            <div className="bg-primary/10 border border-primary/30 rounded-xl p-4 space-y-2">
+              {result.projecoes.map((p, i) => (
+                <div key={i} className="text-sm text-primary flex items-start gap-2">
+                  <span>💡</span>
+                  <span>
+                    {p.anos === 0
+                      ? `Parabéns! Você já atingiu ${p.label}!`
+                      : `Investindo ${fmtBRL(Number(form.investMensal))}/mês, você atinge ${p.label} em aproximadamente ${p.anos} anos.`
+                    }
+                  </span>
+                </div>
+              ))}
             </div>
-          </div>
-          <div className="bg-primary/10 border border-primary/30 rounded-xl p-4 text-sm text-primary">
-            💡 {result.projecao}
-          </div>
+          )}
+
+          <p className="text-xs text-muted-foreground text-center italic">
+            "Isso é mais motivador que 'você precisa de 2 milhões'. Veja seu progresso real."
+          </p>
+
           <Button className="w-full py-5" onClick={() => navigate("/auth")}>
             Criar conta para acompanhar sua evolução automaticamente <ArrowRight size={14} />
           </Button>
@@ -362,7 +488,7 @@ export default function DiagnosticTools() {
       id: "freedom",
       icon: TrendingUp,
       title: "Simulador de Liberdade Financeira",
-      desc: "Calcule quanto da sua vida financeira já é sustentada pelo seu patrimônio.",
+      desc: "Veja seus níveis de liberdade financeira com metas progressivas e motivadoras.",
       component: <FreedomSimulator />,
     },
   ];

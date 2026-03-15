@@ -107,7 +107,7 @@ Para cada compromisso: subcategoria, valor da parcela, número da parcela e come
 **Ativos:** Contas, investimentos, imóveis, veículos. **Passivos:** Cartão de crédito, empréstimos, financiamentos. Gráfico de evolução histórica com snapshot mensal automático.`
   },
   simulador: {
-    title: "Visão Futuro Financeiro",
+    title: "Simulador Financeiro",
     icon: Calculator,
     content: `Projete cenários e entenda como suas decisões de hoje impactarão seu patrimônio nos próximos meses ou anos.
 
@@ -217,7 +217,7 @@ function Navbar() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <span className="font-bold text-xl font-['Space_Grotesk'] text-foreground cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-            CFO <span className="text-primary">Pessoal</span>
+            Meu CFO <span className="text-primary">Pessoal</span>
           </span>
 
           {/* Desktop nav */}
@@ -401,7 +401,7 @@ function Hero() {
         <motion.div initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8, delay: 0.3 }} className="hidden lg:block">
           <div className="relative">
             <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 to-primary/5 rounded-2xl blur-xl" />
-            <img src={dashboardMockup} alt="Dashboard do CFO Pessoal mostrando gráficos financeiros" className="relative rounded-2xl border border-border shadow-2xl shadow-primary/10 w-full" />
+            <img src={dashboardMockup} alt="Dashboard do Meu CFO Pessoal mostrando gráficos financeiros" className="relative rounded-2xl border border-border shadow-2xl shadow-primary/10 w-full" />
           </div>
         </motion.div>
       </div>
@@ -610,7 +610,7 @@ function FAQ() {
 /* ───── SOCIAL PROOF ───── */
 function SocialProof() {
   const testimonials = [
-    { name: "Mariana S.", role: "Empresária", text: "Com o CFO Pessoal, finalmente consigo visualizar para onde vai cada centavo. Já organizei minhas metas e estou a caminho da minha independência financeira." },
+    { name: "Mariana S.", role: "Empresária", text: "Com o Meu CFO Pessoal, finalmente consigo visualizar para onde vai cada centavo. Já organizei minhas metas e estou a caminho da minha independência financeira." },
     { name: "Lucas R.", role: "Desenvolvedor", text: "A importação automática de extratos e a inteligência artificial mudaram completamente minha relação com o dinheiro. Recomendo!" },
     { name: "Camila F.", role: "Médica", text: "O Mapa de Sonhos me ajudou a planejar minha viagem dos sonhos com disciplina. Realizei em 8 meses!" },
   ];
@@ -678,7 +678,7 @@ function Footer() {
     <footer className="border-t border-border py-12 bg-card/30">
       <div className="max-w-6xl mx-auto px-6">
         <div className="border-t border-border pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} CFO Pessoal — BSS Assessoria. Todos os direitos reservados.</p>
+          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Meu CFO Pessoal — BSS Assessoria. Todos os direitos reservados.</p>
           <div className="flex gap-4">
             <Instagram size={20} className="text-muted-foreground hover:text-primary cursor-pointer transition-colors" />
             <Linkedin size={20} className="text-muted-foreground hover:text-primary cursor-pointer transition-colors" />
