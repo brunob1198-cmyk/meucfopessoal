@@ -49,13 +49,27 @@ export default function ContasConectadas() {
     enabled: !!user,
   });
 
+  const loadPluggyScript = (): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      if ((window as any).PluggyConnect) {
+        resolve();
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://cdn.pluggy.ai/pluggy-connect/latest/pluggy-connect.js';
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('Falha ao carregar SDK do Pluggy'));
+      document.head.appendChild(script);
+    });
+  };
+
   const connectBank = async () => {
     setConnecting(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Não autenticado');
 
-      // Get connect token from edge function - pass action in body
+      // Get connect token from edge function
       const { data, error } = await supabase.functions.invoke('pluggy-connect', {
         body: { action: 'connect-token' },
       });
@@ -65,56 +79,63 @@ export default function ContasConectadas() {
       const connectToken = data?.accessToken;
       if (!connectToken) throw new Error('Falha ao obter token de conexão');
 
-      // Open Pluggy Connect in a new window
-      const pluggyUrl = `https://connect.pluggy.ai/?connectToken=${connectToken}`;
-      const popup = window.open(pluggyUrl, 'pluggy-connect', 'width=450,height=700');
+      // Load Pluggy SDK and open widget
+      await loadPluggyScript();
 
-      // Listen for message from popup
-      const handleMessage = async (event: MessageEvent) => {
-        if (event.data?.type === 'pluggy-connect' && event.data?.itemId) {
-          window.removeEventListener('message', handleMessage);
-          popup?.close();
+      const PluggyConnect = (window as any).PluggyConnect;
+      if (!PluggyConnect) throw new Error('SDK do Pluggy não carregado');
 
-          // Fetch item details
-          const { data: itemData, error: fetchError } = await supabase.functions.invoke(
-            'pluggy-connect',
-            { body: { action: 'fetch-item', itemId: event.data.itemId } }
-          );
-          if (fetchError) throw fetchError;
+      const pluggyConnect = new PluggyConnect({
+        connectToken,
+        includeSandbox: false,
+        onSuccess: async (itemData: any) => {
+          try {
+            const itemId = itemData?.item?.id;
+            if (!itemId) throw new Error('Item ID não retornado');
 
-          // Save connected accounts
-          for (const acc of itemData.accounts || []) {
-            await supabase.from('connected_accounts').insert({
-              user_id: user!.id,
-              pluggy_item_id: event.data.itemId,
-              connector_name: itemData.item?.connector?.name || 'Banco',
-              connector_logo: itemData.item?.connector?.imageUrl || null,
-              account_type: acc.type === 'CREDIT' ? 'credit_card' : 'checking',
-              account_name: acc.name || acc.number || 'Conta',
-              balance: acc.balance || 0,
-              last_sync_at: new Date().toISOString(),
-              status: 'active',
-            });
+            // Fetch item details from our edge function
+            const { data: fetchData, error: fetchError } = await supabase.functions.invoke(
+              'pluggy-connect',
+              { body: { action: 'fetch-item', itemId } }
+            );
+            if (fetchError) throw fetchError;
+
+            // Save connected accounts
+            for (const acc of fetchData.accounts || []) {
+              await supabase.from('connected_accounts').insert({
+                user_id: user!.id,
+                pluggy_item_id: itemId,
+                connector_name: fetchData.item?.connector?.name || 'Banco',
+                connector_logo: fetchData.item?.connector?.imageUrl || null,
+                account_type: acc.type === 'CREDIT' ? 'credit_card' : 'checking',
+                account_name: acc.name || acc.number || 'Conta',
+                balance: acc.balance || 0,
+                last_sync_at: new Date().toISOString(),
+                status: 'active',
+              });
+            }
+
+            queryClient.invalidateQueries({ queryKey: ['connected-accounts'] });
+            toast.success('Conta conectada com sucesso!');
+          } catch (err: any) {
+            toast.error('Erro ao salvar conta: ' + (err.message || 'Tente novamente'));
+          } finally {
+            setConnecting(false);
           }
-
-          queryClient.invalidateQueries({ queryKey: ['connected-accounts'] });
-          toast.success('Conta conectada com sucesso!');
-        }
-      };
-
-      window.addEventListener('message', handleMessage);
-
-      // Fallback: also poll for popup close
-      const pollTimer = setInterval(() => {
-        if (popup?.closed) {
-          clearInterval(pollTimer);
-          window.removeEventListener('message', handleMessage);
+        },
+        onError: (error: any) => {
+          console.error('Pluggy Connect error:', error);
+          toast.error('Erro na conexão: ' + (error?.message || 'Tente novamente'));
           setConnecting(false);
-        }
-      }, 1000);
+        },
+        onClose: () => {
+          setConnecting(false);
+        },
+      });
+
+      pluggyConnect.init();
     } catch (err: any) {
       toast.error('Erro ao conectar: ' + (err.message || 'Tente novamente'));
-    } finally {
       setConnecting(false);
     }
   };
