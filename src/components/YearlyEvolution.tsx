@@ -86,7 +86,7 @@ const VIEW_OPTIONS: ViewOption[] = [
 function generateYearRange(): number[] {
   const current = new Date().getFullYear();
   const years: number[] = [];
-  for (let y = current; y >= current - 15; y--) years.push(y);
+  for (let y = current + 2; y >= current - 15; y--) years.push(y);
   return years;
 }
 
