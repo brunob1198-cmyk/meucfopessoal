@@ -31,22 +31,27 @@ serve(async (req) => {
       periodEnd = body.periodEnd || null;
     } catch {}
 
-    const startDate = periodStart || (() => {
+    const now = new Date();
+    const nowStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+    // Always fetch broad historical data for pattern recognition (last 12 months of actuals)
+    const histStart = (() => {
       const d = new Date();
       d.setMonth(d.getMonth() - 12);
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
     })();
 
-    const endDate = periodEnd || (() => {
+    const filterStart = periodStart || histStart;
+    const filterEnd = periodEnd || (() => {
       const d = new Date();
       d.setFullYear(d.getFullYear() + 1);
       return `${d.getFullYear()}-12-31`;
     })();
 
     const [txRes, catRes, projRes] = await Promise.all([
-      supabase.from("transactions").select("*, categories(name, dre_type, parent_id)").gte("date", startDate).lte("date", endDate).order("date"),
+      supabase.from("transactions").select("*, categories(name, dre_type, parent_id)").gte("date", histStart).lte("date", filterEnd).order("date"),
       supabase.from("categories").select("*").order("sort_order"),
-      supabase.from("projections").select("*, categories(name, dre_type, parent_id)").gte("month", startDate).lte("month", endDate).order("month"),
+      supabase.from("projections").select("*, categories(name, dre_type, parent_id)").gte("month", histStart).lte("month", filterEnd).order("month"),
     ]);
 
     if (txRes.error) throw txRes.error;
@@ -75,130 +80,150 @@ serve(async (req) => {
       });
     }
 
-    // Build financial summary
-    const now = new Date();
-    const monthlyData: Record<string, Record<string, number>> = {};
-    const categorySpending: Record<string, { name: string; type: string; total: number; months: Record<string, number> }> = {};
+    // Separate past transactions from future projections
+    const pastTransactions = transactions.filter(tx => tx.date.substring(0, 7) <= nowStr);
+    const futureProjections = projections.filter(p => p.month.substring(0, 7) > nowStr);
+    const pastProjections = projections.filter(p => p.month.substring(0, 7) <= nowStr);
 
-    for (const tx of transactions) {
+    // Build monthly spending patterns from REAL data
+    const monthlyTotals: Record<string, { receita: number; despesa: number; custo: number; desconto: number }> = {};
+    const categorySpending: Record<string, { name: string; type: string; total: number; count: number; months: Record<string, number> }> = {};
+
+    for (const tx of pastTransactions) {
       const m = tx.date.substring(0, 7);
       const catName = tx.categories?.name || "Sem categoria";
       const catType = tx.categories?.dre_type || "despesa";
 
-      if (!monthlyData[m]) monthlyData[m] = {};
-      monthlyData[m][catName] = (monthlyData[m][catName] || 0) + Number(tx.amount);
-
-      if (!categorySpending[tx.category_id]) {
-        categorySpending[tx.category_id] = { name: catName, type: catType, total: 0, months: {} };
-      }
-      categorySpending[tx.category_id].total += Number(tx.amount);
-      categorySpending[tx.category_id].months[m] = (categorySpending[tx.category_id].months[m] || 0) + Number(tx.amount);
-    }
-
-    const monthlyTotals: Record<string, { receita: number; despesa: number; custo: number; desconto: number }> = {};
-    for (const tx of transactions) {
-      const m = tx.date.substring(0, 7);
       if (!monthlyTotals[m]) monthlyTotals[m] = { receita: 0, despesa: 0, custo: 0, desconto: 0 };
-      const type = tx.categories?.dre_type as string;
+      const type = catType as string;
       if (type === "receita") monthlyTotals[m].receita += Number(tx.amount);
       else if (type === "despesa") monthlyTotals[m].despesa += Number(tx.amount);
       else if (type === "custo") monthlyTotals[m].custo += Number(tx.amount);
       else if (type === "desconto") monthlyTotals[m].desconto += Number(tx.amount);
+
+      if (!categorySpending[tx.category_id]) {
+        categorySpending[tx.category_id] = { name: catName, type: catType, total: 0, count: 0, months: {} };
+      }
+      categorySpending[tx.category_id].total += Number(tx.amount);
+      categorySpending[tx.category_id].count++;
+      categorySpending[tx.category_id].months[m] = (categorySpending[tx.category_id].months[m] || 0) + Number(tx.amount);
     }
 
     const sortedMonths = Object.keys(monthlyTotals).sort();
+    const last3Months = sortedMonths.slice(-3);
+    const last6Months = sortedMonths.slice(-6);
 
-    // Build projected vs actual comparison by category
-    const projectedByCategory: Record<string, Record<string, number>> = {};
-    for (const p of projections) {
+    // Build future projected totals
+    const futureProjectedByCategory: Record<string, Record<string, number>> = {};
+    const futureMonthlyTotals: Record<string, { receita: number; despesa: number; custo: number; desconto: number }> = {};
+    for (const p of futureProjections) {
       const m = p.month.substring(0, 7);
       const catName = p.categories?.name || "?";
-      if (!projectedByCategory[catName]) projectedByCategory[catName] = {};
-      projectedByCategory[catName][m] = (projectedByCategory[catName][m] || 0) + Number(p.amount);
+      const catType = p.categories?.dre_type as string;
+      if (!futureProjectedByCategory[catName]) futureProjectedByCategory[catName] = {};
+      futureProjectedByCategory[catName][m] = (futureProjectedByCategory[catName][m] || 0) + Number(p.amount);
+      if (!futureMonthlyTotals[m]) futureMonthlyTotals[m] = { receita: 0, despesa: 0, custo: 0, desconto: 0 };
+      if (catType === "receita") futureMonthlyTotals[m].receita += Number(p.amount);
+      else if (catType === "despesa") futureMonthlyTotals[m].despesa += Number(p.amount);
+      else if (catType === "custo") futureMonthlyTotals[m].custo += Number(p.amount);
+      else if (catType === "desconto") futureMonthlyTotals[m].desconto += Number(p.amount);
     }
 
-    // Build monthly projected totals for DRE line items
-    const monthlyProjectedTotals: Record<string, { receita: number; despesa: number; custo: number; desconto: number }> = {};
-    for (const p of projections) {
-      const m = p.month.substring(0, 7);
-      if (!monthlyProjectedTotals[m]) monthlyProjectedTotals[m] = { receita: 0, despesa: 0, custo: 0, desconto: 0 };
-      const type = p.categories?.dre_type as string;
-      if (type === "receita") monthlyProjectedTotals[m].receita += Number(p.amount);
-      else if (type === "despesa") monthlyProjectedTotals[m].despesa += Number(p.amount);
-      else if (type === "custo") monthlyProjectedTotals[m].custo += Number(p.amount);
-      else if (type === "desconto") monthlyProjectedTotals[m].desconto += Number(p.amount);
+    // Detect spending patterns and trends
+    const categoryTrends: Record<string, { avg3m: number; avg6m: number; trend: string }> = {};
+    for (const [catId, cat] of Object.entries(categorySpending)) {
+      if (cat.type !== "despesa" && cat.type !== "custo") continue;
+      const vals3 = last3Months.map(m => cat.months[m] || 0);
+      const vals6 = last6Months.map(m => cat.months[m] || 0);
+      const avg3 = vals3.reduce((a, b) => a + b, 0) / Math.max(vals3.filter(v => v > 0).length, 1);
+      const avg6 = vals6.reduce((a, b) => a + b, 0) / Math.max(vals6.filter(v => v > 0).length, 1);
+      let trend = "estável";
+      if (avg6 > 0 && avg3 > avg6 * 1.15) trend = "crescente";
+      else if (avg6 > 0 && avg3 < avg6 * 0.85) trend = "decrescente";
+      categoryTrends[cat.name] = { avg3m: avg3, avg6m: avg6, trend };
     }
 
-    let summaryText = `DADOS FINANCEIROS DO USUÁRIO:\n\n`;
+    // Build comprehensive summary
+    let summaryText = `ANÁLISE FINANCEIRA COMPLETA DO USUÁRIO\n`;
     summaryText += `Data atual: ${now.toISOString().split("T")[0]}\n`;
-    if (periodStart || periodEnd) {
-      summaryText += `Período analisado: ${periodStart || "início"} a ${periodEnd || "fim"}\n`;
-    }
-    summaryText += `\nRESUMO MENSAL (REALIZADO):\n`;
+    summaryText += `Período analisado: ${periodStart || histStart} a ${periodEnd || filterEnd}\n\n`;
+
+    // Section 1: Historical patterns
+    summaryText += `═══ PADRÕES HISTÓRICOS (dados reais) ═══\n`;
+    summaryText += `Meses com dados: ${sortedMonths.length}\n\n`;
     for (const m of sortedMonths) {
       const t = monthlyTotals[m];
       const liquido = t.receita - t.desconto - t.custo - t.despesa;
-      summaryText += `${m}: Receita R$${t.receita.toFixed(2)} | Despesas R$${t.despesa.toFixed(2)} | Custos R$${t.custo.toFixed(2)} | Resultado Líquido R$${liquido.toFixed(2)}\n`;
+      summaryText += `${m}: Receita R$${t.receita.toFixed(0)} | Desp+Custos R$${(t.despesa + t.custo).toFixed(0)} | Líquido R$${liquido.toFixed(0)}\n`;
     }
 
-    // Add projected vs actual comparison
-    summaryText += `\nCOMPARATIVO PROJETADO x REALIZADO POR MÊS:\n`;
-    const allMonths = new Set([...Object.keys(monthlyTotals), ...Object.keys(monthlyProjectedTotals)]);
-    const sortedAllMonths = [...allMonths].sort();
-    for (const m of sortedAllMonths) {
-      const real = monthlyTotals[m];
-      const proj = monthlyProjectedTotals[m];
-      if (real && proj) {
-        const realTotal = real.despesa + real.custo;
-        const projTotal = proj.despesa + proj.custo;
-        const realLiquido = real.receita - real.desconto - real.custo - real.despesa;
-        const projLiquido = proj.receita - proj.desconto - proj.custo - proj.despesa;
-        summaryText += `${m}: Real(Desp R$${realTotal.toFixed(2)}, Líquido R$${realLiquido.toFixed(2)}) | Projetado(Desp R$${projTotal.toFixed(2)}, Líquido R$${projLiquido.toFixed(2)}) | Desvio Desp ${((realTotal - projTotal) / (projTotal || 1) * 100).toFixed(1)}%\n`;
-      }
-    }
-
-    summaryText += `\nDETALHE POR CATEGORIA - PROJETADO x REALIZADO (últimos 3 meses):\n`;
-    const last3Months = sortedMonths.slice(-3);
+    // Section 2: Category behavior patterns
+    summaryText += `\n═══ COMPORTAMENTO POR CATEGORIA (padrões aprendidos) ═══\n`;
     const topCats = Object.values(categorySpending)
-      .filter((c) => c.type === "despesa" || c.type === "custo")
+      .filter(c => c.type === "despesa" || c.type === "custo")
       .sort((a, b) => b.total - a.total)
-      .slice(0, 20);
+      .slice(0, 15);
 
     for (const cat of topCats) {
-      const projected = projectedByCategory[cat.name];
-      let line = `- ${cat.name}: `;
-      const details: string[] = [];
-      for (const m of last3Months) {
-        const realVal = cat.months[m] || 0;
-        const projVal = projected?.[m] || 0;
-        if (realVal > 0 || projVal > 0) {
-          details.push(`${m}: Real R$${realVal.toFixed(2)} vs Proj R$${projVal.toFixed(2)}`);
-        }
-      }
-      if (details.length > 0) {
-        line += details.join(" | ");
-        // Calculate average deviation
-        const avgReal = last3Months.reduce((s, m) => s + (cat.months[m] || 0), 0) / last3Months.length;
-        const avgProj = last3Months.reduce((s, m) => s + (projected?.[m] || 0), 0) / last3Months.length;
-        if (avgProj > 0 && avgReal > avgProj * 1.1) {
-          line += ` ⚠ MÉDIA REAL (R$${avgReal.toFixed(0)}) EXCEDE PROJETADO (R$${avgProj.toFixed(0)}) em ${((avgReal/avgProj - 1)*100).toFixed(0)}%`;
-        }
-      } else {
-        line += `Total R$${cat.total.toFixed(2)}`;
-      }
-      summaryText += line + `\n`;
+      const trend = categoryTrends[cat.name];
+      const avgStr = trend ? `Média 3m: R$${trend.avg3m.toFixed(0)} | Média 6m: R$${trend.avg6m.toFixed(0)} | Tendência: ${trend.trend}` : `Total: R$${cat.total.toFixed(0)}`;
+      summaryText += `- ${cat.name}: ${avgStr}\n`;
     }
 
-    // Add projected future months with liquido analysis
-    if (projections.length > 0) {
-      summaryText += `\nPROJEÇÕES FUTURAS (meses sem lançamentos reais):\n`;
-      const futureMonths = Object.keys(monthlyProjectedTotals).filter(m => !monthlyTotals[m]).sort();
-      for (const m of futureMonths.slice(0, 12)) {
-        const p = monthlyProjectedTotals[m];
-        if (p) {
-          const liquido = p.receita - p.desconto - p.custo - p.despesa;
-          summaryText += `${m}: Receita Proj R$${p.receita.toFixed(2)} | Despesas Proj R$${p.despesa.toFixed(2)} | Líquido Proj R$${liquido.toFixed(2)}${liquido < 0 ? ' ⚠ RESULTADO NEGATIVO' : ''}\n`;
+    // Section 3: Future projections analysis (KEY FOCUS)
+    summaryText += `\n═══ ANÁLISE DE PROJEÇÕES FUTURAS (Planejador) ═══\n`;
+    const futureMonthsSorted = Object.keys(futureMonthlyTotals).sort();
+    if (futureMonthsSorted.length > 0) {
+      for (const m of futureMonthsSorted.slice(0, 12)) {
+        const p = futureMonthlyTotals[m];
+        const liquido = p.receita - p.desconto - p.custo - p.despesa;
+        summaryText += `${m}: Receita Proj R$${p.receita.toFixed(0)} | Desp Proj R$${(p.despesa + p.custo).toFixed(0)} | Líquido R$${liquido.toFixed(0)}${liquido < 0 ? ' ⚠ NEGATIVO' : ''}\n`;
+      }
+
+      // Compare future projections with learned behavior
+      summaryText += `\n═══ DESVIOS: PROJEÇÕES FUTURAS vs COMPORTAMENTO REAL ═══\n`;
+      for (const [catName, futureMonths] of Object.entries(futureProjectedByCategory)) {
+        const trend = categoryTrends[catName];
+        if (!trend || trend.avg3m === 0) continue;
+        for (const [m, projVal] of Object.entries(futureMonths)) {
+          const deviation = ((projVal - trend.avg3m) / trend.avg3m) * 100;
+          if (Math.abs(deviation) > 20) {
+            summaryText += `- ${catName} em ${m}: Projetado R$${projVal.toFixed(0)} vs Média real R$${trend.avg3m.toFixed(0)} (${deviation > 0 ? '+' : ''}${deviation.toFixed(0)}%)`;
+            if (deviation < -20) summaryText += ` → PROJEÇÃO SUBESTIMADA`;
+            if (deviation > 20) summaryText += ` → PROJEÇÃO SUPERESTIMADA`;
+            summaryText += `\n`;
+          }
         }
+      }
+
+      // Check for categories with real spending but NO future projection
+      summaryText += `\n═══ CATEGORIAS SEM PROJEÇÃO FUTURA ═══\n`;
+      for (const cat of topCats) {
+        if (!futureProjectedByCategory[cat.name] && cat.total > 0) {
+          const trend = categoryTrends[cat.name];
+          if (trend && trend.avg3m > 50) {
+            summaryText += `- ${cat.name}: gasto médio R$${trend.avg3m.toFixed(0)}/mês mas SEM projeção futura. Risco de planejamento.\n`;
+          }
+        }
+      }
+    } else {
+      summaryText += `Nenhuma projeção futura cadastrada no Planejador.\n`;
+    }
+
+    // Section 4: Anomaly detection
+    summaryText += `\n═══ ANOMALIAS DETECTADAS ═══\n`;
+    for (const cat of topCats) {
+      const trend = categoryTrends[cat.name];
+      if (!trend) continue;
+      // Check for unusual spikes in last month vs avg
+      const lastMonth = sortedMonths[sortedMonths.length - 1];
+      const lastVal = cat.months[lastMonth] || 0;
+      if (lastVal > trend.avg6m * 1.5 && lastVal > 100) {
+        summaryText += `- PICO em ${cat.name}: R$${lastVal.toFixed(0)} no último mês vs média R$${trend.avg6m.toFixed(0)}\n`;
+      }
+      // Trend alerts
+      if (trend.trend === "crescente" && trend.avg3m > 200) {
+        summaryText += `- TENDÊNCIA CRESCENTE: ${cat.name} aumentando (3m: R$${trend.avg3m.toFixed(0)} vs 6m: R$${trend.avg6m.toFixed(0)})\n`;
       }
     }
 
@@ -212,42 +237,54 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
           {
             role: "system",
-            content: `Você é um CFO pessoal digital especialista em finanças pessoais. Analise os dados financeiros do usuário e retorne uma análise completa.
+            content: `Você é um CFO pessoal digital com inteligência avançada em finanças pessoais. Você utiliza:
+- Reconhecimento de padrões comportamentais (detectar hábitos recorrentes de gasto)
+- Inteligência preditiva (antecipar desvios antes que aconteçam)
+- Personalização profunda (cada análise é única para este usuário)
+- Inteligência contextual (considerar sazonalidade, ciclos de vida, contexto brasileiro)
 
-IMPORTANTE: Responda APENAS com o JSON válido no formato especificado, sem markdown, sem backticks, sem texto adicional.
+REGRAS DE ANÁLISE:
 
-Formato de resposta (JSON puro):
+1. FOCO PRINCIPAL: Analise as PROJEÇÕES FUTURAS do Planejador comparando com os padrões REAIS aprendidos.
+   - Se uma projeção futura está muito abaixo do gasto real médio, ALERTE que o planejamento está otimista demais.
+   - Se uma projeção futura está muito acima, sugira que pode ser oportunidade de economia.
+   - NÃO compare meses passados projetados vs realizados um a um — isso é irrelevante. Foque no FUTURO.
+
+2. ALERTAS PREDITIVOS: Identifique problemas ANTES que aconteçam:
+   - Meses futuros com resultado líquido negativo
+   - Categorias com tendência crescente que comprometem o orçamento
+   - Categorias com gasto real mas sem projeção (buracos no planejamento)
+
+3. APRENDIZADO DE PADRÕES:
+   - Identifique sazonalidades (ex: gastos maiores em dezembro, IPVA em janeiro)
+   - Reconheça ciclos (ex: despesas crescendo mês a mês)
+   - Detecte anomalias (picos incomuns vs comportamento habitual)
+
+4. SUGESTÕES ACIONÁVEIS E PERSONALIZADAS:
+   - Baseie sugestões nos dados REAIS do usuário, não em conselhos genéricos
+   - Se o usuário gasta X em uma categoria, sugira redução para Y com base no padrão
+   - Dê sugestões de ajuste do Planejador quando as projeções não refletem a realidade
+
+5. NÃO faça comparações retroativas detalhadas entre projetado e realizado de meses que já passaram.
+
+Responda APENAS com JSON válido, sem markdown:
 {
-  "insights": ["insight 1", "insight 2", "insight 3", "insight 4", "insight 5"],
-  "alerts": ["alerta 1", "alerta 2", "alerta 3"],
-  "suggestions": ["sugestão 1", "sugestão 2", "sugestão 3", "sugestão 4"],
+  "insights": ["3-5 análises profundas sobre padrões, tendências e comportamento financeiro"],
+  "alerts": ["1-5 alertas preditivos focando em riscos futuros e desvios no planejamento"],
+  "suggestions": ["3-5 sugestões personalizadas e acionáveis baseadas nos padrões do usuário"],
   "forecast": {
-    "summary": "resumo da previsão financeira para os próximos 3 meses",
+    "summary": "previsão contextualizada para os próximos meses",
     "projected_savings": 0,
     "trend": "positiva|negativa|estável",
-    "details": ["detalhe 1", "detalhe 2", "detalhe 3"]
+    "details": ["detalhes da previsão"]
   }
 }
 
-Regras:
-- insights: 3-5 análises sobre tendências, categorias que mais crescem, variações mensais, padrões de consumo. Inclua números e percentuais.
-- alerts: 1-5 alertas. OBRIGATÓRIO incluir:
-  * Comparação PROJETADO vs REALIZADO: se alguma categoria teve gasto real superior ao projetado nos últimos 3 meses, ALERTE com valores específicos e sugira atualizar o planejador. Exemplo: "Combustível: média real R$700/mês nos últimos 3 meses, porém projetado apenas R$600. Atualize o Planejador para refletir a realidade."
-  * Se o Resultado Líquido PROJETADO de algum mês futuro for negativo, ALERTE informando o mês e o valor, e sugira cortes.
-  * Alertas sobre gastos acima da média, categorias fora do padrão, redução de receita.
-- suggestions: 3-5 sugestões acionáveis. OBRIGATÓRIO incluir:
-  * Sugestões baseadas nos desvios entre projetado e realizado (ajustar projeções ou reduzir gastos).
-  * Se houver meses futuros com resultado negativo, sugerir categorias específicas para cortar.
-  * Sugestões personalizadas baseadas nos padrões do usuário - aprenda com os dados e identifique oportunidades únicas para este perfil.
-- forecast: previsão baseada em tendências dos últimos meses E nos dados projetados. projected_savings é a economia estimada se seguir as sugestões.
-- Use valores em reais (R$) e percentuais quando relevante.
-- Seja específico com nomes de categorias e valores.
-- Tom profissional mas acessível.
-- Personalize ao máximo: identifique padrões únicos do usuário e faça sugestões que só fazem sentido para ele.`,
+Use R$ e percentuais. Seja específico com nomes de categorias e valores. Tom profissional mas motivador.`,
           },
           { role: "user", content: summaryText },
         ],
@@ -257,14 +294,12 @@ Regras:
     if (!aiResponse.ok) {
       if (aiResponse.status === 429) {
         return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns minutos." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (aiResponse.status === 402) {
         return new Response(JSON.stringify({ error: "Créditos insuficientes para análise de IA." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const errText = await aiResponse.text();
