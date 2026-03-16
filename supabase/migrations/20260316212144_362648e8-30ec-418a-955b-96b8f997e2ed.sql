@@ -1,0 +1,1 @@
+DELETE FROM projections WHERE id = 'aa978acf-c965-49fa-ad0a-a36d0a00f498';
