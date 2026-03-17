@@ -11,17 +11,30 @@ export function useTransactions(startDate?: string, endDate?: string) {
   return useQuery({
     queryKey: ['transactions', user?.id, startDate, endDate],
     queryFn: async () => {
-      let query = supabase
-        .from('transactions')
-        .select('*, categories(name, dre_type, parent_id)')
-        .order('date', { ascending: false });
+      const PAGE_SIZE = 1000;
+      let allData: any[] = [];
+      let from = 0;
+      let hasMore = true;
 
-      if (startDate) query = query.gte('date', startDate);
-      if (endDate) query = query.lte('date', endDate);
+      while (hasMore) {
+        let query = supabase
+          .from('transactions')
+          .select('*, categories(name, dre_type, parent_id)')
+          .order('date', { ascending: false })
+          .range(from, from + PAGE_SIZE - 1);
 
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
+        if (startDate) query = query.gte('date', startDate);
+        if (endDate) query = query.lte('date', endDate);
+
+        const { data, error } = await query;
+        if (error) throw error;
+
+        allData = allData.concat(data || []);
+        hasMore = (data?.length ?? 0) === PAGE_SIZE;
+        from += PAGE_SIZE;
+      }
+
+      return allData;
     },
     enabled: !!user,
   });
