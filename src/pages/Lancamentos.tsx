@@ -342,7 +342,7 @@ function CategoryGroup({ cat, onSubmit, parentCategories }: {cat: Category;onSub
         <SubcategoryRow key={sub.id} cat={sub} onSubmit={onSubmit} parentCategories={parentCategories} />
         )}
           {addingSub ?
-        <AddSubcategoryForm parentId={cat.id} onDone={() => setAddingSub(false)} /> :
+        <AddSubcategoryForm parentId={cat.id} parentDreType={cat.dre_type} onDone={() => setAddingSub(false)} /> :
 
         <button
           onClick={() => setAddingSub(true)}
