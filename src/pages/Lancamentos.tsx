@@ -275,7 +275,7 @@ function SubcategoryRow({ cat, onSubmit, parentCategories }: {cat: Category;onSu
 
 }
 
-function AddSubcategoryForm({ parentId, onDone }: {parentId: string;onDone: () => void;}) {
+function AddSubcategoryForm({ parentId, parentDreType, onDone }: {parentId: string; parentDreType?: string; onDone: () => void;}) {
   const [name, setName] = useState('');
   const [saving, setSaving] = useState(false);
   const { user } = useAuth();
@@ -287,7 +287,7 @@ function AddSubcategoryForm({ parentId, onDone }: {parentId: string;onDone: () =
     const { error } = await supabase.from('categories').insert({
       user_id: user.id,
       name: name.trim(),
-      dre_type: 'despesa',
+      dre_type: (parentDreType || 'despesa') as any,
       parent_id: parentId,
       sort_order: 99
     });
@@ -342,7 +342,7 @@ function CategoryGroup({ cat, onSubmit, parentCategories }: {cat: Category;onSub
         <SubcategoryRow key={sub.id} cat={sub} onSubmit={onSubmit} parentCategories={parentCategories} />
         )}
           {addingSub ?
-        <AddSubcategoryForm parentId={cat.id} onDone={() => setAddingSub(false)} /> :
+        <AddSubcategoryForm parentId={cat.id} parentDreType={cat.dre_type} onDone={() => setAddingSub(false)} /> :
 
         <button
           onClick={() => setAddingSub(true)}
