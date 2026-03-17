@@ -4,7 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Brain, AlertTriangle, Lightbulb, TrendingUp, RefreshCw, Sparkles, History, Calendar, Trash2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, Brain, AlertTriangle, Lightbulb, TrendingUp, RefreshCw, Sparkles, History, Calendar, Trash2, Radio, ArrowUp, ArrowDown, Minus, ShieldAlert, DollarSign, Fuel, ShoppingCart, Banknote } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -30,6 +31,21 @@ interface HistoryItem {
   period_end: string | null;
   result: AnalysisResult;
   created_at: string;
+}
+
+interface CenarioItem {
+  status: string;
+  valor?: string;
+  tendencia: string;
+  detalhe: string;
+}
+
+interface RadarResult {
+  cenario: Record<string, CenarioItem>;
+  impacto_pessoal: { categoria: string; impacto_estimado: string; explicacao: string }[];
+  tendencias: { titulo: string; descricao: string; impacto_usuario: string; severidade: string }[];
+  recomendacoes: { titulo: string; descricao: string; economia_potencial: string }[];
+  resumo: string;
 }
 
 const PERIOD_OPTIONS = [
@@ -61,10 +77,11 @@ export default function Inteligencia() {
   const [periodType, setPeriodType] = useState('12m');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
+  const [radarLoading, setRadarLoading] = useState(false);
+  const [radarResult, setRadarResult] = useState<RadarResult | null>(null);
 
   const months = monthOptions();
 
-  // Load last analysis on mount
   useEffect(() => {
     if (!user) return;
     loadLastAnalysis();
@@ -137,6 +154,24 @@ export default function Inteligencia() {
       toast.error('Erro ao gerar análise: ' + (err.message || 'Erro desconhecido'));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const runRadar = async () => {
+    setRadarLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('economic-radar', {});
+      if (error) throw error;
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+      setRadarResult(data);
+      toast.success('Radar Econômico atualizado!');
+    } catch (err: any) {
+      toast.error('Erro ao gerar radar: ' + (err.message || 'Erro desconhecido'));
+    } finally {
+      setRadarLoading(false);
     }
   };
 
@@ -237,6 +272,13 @@ export default function Inteligencia() {
 
       {result && !loading && <AnalysisDisplay result={result} trendIcon={trendIcon} />}
 
+      {/* Radar Econômico */}
+      <RadarEconomico
+        result={radarResult}
+        loading={radarLoading}
+        onGenerate={runRadar}
+      />
+
       {/* History Dialog */}
       <Dialog open={showHistory} onOpenChange={setShowHistory}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -248,10 +290,7 @@ export default function Inteligencia() {
               <p className="text-sm text-muted-foreground text-center py-8">Nenhuma análise anterior encontrada.</p>
             ) : (
               history.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center gap-2"
-                >
+                <div key={item.id} className="flex items-center gap-2">
                   <button
                     onClick={() => {
                       setResult(item.result);
@@ -290,6 +329,185 @@ export default function Inteligencia() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function TrendArrow({ tendencia }: { tendencia: string }) {
+  if (tendencia === 'subindo') return <ArrowUp className="h-3.5 w-3.5 text-destructive" />;
+  if (tendencia === 'caindo') return <ArrowDown className="h-3.5 w-3.5 text-primary" />;
+  return <Minus className="h-3.5 w-3.5 text-muted-foreground" />;
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const isNegative = ['alta', 'altos', 'alto', 'pressão alta'].includes(status.toLowerCase());
+  const isPositive = ['baixa', 'baixos', 'baixo', 'deflação'].includes(status.toLowerCase());
+  return (
+    <Badge variant={isNegative ? 'destructive' : isPositive ? 'default' : 'secondary'} className="text-xs">
+      {status}
+    </Badge>
+  );
+}
+
+const CENARIO_ICONS: Record<string, React.ReactNode> = {
+  inflacao: <TrendingUp className="h-4 w-4" />,
+  juros: <Banknote className="h-4 w-4" />,
+  combustivel: <Fuel className="h-4 w-4" />,
+  alimentos: <ShoppingCart className="h-4 w-4" />,
+  dolar: <DollarSign className="h-4 w-4" />,
+};
+
+const CENARIO_LABELS: Record<string, string> = {
+  inflacao: 'Inflação (IPCA)',
+  juros: 'Taxa Selic',
+  combustivel: 'Combustível',
+  alimentos: 'Alimentos',
+  dolar: 'Dólar',
+};
+
+function RadarEconomico({ result, loading, onGenerate }: { result: RadarResult | null; loading: boolean; onGenerate: () => void }) {
+  return (
+    <Card className="border-primary/20">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Radio className="h-5 w-5 text-primary" />
+            🛰️ Radar Econômico
+          </CardTitle>
+          <Button onClick={onGenerate} disabled={loading} size="sm" variant="outline" className="gap-1.5">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            {loading ? 'Analisando...' : result ? 'Atualizar' : 'Gerar Radar'}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">Economia global traduzida para o seu bolso</p>
+      </CardHeader>
+      <CardContent>
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Analisando cenário econômico...</p>
+          </div>
+        )}
+
+        {!result && !loading && (
+          <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
+            <Radio className="h-12 w-12 text-muted-foreground/30" />
+            <p className="text-sm text-muted-foreground max-w-sm">
+              Clique em "Gerar Radar" para receber uma análise do cenário econômico atual e como ele impacta suas finanças pessoais.
+            </p>
+          </div>
+        )}
+
+        {result && !loading && (
+          <div className="space-y-5">
+            {/* Resumo */}
+            <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
+              <p className="text-sm text-foreground leading-relaxed">{result.resumo}</p>
+            </div>
+
+            {/* Cenário Econômico */}
+            {result.cenario && Object.keys(result.cenario).length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold mb-3 flex items-center gap-1.5">
+                  📊 Cenário Econômico Atual
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {Object.entries(result.cenario).map(([key, item]) => (
+                    <div key={key} className="p-3 rounded-lg bg-muted/30 border border-border/30 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-sm font-medium">
+                          {CENARIO_ICONS[key] || <TrendingUp className="h-4 w-4" />}
+                          {CENARIO_LABELS[key] || key}
+                        </div>
+                        <TrendArrow tendencia={item.tendencia} />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <StatusBadge status={item.status} />
+                        {item.valor && <span className="text-xs text-muted-foreground">{item.valor}</span>}
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{item.detalhe}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Impacto Pessoal */}
+            {result.impacto_pessoal?.length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold mb-3 flex items-center gap-1.5">
+                  💰 Impacto no Seu Bolso
+                </h3>
+                <div className="space-y-2">
+                  {result.impacto_pessoal.map((item, i) => (
+                    <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-warning/5 border border-warning/10">
+                      <DollarSign className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-sm font-medium">{item.categoria}</span>
+                          <Badge variant="outline" className="text-xs">{item.impacto_estimado}</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{item.explicacao}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Tendências */}
+            {result.tendencias?.length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold mb-3 flex items-center gap-1.5">
+                  📈 Tendências que Afetam Você
+                </h3>
+                <div className="space-y-2">
+                  {result.tendencias.map((item, i) => (
+                    <div key={i} className="p-3 rounded-lg bg-muted/30 border border-border/30">
+                      <div className="flex items-center gap-2 mb-1">
+                        <ShieldAlert className={`h-4 w-4 shrink-0 ${item.severidade === 'alta' ? 'text-destructive' : item.severidade === 'média' ? 'text-warning' : 'text-muted-foreground'}`} />
+                        <span className="text-sm font-medium">{item.titulo}</span>
+                        <Badge variant={item.severidade === 'alta' ? 'destructive' : 'secondary'} className="text-xs ml-auto">
+                          {item.severidade}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-1">{item.descricao}</p>
+                      <p className="text-xs text-foreground font-medium">{item.impacto_usuario}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Recomendações */}
+            {result.recomendacoes?.length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold mb-3 flex items-center gap-1.5">
+                  🧠 Recomendações Estratégicas
+                </h3>
+                <div className="space-y-2">
+                  {result.recomendacoes.map((item, i) => (
+                    <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
+                      <Lightbulb className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-sm font-medium">{item.titulo}</span>
+                          {item.economia_potencial && (
+                            <Badge variant="outline" className="text-xs text-primary border-primary/30">
+                              {item.economia_potencial}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">{item.descricao}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
