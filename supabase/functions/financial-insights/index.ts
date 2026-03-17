@@ -249,15 +249,21 @@ serve(async (req) => {
 
 REGRAS DE ANÁLISE:
 
-1. FOCO PRINCIPAL: Analise as PROJEÇÕES FUTURAS do Planejador comparando com os padrões REAIS aprendidos.
-   - Se uma projeção futura está muito abaixo do gasto real médio, ALERTE que o planejamento está otimista demais.
-   - Se uma projeção futura está muito acima, sugira que pode ser oportunidade de economia.
-   - NÃO compare meses passados projetados vs realizados um a um — isso é irrelevante. Foque no FUTURO.
+1. ANÁLISE DO PASSADO E MÊS ATUAL (dados reais):
+   Para meses passados e o mês atual, NÃO compare com projeções do Planejador. Analise APENAS os dados reais:
+   - Analise o comportamento financeiro do usuário (hábitos, padrões de gasto)
+   - Identifique riscos financeiros (categorias crescendo, gastos acima da média)
+   - Identifique oportunidades de economia ou investimento
+   - Considere tendências econômicas externas (inflação, juros, sazonalidade)
+   - Traduza dados complexos em recomendações simples e acionáveis
+   - NÃO mencione projeções zeradas ou abaixo para meses passados — isso é irrelevante.
 
-2. ALERTAS PREDITIVOS: Identifique problemas ANTES que aconteçam:
-   - Meses futuros com resultado líquido negativo
-   - Categorias com tendência crescente que comprometem o orçamento
-   - Categorias com gasto real mas sem projeção (buracos no planejamento)
+2. ANÁLISE DO FUTURO (projeções do Planejador):
+   Para meses FUTUROS, compare as projeções com a MÉDIA REAL dos últimos meses:
+   - Se a média real de uma categoria é R$ X e o planejado futuro é muito diferente, ALERTE sobre o desvio
+   - Se uma categoria tem gasto real recorrente mas NÃO tem projeção futura, alerte como falha no planejamento
+   - Se meses futuros projetados têm resultado líquido negativo, destaque o risco
+   - Sugira ajustes nas projeções futuras para refletir a realidade dos gastos
 
 3. APRENDIZADO DE PADRÕES:
    - Identifique sazonalidades (ex: gastos maiores em dezembro, IPVA em janeiro)
@@ -267,14 +273,14 @@ REGRAS DE ANÁLISE:
 4. SUGESTÕES ACIONÁVEIS E PERSONALIZADAS:
    - Baseie sugestões nos dados REAIS do usuário, não em conselhos genéricos
    - Se o usuário gasta X em uma categoria, sugira redução para Y com base no padrão
-   - Dê sugestões de ajuste do Planejador quando as projeções não refletem a realidade
+   - Quando projeções futuras não refletem a realidade, sugira corrigir no Planejador
 
-5. NÃO faça comparações retroativas detalhadas entre projetado e realizado de meses que já passaram.
+5. IMPORTANTE: NUNCA compare meses passados ou atual com suas projeções. A comparação com projetado é EXCLUSIVAMENTE para meses futuros.
 
 Responda APENAS com JSON válido, sem markdown:
 {
-  "insights": ["3-5 análises profundas sobre padrões, tendências e comportamento financeiro"],
-  "alerts": ["1-5 alertas preditivos focando em riscos futuros e desvios no planejamento"],
+  "insights": ["3-5 análises profundas sobre padrões, tendências e comportamento financeiro do usuário baseadas nos dados REAIS"],
+  "alerts": ["1-5 alertas: riscos identificados nos dados reais + desvios entre projeções futuras e média real"],
   "suggestions": ["3-5 sugestões personalizadas e acionáveis baseadas nos padrões do usuário"],
   "forecast": {
     "summary": "previsão contextualizada para os próximos meses",
