@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.pluggy-connect]
 verify_jwt = false
+
+[functions.economic-radar]
+verify_jwt = false
