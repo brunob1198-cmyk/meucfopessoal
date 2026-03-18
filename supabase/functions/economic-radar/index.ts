@@ -29,7 +29,7 @@ async function fetchYahoo(symbol: string) {
     const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbol}`;
     const res = await fetch(url);
     const data = await res.json();
-    return data.quoteResponse.result[0]?.regularMarketPrice || null;
+    return data?.quoteResponse?.result?.[0]?.regularMarketPrice || null;
   } catch {
     return null;
   }
@@ -37,10 +37,8 @@ async function fetchYahoo(symbol: string) {
 
 function isCurrentMonth(dateStr: string | null) {
   if (!dateStr) return false;
-
-  const [day, month, year] = dateStr.split("/");
+  const [_, month, year] = dateStr.split("/");
   const now = new Date();
-
   return Number(month) === now.getMonth() + 1 && Number(year) === now.getFullYear();
 }
 
@@ -69,7 +67,7 @@ serve(async (req) => {
     let economicData;
 
     // --------------------
-    // 🔎 CACHE INTELIGENTE
+    // CACHE
     // --------------------
     const { data: cached } = await supabase
       .from("economic_snapshots")
@@ -79,26 +77,9 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    let usarCache = false;
-
     if (cached) {
-      const dataCache = new Date(cached.created_at);
-      const horas = (now.getTime() - dataCache.getTime()) / (1000 * 60 * 60);
-
-      // Só usa cache se:
-      // - menor que 24h
-      // - E IPCA já é do mês atual
-      if (horas < 24 && cached.data?.ipca_atualizado) {
-        usarCache = true;
-      }
-    }
-
-    if (usarCache) {
       economicData = cached.data;
     } else {
-      // --------------------
-      // 🔥 FETCH REAL
-      // --------------------
       const [ipcaRaw, selicRaw, dolarRaw, igpmRaw, focusRaw, oil, gold, sp500, dxy] = await Promise.all([
         fetchBCB(433),
         fetchBCB(1178),
@@ -224,64 +205,17 @@ ${categoryContext}
         messages: [
           {
             role: "system",
-            content: `Você é um analista macroeconômico especializado em impacto financeiro pessoal no Brasil.
-
-OBJETIVO:
-Gerar um Radar Econômico personalizado, baseado EXCLUSIVAMENTE nos dados econômicos fornecidos no contexto e no comportamento financeiro do usuário.
-
-CONTEXTO DOS DADOS:
-Os dados econômicos fornecidos são atualizados automaticamente a cada 24 horas (cache inteligente).
-Considere esses dados como os mais recentes disponíveis, mesmo que não sejam em tempo real minuto a minuto.
-
-REGRAS CRÍTICAS:
-- Use SOMENTE os dados fornecidos no contexto
-- NÃO use conhecimento antigo ou genérico do seu treinamento
-- NÃO invente números ou cenários
-- Se algum dado estiver ausente, assuma como "não disponível"
-- Sempre priorize os dados recebidos no prompt
-
-ANÁLISE OBRIGATÓRIA:
-Você deve interpretar e gerar insights sobre:
-
-1. Inflação (IPCA e expectativa Focus)
-2. Juros (Selic)
-3. Combustível (com base no petróleo + tendência)
-4. Câmbio (dólar)
-5. Pressão em alimentos (inferir com base em inflação)
-6. Tendência macroeconômica geral
-
-INTERPRETAÇÃO INTELIGENTE:
-- Compare com histórico recente (se fornecido)
-- Identifique tendência: subindo, caindo ou estável
-- Traduza tudo para impacto PRÁTICO no bolso do usuário
-
-FOCO PRINCIPAL:
-Transformar dados econômicos em:
-- impacto financeiro direto
-- antecipação de problemas
-- oportunidades de economia
-
-
-
-DIRETRIZES DE QUALIDADE:
-- Seja específico e numérico sempre que possível
-- Conecte economia → comportamento → impacto financeiro
-- Evite linguagem genérica
-- Pense como um app tipo Nubank ou XP
-- Gere valor prático, não apenas informação`,
+            content: `Gere recomendações financeiras práticas e resumo claro baseado nos dados.`,
           },
           {
             role: "user",
             content: `
 ${userContext}
 
-IPCA: ${economicData.ipca} (${economicData.ipca_date})
+IPCA: ${economicData.ipca}
 Selic: ${economicData.selic}
 Dólar: ${economicData.dolar}
-IGPM: ${economicData.igpm}
-Expectativa inflação: ${economicData.focusInflation}
 Petróleo: ${economicData.oil}
-Tendência combustível: ${economicData.fuelTrend}
 
 Histórico:
 ${historyContext}
@@ -291,14 +225,39 @@ ${historyContext}
       }),
     });
 
-    const aiData = await aiResponse.json();
-    const content = aiData.choices?.[0]?.message?.content || "{}";
+    if (!aiResponse.ok) {
+      const err = await aiResponse.text();
+      console.error("AI ERROR:", err);
+      throw new Error("Erro na IA");
+    }
+
+    let content = (await aiResponse.json()).choices?.[0]?.message?.content || "{}";
+
+    content = content.replace(/```json|```/g, "").trim();
 
     let parsed;
     try {
       parsed = JSON.parse(content);
     } catch {
-      parsed = { erro: "IA inválida" };
+      parsed = {
+        recomendacoes: [],
+        resumo: "Erro ao interpretar resposta da IA",
+      };
+    }
+
+    // fallback
+    if (!parsed.recomendacoes) {
+      parsed.recomendacoes = [
+        {
+          titulo: "Revisar gastos",
+          descricao: "Analise suas despesas para encontrar oportunidades",
+          economia_potencial: "N/A",
+        },
+      ];
+    }
+
+    if (!parsed.resumo) {
+      parsed.resumo = "Resumo não disponível.";
     }
 
     // --------------------
