@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Building2, CreditCard, RefreshCw, Trash2, Plus, Wifi, WifiOff,
-  Clock, Landmark, ArrowDownUp, Loader2, ShieldCheck
+  Clock, Landmark, ArrowDownUp, Loader2, ShieldCheck, AlertCircle, CheckCircle2, Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,6 +22,8 @@ export default function ContasConectadas() {
   const queryClient = useQueryClient();
   const [connecting, setConnecting] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<string | null>(null);
+  const [syncingAccounts, setSyncingAccounts] = useState<Set<string>>(new Set());
+  const autoSyncDone = useRef(false);
 
   const { data: accounts, isLoading } = useQuery({
     queryKey: ['connected-accounts', user?.id],
@@ -49,6 +51,89 @@ export default function ContasConectadas() {
     enabled: !!user,
   });
 
+  // Auto-sync on page open
+  useEffect(() => {
+    if (accounts?.length && !autoSyncDone.current) {
+      autoSyncDone.current = true;
+      const activeAccounts = accounts.filter(a => a.status === 'active' || a.status === 'error');
+      if (activeAccounts.length > 0) {
+        toast.info('Sincronizando contas automaticamente...');
+        // Sync sequentially with small delay to avoid rate limits
+        (async () => {
+          for (const acc of activeAccounts) {
+            try {
+              await syncAccount(acc);
+            } catch {
+              // Individual errors handled inside
+            }
+            await new Promise(r => setTimeout(r, 1000));
+          }
+          queryClient.invalidateQueries({ queryKey: ['connected-accounts'] });
+          queryClient.invalidateQueries({ queryKey: ['pending-transactions-count'] });
+        })();
+      }
+    }
+  }, [accounts]);
+
+  const syncAccount = async (account: any) => {
+    setSyncingAccounts(prev => new Set(prev).add(account.id));
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        'pluggy-connect',
+        {
+          body: {
+            action: 'sync-transactions',
+            itemId: account.pluggy_item_id,
+            accountId: account.pluggy_item_id,
+            connectedAccountId: account.id,
+          },
+        }
+      );
+      if (error) throw error;
+      toast.success(
+        `${account.connector_name}: ${data?.imported || 0} transações sincronizadas (${data?.itemStatus || 'ok'})`
+      );
+      queryClient.invalidateQueries({ queryKey: ['connected-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-transactions-count'] });
+      return data;
+    } catch (err: any) {
+      toast.error(`Erro ao sincronizar ${account.connector_name}: ${err.message}`);
+      throw err;
+    } finally {
+      setSyncingAccounts(prev => {
+        const next = new Set(prev);
+        next.delete(account.id);
+        return next;
+      });
+    }
+  };
+
+  const syncAllMutation = useMutation({
+    mutationFn: async () => {
+      if (!accounts?.length) return;
+      for (const acc of accounts.filter(a => a.status !== 'syncing')) {
+        try {
+          await syncAccount(acc);
+        } catch {
+          // Continue with next
+        }
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    },
+  });
+
+  const registerWebhookMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('pluggy-connect', {
+        body: { action: 'register-webhook' },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => toast.success('Webhook registrado com sucesso!'),
+    onError: (err: Error) => toast.error('Erro ao registrar webhook: ' + err.message),
+  });
+
   const loadPluggyScript = (): Promise<void> => {
     return new Promise((resolve, reject) => {
       if ((window as any).PluggyConnect) {
@@ -69,7 +154,6 @@ export default function ContasConectadas() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Não autenticado');
 
-      // Get connect token from edge function
       const { data, error } = await supabase.functions.invoke('pluggy-connect', {
         body: { action: 'connect-token' },
       });
@@ -79,7 +163,6 @@ export default function ContasConectadas() {
       const connectToken = data?.accessToken;
       if (!connectToken) throw new Error('Falha ao obter token de conexão');
 
-      // Load Pluggy SDK and open widget
       await loadPluggyScript();
 
       const PluggyConnect = (window as any).PluggyConnect;
@@ -93,14 +176,12 @@ export default function ContasConectadas() {
             const itemId = itemData?.item?.id;
             if (!itemId) throw new Error('Item ID não retornado');
 
-            // Fetch item details from our edge function
             const { data: fetchData, error: fetchError } = await supabase.functions.invoke(
               'pluggy-connect',
               { body: { action: 'fetch-item', itemId } }
             );
             if (fetchError) throw fetchError;
 
-            // Save connected accounts
             for (const acc of fetchData.accounts || []) {
               await supabase.from('connected_accounts').insert({
                 user_id: user!.id,
@@ -117,6 +198,9 @@ export default function ContasConectadas() {
 
             queryClient.invalidateQueries({ queryKey: ['connected-accounts'] });
             toast.success('Conta conectada com sucesso!');
+
+            // Auto-register webhook after first connection
+            registerWebhookMutation.mutate();
           } catch (err: any) {
             toast.error('Erro ao salvar conta: ' + (err.message || 'Tente novamente'));
           } finally {
@@ -140,30 +224,6 @@ export default function ContasConectadas() {
     }
   };
 
-  const syncMutation = useMutation({
-    mutationFn: async (account: any) => {
-      const { data, error } = await supabase.functions.invoke(
-        'pluggy-connect',
-        {
-          body: {
-            action: 'sync-transactions',
-            itemId: account.pluggy_item_id,
-            accountId: account.pluggy_item_id,
-            connectedAccountId: account.id,
-          },
-        }
-      );
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['connected-accounts'] });
-      queryClient.invalidateQueries({ queryKey: ['pending-transactions-count'] });
-      toast.success(`${data?.imported || 0} transações importadas!`);
-    },
-    onError: (err: Error) => toast.error('Erro na sincronização: ' + err.message),
-  });
-
   const deleteMutation = useMutation({
     mutationFn: async (accountId: string) => {
       const account = accounts?.find((a) => a.id === accountId);
@@ -186,6 +246,42 @@ export default function ContasConectadas() {
   const fmt = (v: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 
+  const getStatusBadge = (status: string, isSyncing: boolean) => {
+    if (isSyncing) {
+      return (
+        <Badge variant="outline" className="text-[10px] border-yellow-500 text-yellow-600">
+          <Loader2 className="h-3 w-3 mr-1 animate-spin" /> Sincronizando
+        </Badge>
+      );
+    }
+    switch (status) {
+      case 'active':
+        return (
+          <Badge variant="default" className="text-[10px]">
+            <Wifi className="h-3 w-3 mr-1" /> Ativa
+          </Badge>
+        );
+      case 'error':
+        return (
+          <Badge variant="destructive" className="text-[10px]">
+            <AlertCircle className="h-3 w-3 mr-1" /> Erro
+          </Badge>
+        );
+      case 'syncing':
+        return (
+          <Badge variant="outline" className="text-[10px] border-yellow-500 text-yellow-600">
+            <Loader2 className="h-3 w-3 mr-1 animate-spin" /> Sincronizando
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="secondary" className="text-[10px]">
+            <WifiOff className="h-3 w-3 mr-1" /> Inativa
+          </Badge>
+        );
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -199,13 +295,24 @@ export default function ContasConectadas() {
             Conecte suas contas bancárias via Open Finance para importar transações automaticamente.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {(pendingCount ?? 0) > 0 && (
             <Button variant="outline" asChild>
               <a href="/revisar-transacoes" className="flex items-center gap-2">
                 <ArrowDownUp className="h-4 w-4" />
                 Revisar ({pendingCount})
               </a>
+            </Button>
+          )}
+          {accounts && accounts.length > 0 && (
+            <Button
+              variant="outline"
+              onClick={() => syncAllMutation.mutate()}
+              disabled={syncAllMutation.isPending || syncingAccounts.size > 0}
+              className="gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${syncAllMutation.isPending ? 'animate-spin' : ''}`} />
+              Sincronizar todas
             </Button>
           )}
           <Button onClick={connectBank} disabled={connecting} className="gap-2">
@@ -223,10 +330,39 @@ export default function ContasConectadas() {
             <p className="font-medium text-foreground">Conexão segura via Open Finance</p>
             <p className="text-muted-foreground mt-0.5">
               Suas credenciais bancárias nunca são armazenadas. O acesso é feito exclusivamente via API regulamentada do Banco Central.
+              Sincronização automática ativada: ao abrir esta página suas contas são atualizadas.
             </p>
           </div>
         </CardContent>
       </Card>
+
+      {/* Webhook registration card */}
+      {accounts && accounts.length > 0 && (
+        <Card className="border-accent/30">
+          <CardContent className="flex items-center justify-between py-3">
+            <div className="flex items-center gap-2 text-sm">
+              <Zap className="h-4 w-4 text-accent-foreground" />
+              <span className="text-muted-foreground">
+                Ative o webhook para receber atualizações em tempo real do banco.
+              </span>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => registerWebhookMutation.mutate()}
+              disabled={registerWebhookMutation.isPending}
+              className="gap-1"
+            >
+              {registerWebhookMutation.isPending ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-3 w-3" />
+              )}
+              Ativar Webhook
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Accounts grid */}
       {isLoading ? (
@@ -252,85 +388,79 @@ export default function ContasConectadas() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <AnimatePresence>
-            {accounts.map((acc, i) => (
-              <motion.div
-                key={acc.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ delay: i * 0.05 }}
-              >
-                <Card className="hover:border-primary/30 transition-colors">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {acc.connector_logo ? (
-                          <img
-                            src={acc.connector_logo}
-                            alt={acc.connector_name}
-                            className="h-10 w-10 rounded-lg object-contain bg-white p-1"
-                          />
-                        ) : (
-                          <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                            {acc.account_type === 'credit_card' ? (
-                              <CreditCard className="h-5 w-5 text-muted-foreground" />
-                            ) : (
-                              <Building2 className="h-5 w-5 text-muted-foreground" />
-                            )}
+            {accounts.map((acc, i) => {
+              const isSyncing = syncingAccounts.has(acc.id) || acc.status === 'syncing';
+              return (
+                <motion.div
+                  key={acc.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ delay: i * 0.05 }}
+                >
+                  <Card className="hover:border-primary/30 transition-colors">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          {acc.connector_logo ? (
+                            <img
+                              src={acc.connector_logo}
+                              alt={acc.connector_name}
+                              className="h-10 w-10 rounded-lg object-contain bg-white p-1"
+                            />
+                          ) : (
+                            <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                              {acc.account_type === 'credit_card' ? (
+                                <CreditCard className="h-5 w-5 text-muted-foreground" />
+                              ) : (
+                                <Building2 className="h-5 w-5 text-muted-foreground" />
+                              )}
+                            </div>
+                          )}
+                          <div>
+                            <CardTitle className="text-sm">{acc.connector_name}</CardTitle>
+                            <p className="text-xs text-muted-foreground">{acc.account_name}</p>
                           </div>
-                        )}
-                        <div>
-                          <CardTitle className="text-sm">{acc.connector_name}</CardTitle>
-                          <p className="text-xs text-muted-foreground">{acc.account_name}</p>
                         </div>
+                        {getStatusBadge(acc.status, isSyncing)}
                       </div>
-                      <Badge
-                        variant={acc.status === 'active' ? 'default' : 'secondary'}
-                        className="text-[10px]"
-                      >
-                        {acc.status === 'active' ? (
-                          <><Wifi className="h-3 w-3 mr-1" /> Ativa</>
-                        ) : (
-                          <><WifiOff className="h-3 w-3 mr-1" /> Inativa</>
-                        )}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Saldo atual</p>
-                      <p className="text-xl font-bold text-foreground">{fmt(acc.balance || 0)}</p>
-                    </div>
-                    {acc.last_sync_at && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        Última sync: {format(new Date(acc.last_sync_at), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Saldo atual</p>
+                        <p className="text-xl font-bold text-foreground">{fmt(acc.balance || 0)}</p>
                       </div>
-                    )}
-                    <div className="flex gap-2 pt-2 border-t border-border/50">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 gap-1"
-                        onClick={() => syncMutation.mutate(acc)}
-                        disabled={syncMutation.isPending}
-                      >
-                        <RefreshCw className={`h-3 w-3 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
-                        Sincronizar
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => setDeleteDialog(acc.id)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+                      {acc.last_sync_at && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          Última sync: {format(new Date(acc.last_sync_at), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
+                        </div>
+                      )}
+                      <div className="flex gap-2 pt-2 border-t border-border/50">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 gap-1"
+                          onClick={() => syncAccount(acc)}
+                          disabled={isSyncing}
+                        >
+                          <RefreshCw className={`h-3 w-3 ${isSyncing ? 'animate-spin' : ''}`} />
+                          {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => setDeleteDialog(acc.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
         </div>
       )}
