@@ -3,8 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 // --------------------
@@ -33,7 +32,7 @@ async function fetchYahoo(symbol: string) {
 }
 
 // --------------------
-// MAIN FUNCTION
+// MAIN
 // --------------------
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -42,14 +41,68 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("Missing authorization");
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
+
+    // --------------------
+    // 🧠 CACHE 24H
+    // --------------------
+    const now = new Date();
+    const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    let economicData;
+
+    const { data: cached } = await supabase
+      .from("economic_snapshots")
+      .select("*")
+      .gte("created_at", last24h.toISOString())
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (cached) {
+      economicData = cached.data;
+    } else {
+      const [ipca, selic, dolar, igpm, focusInflation, oil, gold, sp500, dxy] = await Promise.all([
+        fetchBCB(433),
+        fetchBCB(1178),
+        fetchBCB(1),
+        fetchBCB(189),
+        fetchBCB(13522),
+        fetchYahoo("CL=F"),
+        fetchYahoo("GC=F"),
+        fetchYahoo("^GSPC"),
+        fetchYahoo("DX-Y.NYB"),
+      ]);
+
+      const fuelTrend = oil ? (oil > 80 ? "alta" : oil < 70 ? "queda" : "estável") : "indefinido";
+
+      economicData = {
+        ipca,
+        selic,
+        dolar,
+        igpm,
+        focusInflation,
+        oil,
+        gold,
+        sp500,
+        dxy,
+        fuelTrend,
+        updated_at: now.toISOString(),
+      };
+
+      await supabase.from("economic_snapshots").insert({
+        user_id: user.id,
+        data: economicData,
+        created_at: now.toISOString(),
+      });
+    }
 
     // --------------------
     // USER DATA
@@ -65,119 +118,34 @@ serve(async (req) => {
       .select("*, categories(name, dre_type)")
       .gte("date", sixMonthsAgo);
 
-    const categorySpending: any = {};
     let totalExpenses = 0;
     let totalIncome = 0;
-    const months = new Set<string>();
+    const monthsSet = new Set<string>();
 
     for (const tx of transactions || []) {
       const m = tx.date.substring(0, 7);
-      months.add(m);
+      monthsSet.add(m);
 
       const type = tx.categories?.dre_type;
 
       if (type === "receita") totalIncome += Number(tx.amount);
-      if (type === "despesa") {
-        totalExpenses += Number(tx.amount);
-        const name = tx.categories?.name || "Outros";
-        if (!categorySpending[name]) categorySpending[name] = 0;
-        categorySpending[name] += Number(tx.amount);
-      }
+      if (type === "despesa") totalExpenses += Number(tx.amount);
     }
 
-    const monthCount = months.size || 1;
-// Build spending summary by category
-    const categorySpending: Record<string, { name: string; total: number; count: number }> = {};
-    let totalExpenses = 0;
-    let totalIncome = 0;
-    const monthCount = new Set<string>();
+    const monthCount = monthsSet.size || 1;
 
-    for (const tx of transactions) {
-      const m = tx.date.substring(0, 7);
-      monthCount.add(m);
-      const catName = tx.categories?.name || "Sem categoria";
-      const catType = tx.categories?.dre_type || "despesa";
-
-      if (catType === "receita" || catType === "outras_receitas") {
-        totalIncome += Number(tx.amount);
-      } else if (catType === "despesa" || catType === "custo") {
-        totalExpenses += Number(tx.amount);
-        if (!categorySpending[catName]) categorySpending[catName] = { name: catName, total: 0, count: 0 };
-        categorySpending[catName].total += Number(tx.amount);
-        categorySpending[catName].count++;
-      }
-    }
-
-    const months = monthCount.size || 1;
-    const avgMonthlyExpenses = totalExpenses / months;
-    const avgMonthlyIncome = totalIncome / months;
-
-    // Top spending categories
-    const topCategories = Object.values(categorySpending)
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 10)
-      .map(c => `${c.name}: R$ ${(c.total / months).toFixed(0)}/mês`);
+    const avgMonthlyExpenses = totalExpenses / monthCount;
+    const avgMonthlyIncome = totalIncome / monthCount;
 
     const userContext = `
-- Renda média: R$ ${(totalIncome / monthCount).toFixed(0)}
-- Despesa média: R$ ${(totalExpenses / monthCount).toFixed(0)}
-- Margem mensal: R$ ${(avgMonthlyIncome - avgMonthlyExpenses).toFixed(0)}
+Renda média: R$ ${avgMonthlyIncome.toFixed(0)}
+Despesa média: R$ ${avgMonthlyExpenses.toFixed(0)}
+Margem: R$ ${(avgMonthlyIncome - avgMonthlyExpenses).toFixed(0)}
 `;
 
     // --------------------
-    // 🔥 ECONOMIC DATA
+    // HISTÓRICO
     // --------------------
-    const [
-      ipca,
-      selic,
-      dolar,
-      igpm,
-      focusInflation,
-      oil,
-      gold,
-      sp500,
-      dxy
-    ] = await Promise.all([
-      fetchBCB(433),
-      fetchBCB(1178),
-      fetchBCB(1),
-      fetchBCB(189),
-      fetchBCB(13522), // expectativa inflação
-      fetchYahoo("CL=F"),
-      fetchYahoo("GC=F"),
-      fetchYahoo("^GSPC"),
-      fetchYahoo("DX-Y.NYB"),
-    ]);
-
-    // 🔥 Proxy combustível
-    const fuelTrend = oil
-      ? oil > 80 ? "alta" : oil < 70 ? "queda" : "estável"
-      : "indefinido";
-
-    const economicData = {
-      ipca,
-      selic,
-      dolar,
-      igpm,
-      focusInflation,
-      oil,
-      gold,
-      sp500,
-      dxy,
-      fuelTrend,
-      updated_at: new Date().toISOString(),
-    };
-
-    // --------------------
-    // 💾 INTELIGÊNCIA CONTÍNUA
-    // --------------------
-    await supabase.from("economic_snapshots").insert({
-      user_id: user.id,
-      data: economicData,
-      created_at: new Date().toISOString(),
-    });
-
-    // pegar histórico recente
     const { data: history } = await supabase
       .from("economic_snapshots")
       .select("data, created_at")
@@ -202,71 +170,33 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `
-Você é um analista macroeconômico especializado em traduzir cenários econômicos para impacto no bolso de pessoas físicas no Brasil.
+            content: `Você é um analista macroeconômico especializado em impacto financeiro pessoal no Brasil.
 
-Sua tarefa é gerar um Radar Econômico personalizado para o usuário, com base no cenário econômico ATUAL do Brasil e nos dados financeiros do usuário.
-
-Use seu conhecimento atualizado sobre a economia brasileira para analisar:
-- Taxa Selic atual e tendência
-- Inflação (IPCA) atual e projeções
-- Preço dos combustíveis (gasolina, etanol)
-- Índice de preços de alimentos
-- Câmbio (dólar)
-- Mercado de trabalho
-
-IMPORTANTE: Baseie-se em dados econômicos reais e atuais do Brasil. Considere dados do Banco Central, IBGE, FGV e outras fontes oficiais.
-
-Responda APENAS com JSON válido, sem markdown:
-{
-  "cenario": {
-    "inflacao": { "status": "alta|estável|baixa", "valor": "X.X%", "tendencia": "subindo|estável|caindo", "detalhe": "breve explicação" },
-    "juros": { "status": "altos|estáveis|baixos", "valor": "X.X%", "tendencia": "subindo|estável|caindo", "detalhe": "breve explicação" },
-    "combustivel": { "status": "alto|estável|baixo", "tendencia": "subindo|estável|caindo", "detalhe": "breve explicação" },
-    "alimentos": { "status": "pressão alta|estável|deflação", "tendencia": "subindo|estável|caindo", "detalhe": "breve explicação" },
-    "dolar": { "status": "alto|estável|baixo", "valor": "R$ X.XX", "tendencia": "subindo|estável|caindo", "detalhe": "breve explicação" }
-  },
-  "impacto_pessoal": [
-    { "categoria": "nome da categoria afetada", "impacto_estimado": "+R$ XX/mês ou -R$ XX/mês ou estável", "explicacao": "por que e como isso afeta o usuário" }
-  ],
-  "tendencias": [
-    { "titulo": "título da tendência", "descricao": "explicação da tendência", "impacto_usuario": "como afeta especificamente este usuário com base nos gastos dele", "severidade": "alta|média|baixa" }
-  ],
-  "recomendacoes": [
-    { "titulo": "título curto", "descricao": "recomendação detalhada e acionável", "economia_potencial": "R$ XX/mês estimado" }
-  ],
-  "resumo": "Resumo executivo em 2-3 frases do cenário econômico e impacto no usuário"
-}
-
-Seja específico, use os valores reais dos gastos do usuário para calcular impactos. Tom profissional e acessível.`,	
+OBJETIVO:
+Gerar um Radar Econômico personalizado, baseado EXCLUSIVAMENTE nos dados econômicos fornecidos.
 
 REGRAS:
-DADOS PRIORITÁRIOS
-Você DEVE usar obrigatoriamente os dados econômicos fornecidos no contexto da mensagem do usuário.
+- Use SOMENTE os dados fornecidos
+- NÃO use conhecimento antigo
+- NÃO invente dados
 
-NUNCA use conhecimento antigo ou genérico.
-Se houver conflito, priorize os dados fornecidos.
-
-Considere que esses dados são os mais atualizados disponíveis no momento.
-
-Responda em JSON válido.
-            `,
+Responda em JSON válido.`,
           },
           {
             role: "user",
             content: `
 ${userContext}
 
-DADOS ECONÔMICOS:
-IPCA: ${ipca}%
-Selic: ${selic}%
-Dólar: ${dolar}
-IGPM: ${igpm}
-Expectativa inflação: ${focusInflation}%
-Petróleo: ${oil}
-Combustível tendência: ${fuelTrend}
+DADOS ECONÔMICOS (últimas 24h):
+IPCA: ${economicData.ipca}%
+Selic: ${economicData.selic}%
+Dólar: ${economicData.dolar}
+IGPM: ${economicData.igpm}
+Expectativa inflação: ${economicData.focusInflation}%
+Petróleo: ${economicData.oil}
+Combustível tendência: ${economicData.fuelTrend}
 
-Histórico recente:
+Histórico:
 ${historyContext}
             `,
           },
@@ -274,29 +204,36 @@ ${historyContext}
       }),
     });
 
+    if (!aiResponse.ok) {
+      const errText = await aiResponse.text();
+      console.error("AI ERROR:", errText);
+      throw new Error("Erro na IA");
+    }
+
     const aiData = await aiResponse.json();
-const content = aiData.choices?.[0]?.message?.content || "{}";
+    const content = aiData.choices?.[0]?.message?.content || "{}";
 
-let parsed;
+    let parsed;
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      parsed = { erro: "Falha ao interpretar resposta da IA" };
+    }
 
-try {
-  parsed = JSON.parse(content);
-} catch {
-  parsed = { erro: "Falha ao interpretar resposta da IA" };
-}
+    // --------------------
+    // 💾 SAVE RADAR
+    // --------------------
+    await supabase.from("economic_radar_reports").insert({
+      user_id: user.id,
+      report: parsed,
+      created_at: new Date().toISOString(),
+    });
 
-// 💾 SALVAR RADAR NO BANCO
-await supabase.from("economic_radar_reports").insert({
-  user_id: user.id,
-  report: parsed,
-  created_at: new Date().toISOString(),
-});
-
-return new Response(JSON.stringify(parsed), {
-  headers: { ...corsHeaders, "Content-Type": "application/json" },
-});
-
+    return new Response(JSON.stringify(parsed), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (err) {
+    console.error("ERROR:", err);
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
       headers: corsHeaders,
