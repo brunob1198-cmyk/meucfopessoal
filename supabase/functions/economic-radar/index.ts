@@ -139,8 +139,10 @@ serve(async (req) => {
       });
     }
 
+    console.log("ECONOMIC DATA:", economicData);
+
     // --------------------
-    // USER DATA
+    // USER + CATEGORIES
     // --------------------
     const sixMonthsAgo = (() => {
       const d = new Date();
@@ -156,15 +158,25 @@ serve(async (req) => {
     let totalExpenses = 0;
     let totalIncome = 0;
     const monthsSet = new Set<string>();
+    const categoryTotals: Record<string, number> = {};
 
     for (const tx of transactions || []) {
+      if (!tx.date) continue;
+
       const m = tx.date.substring(0, 7);
       monthsSet.add(m);
 
       const type = tx.categories?.dre_type;
+      const cat = tx.categories?.name || "Outros";
 
-      if (type === "receita") totalIncome += Number(tx.amount);
-      if (type === "despesa") totalExpenses += Number(tx.amount);
+      if (type === "receita") {
+        totalIncome += Number(tx.amount);
+      }
+
+      if (type === "despesa") {
+        totalExpenses += Number(tx.amount);
+        categoryTotals[cat] = (categoryTotals[cat] || 0) + Number(tx.amount);
+      }
     }
 
     const monthCount = monthsSet.size || 1;
@@ -172,10 +184,17 @@ serve(async (req) => {
     const avgMonthlyExpenses = totalExpenses / monthCount;
     const avgMonthlyIncome = totalIncome / monthCount;
 
+    const categoryContext = Object.entries(categoryTotals)
+      .map(([cat, val]) => `${cat}: R$ ${(val / monthCount).toFixed(0)}/mês`)
+      .join("\n");
+
     const userContext = `
 Renda média: R$ ${avgMonthlyIncome.toFixed(0)}
 Despesa média: R$ ${avgMonthlyExpenses.toFixed(0)}
 Margem: R$ ${(avgMonthlyIncome - avgMonthlyExpenses).toFixed(0)}
+
+Categorias:
+${categoryContext}
 `;
 
     // --------------------
