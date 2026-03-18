@@ -4,9 +4,37 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "authorization, x-client-info, apikey, content-type",
 };
 
+// --------------------
+// FETCH HELPERS
+// --------------------
+async function fetchBCB(code: number) {
+  try {
+    const url = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.${code}/dados/ultimos/1?formato=json`;
+    const res = await fetch(url);
+    const data = await res.json();
+    return Number(data[0]?.valor) || null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchYahoo(symbol: string) {
+  try {
+    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbol}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    return data.quoteResponse.result[0]?.regularMarketPrice || null;
+  } catch {
+    return null;
+  }
+}
+
+// --------------------
+// MAIN FUNCTION
+// --------------------
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -14,30 +42,51 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("Missing authorization");
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) throw new Error("Unauthorized");
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
 
-    // Fetch user's real spending data (last 6 months)
+    // --------------------
+    // USER DATA
+    // --------------------
     const sixMonthsAgo = (() => {
       const d = new Date();
       d.setMonth(d.getMonth() - 6);
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
     })();
 
-    const [txRes, catRes] = await Promise.all([
-      supabase.from("transactions").select("*, categories(name, dre_type)").gte("date", sixMonthsAgo).order("date"),
-      supabase.from("categories").select("*").order("sort_order"),
-    ]);
+    const { data: transactions } = await supabase
+      .from("transactions")
+      .select("*, categories(name, dre_type)")
+      .gte("date", sixMonthsAgo);
 
-    const transactions = txRes.data || [];
+    const categorySpending: any = {};
+    let totalExpenses = 0;
+    let totalIncome = 0;
+    const months = new Set<string>();
 
-    // Build spending summary by category
+    for (const tx of transactions || []) {
+      const m = tx.date.substring(0, 7);
+      months.add(m);
+
+      const type = tx.categories?.dre_type;
+
+      if (type === "receita") totalIncome += Number(tx.amount);
+      if (type === "despesa") {
+        totalExpenses += Number(tx.amount);
+        const name = tx.categories?.name || "Outros";
+        if (!categorySpending[name]) categorySpending[name] = 0;
+        categorySpending[name] += Number(tx.amount);
+      }
+    }
+
+    const monthCount = months.size || 1;
+// Build spending summary by category
     const categorySpending: Record<string, { name: string; total: number; count: number }> = {};
     let totalExpenses = 0;
     let totalIncome = 0;
@@ -70,22 +119,82 @@ serve(async (req) => {
       .map(c => `${c.name}: R$ ${(c.total / months).toFixed(0)}/mês`);
 
     const userContext = `
-DADOS FINANCEIROS DO USUÁRIO (últimos ${months} meses):
-- Renda média mensal: R$ ${avgMonthlyIncome.toFixed(0)}
-- Despesa média mensal: R$ ${avgMonthlyExpenses.toFixed(0)}
+- Renda média: R$ ${(totalIncome / monthCount).toFixed(0)}
+- Despesa média: R$ ${(totalExpenses / monthCount).toFixed(0)}
 - Margem mensal: R$ ${(avgMonthlyIncome - avgMonthlyExpenses).toFixed(0)}
-
-Maiores gastos mensais médios:
-${topCategories.map(c => `- ${c}`).join("\n")}
 `;
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    // --------------------
+    // 🔥 ECONOMIC DATA
+    // --------------------
+    const [
+      ipca,
+      selic,
+      dolar,
+      igpm,
+      focusInflation,
+      oil,
+      gold,
+      sp500,
+      dxy
+    ] = await Promise.all([
+      fetchBCB(433),
+      fetchBCB(1178),
+      fetchBCB(1),
+      fetchBCB(189),
+      fetchBCB(13522), // expectativa inflação
+      fetchYahoo("CL=F"),
+      fetchYahoo("GC=F"),
+      fetchYahoo("^GSPC"),
+      fetchYahoo("DX-Y.NYB"),
+    ]);
 
+    // 🔥 Proxy combustível
+    const fuelTrend = oil
+      ? oil > 80 ? "alta" : oil < 70 ? "queda" : "estável"
+      : "indefinido";
+
+    const economicData = {
+      ipca,
+      selic,
+      dolar,
+      igpm,
+      focusInflation,
+      oil,
+      gold,
+      sp500,
+      dxy,
+      fuelTrend,
+      updated_at: new Date().toISOString(),
+    };
+
+    // --------------------
+    // 💾 INTELIGÊNCIA CONTÍNUA
+    // --------------------
+    await supabase.from("economic_snapshots").insert({
+      user_id: user.id,
+      data: economicData,
+      created_at: new Date().toISOString(),
+    });
+
+    // pegar histórico recente
+    const { data: history } = await supabase
+      .from("economic_snapshots")
+      .select("data, created_at")
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    const historyContext = history
+      ?.map((h) => `- ${h.created_at}: Selic ${h.data.selic}, IPCA ${h.data.ipca}`)
+      .join("\n");
+
+    // --------------------
+    // 🧠 AI
+    // --------------------
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -93,7 +202,8 @@ ${topCategories.map(c => `- ${c}`).join("\n")}
         messages: [
           {
             role: "system",
-            content: `Você é um analista macroeconômico especializado em traduzir cenários econômicos para impacto no bolso de pessoas físicas no Brasil.
+            content: `
+Você é um analista macroeconômico especializado em traduzir cenários econômicos para impacto no bolso de pessoas físicas no Brasil.
 
 Sua tarefa é gerar um Radar Econômico personalizado para o usuário, com base no cenário econômico ATUAL do Brasil e nos dados financeiros do usuário.
 
@@ -128,55 +238,53 @@ Responda APENAS com JSON válido, sem markdown:
   "resumo": "Resumo executivo em 2-3 frases do cenário econômico e impacto no usuário"
 }
 
-Seja específico, use os valores reais dos gastos do usuário para calcular impactos. Tom profissional e acessível.`,
+Seja específico, use os valores reais dos gastos do usuário para calcular impactos. Tom profissional e acessível.`,	
+
+REGRAS:
+DADOS PRIORITÁRIOS
+Você DEVE usar obrigatoriamente os dados econômicos fornecidos no contexto da mensagem do usuário.
+
+NUNCA use conhecimento antigo ou genérico.
+Se houver conflito, priorize os dados fornecidos.
+
+Considere que esses dados são os mais atualizados disponíveis no momento.
+
+Responda em JSON válido.
+            `,
           },
-          { role: "user", content: userContext },
+          {
+            role: "user",
+            content: `
+${userContext}
+
+DADOS ECONÔMICOS:
+IPCA: ${ipca}%
+Selic: ${selic}%
+Dólar: ${dolar}
+IGPM: ${igpm}
+Expectativa inflação: ${focusInflation}%
+Petróleo: ${oil}
+Combustível tendência: ${fuelTrend}
+
+Histórico recente:
+${historyContext}
+            `,
+          },
         ],
       }),
     });
 
-    if (!aiResponse.ok) {
-      if (aiResponse.status === 429) {
-        return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns minutos." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (aiResponse.status === 402) {
-        return new Response(JSON.stringify({ error: "Créditos insuficientes para análise." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const errText = await aiResponse.text();
-      console.error("AI error:", aiResponse.status, errText);
-      throw new Error("AI analysis failed");
-    }
-
     const aiData = await aiResponse.json();
-    const content = aiData.choices?.[0]?.message?.content || "";
+    const content = aiData.choices?.[0]?.message?.content || "{}";
 
-    let result;
-    try {
-      const cleaned = content.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
-      result = JSON.parse(cleaned);
-    } catch {
-      console.error("Failed to parse AI response:", content);
-      result = {
-        cenario: {},
-        impacto_pessoal: [],
-        tendencias: [],
-        recomendacoes: [],
-        resumo: "Não foi possível gerar a análise econômica no momento.",
-      };
-    }
-
-    return new Response(JSON.stringify(result), {
+    return new Response(content, {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (e) {
-    console.error("Error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: corsHeaders,
     });
   }
 });
