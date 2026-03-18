@@ -243,6 +243,48 @@ export type Database = {
         }
         Relationships: []
       }
+      economic_radar_reports: {
+        Row: {
+          created_at: string
+          id: string
+          report: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          report?: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          report?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
+      economic_snapshots: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       financial_dreams: {
         Row: {
           accumulated_value: number
