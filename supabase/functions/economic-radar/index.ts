@@ -275,11 +275,26 @@ ${historyContext}
     });
 
     const aiData = await aiResponse.json();
-    const content = aiData.choices?.[0]?.message?.content || "{}";
+const content = aiData.choices?.[0]?.message?.content || "{}";
 
-    return new Response(content, {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+let parsed;
+
+try {
+  parsed = JSON.parse(content);
+} catch {
+  parsed = { erro: "Falha ao interpretar resposta da IA" };
+}
+
+// 💾 SALVAR RADAR NO BANCO
+await supabase.from("economic_radar_reports").insert({
+  user_id: user.id,
+  report: parsed,
+  created_at: new Date().toISOString(),
+});
+
+return new Response(JSON.stringify(parsed), {
+  headers: { ...corsHeaders, "Content-Type": "application/json" },
+});
 
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message }), {
