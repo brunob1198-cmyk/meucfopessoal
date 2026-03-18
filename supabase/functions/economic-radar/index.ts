@@ -233,7 +233,7 @@ Responda APENAS com JSON válido, sem markdown:
 }
 
 Seja específico, use os valores reais dos gastos do usuário para calcular impactos. Tom profissional e acessível.`,
-          },          },
+          },
           {
             role: "user",
             content: `
