@@ -7,16 +7,20 @@ const corsHeaders = {
 };
 
 // --------------------
-// FETCH HELPERS
+// HELPERS
 // --------------------
 async function fetchBCB(code: number) {
   try {
     const url = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.${code}/dados/ultimos/1?formato=json`;
     const res = await fetch(url);
     const data = await res.json();
-    return Number(data[0]?.valor) || null;
+
+    return {
+      valor: Number(data[0]?.valor) || null,
+      data: data[0]?.data || null,
+    };
   } catch {
-    return null;
+    return { valor: null, data: null };
   }
 }
 
@@ -29,6 +33,15 @@ async function fetchYahoo(symbol: string) {
   } catch {
     return null;
   }
+}
+
+function isCurrentMonth(dateStr: string | null) {
+  if (!dateStr) return false;
+
+  const [day, month, year] = dateStr.split("/");
+  const now = new Date();
+
+  return Number(month) === now.getMonth() + 1 && Number(year) === now.getFullYear();
 }
 
 // --------------------
@@ -50,14 +63,14 @@ serve(async (req) => {
     } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
-    // --------------------
-    // 🧠 CACHE 24H
-    // --------------------
     const now = new Date();
     const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
     let economicData;
 
+    // --------------------
+    // 🔎 CACHE INTELIGENTE
+    // --------------------
     const { data: cached } = await supabase
       .from("economic_snapshots")
       .select("*")
@@ -66,10 +79,27 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
+    let usarCache = false;
+
     if (cached) {
+      const dataCache = new Date(cached.created_at);
+      const horas = (now.getTime() - dataCache.getTime()) / (1000 * 60 * 60);
+
+      // Só usa cache se:
+      // - menor que 24h
+      // - E IPCA já é do mês atual
+      if (horas < 24 && cached.data?.ipca_atualizado) {
+        usarCache = true;
+      }
+    }
+
+    if (usarCache) {
       economicData = cached.data;
     } else {
-      const [ipca, selic, dolar, igpm, focusInflation, oil, gold, sp500, dxy] = await Promise.all([
+      // --------------------
+      // 🔥 FETCH REAL
+      // --------------------
+      const [ipcaRaw, selicRaw, dolarRaw, igpmRaw, focusRaw, oil, gold, sp500, dxy] = await Promise.all([
         fetchBCB(433),
         fetchBCB(1178),
         fetchBCB(1),
@@ -84,15 +114,20 @@ serve(async (req) => {
       const fuelTrend = oil ? (oil > 80 ? "alta" : oil < 70 ? "queda" : "estável") : "indefinido";
 
       economicData = {
-        ipca,
-        selic,
-        dolar,
-        igpm,
-        focusInflation,
+        ipca: ipcaRaw.valor,
+        ipca_date: ipcaRaw.data,
+        ipca_atualizado: isCurrentMonth(ipcaRaw.data),
+
+        selic: selicRaw.valor,
+        dolar: dolarRaw.valor,
+        igpm: igpmRaw.valor,
+        focusInflation: focusRaw.valor,
+
         oil,
         gold,
         sp500,
         dxy,
+
         fuelTrend,
         updated_at: now.toISOString(),
       };
@@ -157,7 +192,7 @@ Margem: R$ ${(avgMonthlyIncome - avgMonthlyExpenses).toFixed(0)}
       .join("\n");
 
     // --------------------
-    // 🧠 AI
+    // IA
     // --------------------
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -170,45 +205,31 @@ Margem: R$ ${(avgMonthlyIncome - avgMonthlyExpenses).toFixed(0)}
         messages: [
           {
             role: "system",
-            content: `Você é um analista macroeconômico especializado em impacto financeiro pessoal no Brasil.
+            content: `Você é um analista macroeconômico especializado no Brasil.
 
-OBJETIVO:
-Gerar um Radar Econômico personalizado, baseado EXCLUSIVAMENTE nos dados econômicos fornecidos.
-
-REGRAS:
-- Use SOMENTE os dados fornecidos
-- NÃO use conhecimento antigo
-- NÃO invente dados
-
-Responda em JSON válido.`,
+Use SOMENTE os dados fornecidos.
+Responda em JSON.`,
           },
           {
             role: "user",
             content: `
 ${userContext}
 
-DADOS ECONÔMICOS (últimas 24h):
-IPCA: ${economicData.ipca}%
-Selic: ${economicData.selic}%
+IPCA: ${economicData.ipca} (${economicData.ipca_date})
+Selic: ${economicData.selic}
 Dólar: ${economicData.dolar}
 IGPM: ${economicData.igpm}
-Expectativa inflação: ${economicData.focusInflation}%
+Expectativa inflação: ${economicData.focusInflation}
 Petróleo: ${economicData.oil}
-Combustível tendência: ${economicData.fuelTrend}
+Tendência combustível: ${economicData.fuelTrend}
 
 Histórico:
 ${historyContext}
-            `,
+`,
           },
         ],
       }),
     });
-
-    if (!aiResponse.ok) {
-      const errText = await aiResponse.text();
-      console.error("AI ERROR:", errText);
-      throw new Error("Erro na IA");
-    }
 
     const aiData = await aiResponse.json();
     const content = aiData.choices?.[0]?.message?.content || "{}";
@@ -217,11 +238,11 @@ ${historyContext}
     try {
       parsed = JSON.parse(content);
     } catch {
-      parsed = { erro: "Falha ao interpretar resposta da IA" };
+      parsed = { erro: "IA inválida" };
     }
 
     // --------------------
-    // 💾 SAVE RADAR
+    // SAVE
     // --------------------
     await supabase.from("economic_radar_reports").insert({
       user_id: user.id,
