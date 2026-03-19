@@ -79,13 +79,27 @@ export default function Inteligencia() {
   const [customEnd, setCustomEnd] = useState('');
   const [radarLoading, setRadarLoading] = useState(false);
   const [radarResult, setRadarResult] = useState<RadarResult | null>(null);
+  const [radarDate, setRadarDate] = useState<string | null>(null);
 
   const months = monthOptions();
 
   useEffect(() => {
     if (!user) return;
     loadLastAnalysis();
+    loadLastRadar();
   }, [user]);
+
+  const loadLastRadar = async () => {
+    const { data } = await supabase
+      .from('economic_radar_reports')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1);
+    if (data && data.length > 0) {
+      setRadarResult(data[0].report as unknown as RadarResult);
+      setRadarDate(data[0].created_at);
+    }
+  };
 
   const loadLastAnalysis = async () => {
     const { data } = await supabase
@@ -167,6 +181,7 @@ export default function Inteligencia() {
         return;
       }
       setRadarResult(data);
+      setRadarDate(new Date().toISOString());
       toast.success('Radar Econômico atualizado!');
     } catch (err: any) {
       toast.error('Erro ao gerar radar: ' + (err.message || 'Erro desconhecido'));
@@ -277,6 +292,7 @@ export default function Inteligencia() {
         result={radarResult}
         loading={radarLoading}
         onGenerate={runRadar}
+        lastUpdated={radarDate}
       />
 
       {/* History Dialog */}
@@ -364,7 +380,7 @@ const CENARIO_LABELS: Record<string, string> = {
   dolar: 'Dólar',
 };
 
-function RadarEconomico({ result, loading, onGenerate }: { result: RadarResult | null; loading: boolean; onGenerate: () => void }) {
+function RadarEconomico({ result, loading, onGenerate, lastUpdated }: { result: RadarResult | null; loading: boolean; onGenerate: () => void; lastUpdated?: string | null }) {
   return (
     <Card className="border-primary/20">
       <CardHeader className="pb-3">
@@ -378,7 +394,14 @@ function RadarEconomico({ result, loading, onGenerate }: { result: RadarResult |
             {loading ? 'Analisando...' : result ? 'Atualizar' : 'Gerar Radar'}
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">Economia global traduzida para o seu bolso</p>
+        <div className="flex items-center gap-2">
+          <p className="text-xs text-muted-foreground">Economia global traduzida para o seu bolso</p>
+          {lastUpdated && (
+            <Badge variant="outline" className="text-[10px]">
+              Atualizado: {format(new Date(lastUpdated), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
+            </Badge>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {loading && (
