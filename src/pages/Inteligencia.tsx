@@ -394,7 +394,14 @@ function RadarEconomico({ result, loading, onGenerate, lastUpdated }: { result: 
             {loading ? 'Analisando...' : result ? 'Atualizar' : 'Gerar Radar'}
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">Economia global traduzida para o seu bolso</p>
+        <div className="flex items-center gap-2">
+          <p className="text-xs text-muted-foreground">Economia global traduzida para o seu bolso</p>
+          {lastUpdated && (
+            <Badge variant="outline" className="text-[10px]">
+              Atualizado: {format(new Date(lastUpdated), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
+            </Badge>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {loading && (
