@@ -292,6 +292,7 @@ export default function Inteligencia() {
         result={radarResult}
         loading={radarLoading}
         onGenerate={runRadar}
+        lastUpdated={radarDate}
       />
 
       {/* History Dialog */}
