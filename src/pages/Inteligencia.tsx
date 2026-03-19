@@ -89,6 +89,18 @@ export default function Inteligencia() {
     loadLastRadar();
   }, [user]);
 
+  const loadLastRadar = async () => {
+    const { data } = await supabase
+      .from('economic_radar_reports')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1);
+    if (data && data.length > 0) {
+      setRadarResult(data[0].report as unknown as RadarResult);
+      setRadarDate(data[0].created_at);
+    }
+  };
+
   const loadLastAnalysis = async () => {
     const { data } = await supabase
       .from('analysis_history')
