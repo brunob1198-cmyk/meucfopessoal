@@ -380,7 +380,7 @@ const CENARIO_LABELS: Record<string, string> = {
   dolar: 'Dólar',
 };
 
-function RadarEconomico({ result, loading, onGenerate }: { result: RadarResult | null; loading: boolean; onGenerate: () => void }) {
+function RadarEconomico({ result, loading, onGenerate, lastUpdated }: { result: RadarResult | null; loading: boolean; onGenerate: () => void; lastUpdated?: string | null }) {
   return (
     <Card className="border-primary/20">
       <CardHeader className="pb-3">
