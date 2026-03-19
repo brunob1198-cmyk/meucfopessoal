@@ -79,12 +79,14 @@ export default function Inteligencia() {
   const [customEnd, setCustomEnd] = useState('');
   const [radarLoading, setRadarLoading] = useState(false);
   const [radarResult, setRadarResult] = useState<RadarResult | null>(null);
+  const [radarDate, setRadarDate] = useState<string | null>(null);
 
   const months = monthOptions();
 
   useEffect(() => {
     if (!user) return;
     loadLastAnalysis();
+    loadLastRadar();
   }, [user]);
 
   const loadLastAnalysis = async () => {
