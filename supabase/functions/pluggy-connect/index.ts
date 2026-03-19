@@ -53,12 +53,11 @@ async function forceItemUpdate(itemId: string, pluggyToken: string): Promise<any
       "Content-Type": "application/json",
       "X-API-KEY": pluggyToken,
     },
-    body: JSON.stringify({}), // empty body triggers a refresh
+    body: JSON.stringify({}),
   });
   if (!res.ok) {
     const txt = await res.text();
     console.error(`[sync] Force update failed: ${res.status} - ${txt}`);
-    // Don't throw - continue with existing data
     return null;
   }
   return await res.json();
@@ -85,12 +84,114 @@ async function waitForItemReady(itemId: string, pluggyToken: string, maxWaitMs =
       return item.status;
     }
 
-    // Wait before next poll
     await new Promise((r) => setTimeout(r, POLL_INTERVAL));
   }
 
   console.warn(`[sync] Timeout waiting for item ${itemId} to finish updating`);
   return "TIMEOUT";
+}
+
+/** Map Pluggy account type to our account_type */
+function mapAccountType(pluggyType: string): string {
+  const t = (pluggyType || "").toUpperCase();
+  if (t === "CREDIT" || t === "CREDIT_CARD") return "credit_card";
+  if (t === "SAVINGS") return "savings";
+  return "checking";
+}
+
+/** Fetch all Pluggy accounts for an item */
+async function fetchPluggyAccounts(itemId: string, pluggyToken: string): Promise<any[]> {
+  const res = await fetch(
+    `https://api.pluggy.ai/accounts?itemId=${itemId}`,
+    { headers: { "X-API-KEY": pluggyToken } }
+  );
+  if (!res.ok) throw new Error(`Accounts fetch failed: ${res.status}`);
+  const data = await res.json();
+  return data.results || [];
+}
+
+/** Sync a single Pluggy account's transactions into a connected_account */
+async function syncPluggyAccount(
+  pluggyAccount: any,
+  connectedAccountId: string,
+  userId: string,
+  pluggyToken: string,
+  supabaseClient: any
+) {
+  const pluggyAccountId = pluggyAccount.id;
+  const accountType = mapAccountType(pluggyAccount.type);
+
+  // Fetch ALL transactions
+  const allTransactions = await fetchAllTransactions(pluggyAccountId, pluggyToken);
+
+  // Category matching
+  const { data: rules } = await supabaseClient
+    .from("category_rules")
+    .select("keyword, category_id")
+    .eq("user_id", userId);
+
+  const { data: categories } = await supabaseClient
+    .from("categories")
+    .select("id, name, dre_type")
+    .eq("user_id", userId);
+
+  // Prepare rows
+  const rows = allTransactions
+    .filter((tx: any) => tx.id)
+    .map((tx: any) => ({
+      user_id: userId,
+      connected_account_id: connectedAccountId,
+      external_id: tx.id,
+      date: tx.date.split("T")[0],
+      amount: Math.abs(tx.amount),
+      description: tx.description || tx.descriptionRaw || "",
+      transaction_type: tx.amount < 0 ? "debit" : "credit",
+      suggested_category_id: suggestCategoryFromRules(
+        tx.description || tx.descriptionRaw || "",
+        rules,
+        categories
+      ),
+      status: "pending",
+    }));
+
+  // Batch upsert
+  const BATCH_SIZE = 200;
+  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+    const batch = rows.slice(i, i + BATCH_SIZE);
+    const { error } = await supabaseClient
+      .from("imported_transactions")
+      .upsert(batch, { onConflict: "user_id,external_id", ignoreDuplicates: true });
+    if (error) {
+      console.error(`[sync] Batch upsert error at offset ${i}:`, error.message);
+    }
+  }
+
+  // Build update payload with credit card specifics
+  const updatePayload: any = {
+    balance: pluggyAccount.balance ?? 0,
+    last_sync_at: new Date().toISOString(),
+    status: "active",
+    pluggy_account_id: pluggyAccountId,
+    account_type: accountType,
+  };
+
+  if (accountType === "credit_card") {
+    // Pluggy credit accounts have creditData with availableCreditLimit, balanceCloseDate, balanceDueDate
+    const creditData = pluggyAccount.creditData || pluggyAccount.creditCardData || {};
+    updatePayload.credit_limit = creditData.creditLimit ?? creditData.availableCreditLimit ?? 0;
+    // For credit cards, balance is typically the current bill amount (negative = owed)
+    updatePayload.credit_bill_amount = Math.abs(pluggyAccount.balance ?? 0);
+    updatePayload.balance = creditData.availableCreditLimit ?? creditData.creditLimit ?? 0;
+    console.log(`[sync] Credit card data: limit=${updatePayload.credit_limit}, bill=${updatePayload.credit_bill_amount}`);
+  }
+
+  await supabaseClient
+    .from("connected_accounts")
+    .update(updatePayload)
+    .eq("id", connectedAccountId);
+
+  console.log(`[sync] Synced ${rows.length} transactions for ${accountType} account ${connectedAccountId}`);
+  return { imported: rows.length, accountType };
 }
 
 Deno.serve(async (req) => {
@@ -176,188 +277,118 @@ Deno.serve(async (req) => {
       if (!itemRes.ok) throw new Error(`Item fetch failed: ${itemRes.status}`);
       const item = await itemRes.json();
 
-      const accountsRes = await fetch(
-        `https://api.pluggy.ai/accounts?itemId=${itemId}`,
-        { headers: { "X-API-KEY": pluggyToken } }
-      );
-      if (!accountsRes.ok) throw new Error(`Accounts fetch failed: ${accountsRes.status}`);
-      const accountsData = await accountsRes.json();
+      const pluggyAccounts = await fetchPluggyAccounts(itemId, pluggyToken);
 
       return new Response(
-        JSON.stringify({ item, accounts: accountsData.results }),
+        JSON.stringify({ item, accounts: pluggyAccounts }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // ---- sync-transactions (with force update + pagination) ----
+    // ---- sync-transactions: sync ALL accounts for an item ----
     if (action === "sync-transactions") {
-      const { itemId, accountId, connectedAccountId } = body;
+      const { itemId } = body;
       const userId = user.id;
 
-      // Update sync status to syncing
-      await supabase
+      // Get all connected_accounts for this item
+      const { data: connectedAccounts } = await supabase
         .from("connected_accounts")
-        .update({ status: "syncing" })
-        .eq("id", connectedAccountId);
+        .select("*")
+        .eq("pluggy_item_id", itemId);
+
+      if (!connectedAccounts?.length) {
+        return new Response(
+          JSON.stringify({ error: "No connected accounts found for this item" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Mark all as syncing
+      for (const ca of connectedAccounts) {
+        await supabase
+          .from("connected_accounts")
+          .update({ status: "syncing" })
+          .eq("id", ca.id);
+      }
 
       try {
-        // 1) Force Pluggy to refresh data from the bank
+        // 1) Force Pluggy to refresh
         await forceItemUpdate(itemId, pluggyToken);
 
-        // 2) Wait for the item to finish updating (up to 60s)
+        // 2) Wait for ready
         const itemStatus = await waitForItemReady(itemId, pluggyToken, 60000);
         console.log(`[sync] Item final status: ${itemStatus}`);
 
-        // 3) Get the Pluggy account ID (may differ from itemId)
-        let pluggyAccountId = accountId;
-        if (accountId === itemId) {
-          // If accountId was passed as itemId, fetch actual accounts
-          const accountsRes = await fetch(
-            `https://api.pluggy.ai/accounts?itemId=${itemId}`,
-            { headers: { "X-API-KEY": pluggyToken } }
+        // 3) Fetch ALL Pluggy accounts for this item
+        const pluggyAccounts = await fetchPluggyAccounts(itemId, pluggyToken);
+        console.log(`[sync] Found ${pluggyAccounts.length} Pluggy accounts for item ${itemId}: ${pluggyAccounts.map((a: any) => `${a.type}(${a.id})`).join(", ")}`);
+
+        let totalImported = 0;
+
+        // 4) Match each Pluggy account to the correct connected_account
+        for (const pa of pluggyAccounts) {
+          const paType = mapAccountType(pa.type);
+
+          // Find matching connected_account by pluggy_account_id first, then by type
+          let matchedCA = connectedAccounts.find(
+            (ca: any) => ca.pluggy_account_id === pa.id
           );
-          if (accountsRes.ok) {
-            const accData = await accountsRes.json();
-            if (accData.results?.length > 0) {
-              pluggyAccountId = accData.results[0].id;
-              console.log(`[sync] Resolved account ID: ${pluggyAccountId}`);
+          if (!matchedCA) {
+            matchedCA = connectedAccounts.find(
+              (ca: any) => ca.account_type === paType && !ca.pluggy_account_id
+            );
+          }
+
+          if (!matchedCA) {
+            // No existing connected_account for this type — create one
+            console.log(`[sync] Creating new connected_account for ${paType} (${pa.name || pa.number || pa.id})`);
+
+            // Get item info for connector details
+            const existingCA = connectedAccounts[0];
+            const { data: newCA, error: insertError } = await supabase
+              .from("connected_accounts")
+              .insert({
+                user_id: userId,
+                pluggy_item_id: itemId,
+                pluggy_account_id: pa.id,
+                connector_name: existingCA.connector_name,
+                connector_logo: existingCA.connector_logo,
+                account_type: paType,
+                account_name: pa.name || pa.number || (paType === "credit_card" ? "Cartão de Crédito" : "Conta"),
+                balance: pa.balance || 0,
+                status: "syncing",
+              })
+              .select()
+              .single();
+
+            if (insertError) {
+              console.error(`[sync] Failed to create connected_account:`, insertError.message);
+              continue;
             }
+            matchedCA = newCA;
           }
-        }
 
-        // 4) Fetch ALL transactions with pagination
-        const allTransactions = await fetchAllTransactions(pluggyAccountId, pluggyToken);
-
-        // 5) Category matching
-        const { data: rules } = await supabase
-          .from("category_rules")
-          .select("keyword, category_id")
-          .eq("user_id", userId);
-
-        const { data: categories } = await supabase
-          .from("categories")
-          .select("id, name, dre_type")
-          .eq("user_id", userId);
-
-        const defaultKeywords: Record<string, string> = {
-          ifood: "Alimentação",
-          uber: "Transporte",
-          "99": "Transporte",
-          netflix: "Assinaturas",
-          spotify: "Assinaturas",
-          amazon: "Compras de itens",
-          posto: "Combustível",
-          shell: "Combustível",
-          supermercado: "Supermercado",
-          farmacia: "Farmácia",
-          farmácia: "Farmácia",
-          restaurante: "Restaurantes",
-          padaria: "Alimentação",
-        };
-
-        function suggestCategory(description: string) {
-          const desc = (description || "").toLowerCase();
-          if (rules) {
-            for (const rule of rules) {
-              if (desc.includes(rule.keyword.toLowerCase())) {
-                return rule.category_id;
-              }
-            }
-          }
-          for (const [keyword, catName] of Object.entries(defaultKeywords)) {
-            if (desc.includes(keyword)) {
-              const cat = categories?.find(
-                (c) => c.name.toLowerCase() === catName.toLowerCase()
-              );
-              if (cat) return cat.id;
-            }
-          }
-          return null;
-        }
-
-        // 6) Prepare rows - filter out transactions without external_id
-        const rows = allTransactions
-          .filter((tx: any) => tx.id) // must have an ID
-          .map((tx: any) => ({
-            user_id: userId,
-            connected_account_id: connectedAccountId,
-            external_id: tx.id,
-            date: tx.date.split("T")[0],
-            amount: Math.abs(tx.amount),
-            description: tx.description || tx.descriptionRaw || "",
-            transaction_type: tx.amount < 0 ? "debit" : "credit",
-            suggested_category_id: suggestCategory(
-              tx.description || tx.descriptionRaw || ""
-            ),
-            status: "pending",
-          }));
-
-        // 7) Upsert in batches to avoid timeouts
-        let imported = 0;
-        let skipped = 0;
-        const BATCH_SIZE = 200;
-
-        for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-          const batch = rows.slice(i, i + BATCH_SIZE);
-          const { error, count } = await supabase
-            .from("imported_transactions")
-            .upsert(batch, { onConflict: "user_id,external_id", ignoreDuplicates: true });
-
-          if (error) {
-            console.error(`[sync] Batch upsert error at offset ${i}:`, error.message);
-            // Continue with other batches
-          } else {
-            imported += batch.length;
-          }
-        }
-
-        // Check how many already existed
-        const { count: existingCount } = await supabase
-          .from("imported_transactions")
-          .select("*", { count: "exact", head: true })
-          .eq("connected_account_id", connectedAccountId);
-
-        console.log(`[sync] Total rows processed: ${rows.length}, existing in DB: ${existingCount}`);
-
-        // 8) Update account balance and sync status
-        const accRes = await fetch(
-          `https://api.pluggy.ai/accounts/${pluggyAccountId}`,
-          { headers: { "X-API-KEY": pluggyToken } }
-        );
-        if (accRes.ok) {
-          const acc = await accRes.json();
-          await supabase
-            .from("connected_accounts")
-            .update({
-              balance: acc.balance,
-              last_sync_at: new Date().toISOString(),
-              status: "active",
-            })
-            .eq("id", connectedAccountId);
-        } else {
-          await supabase
-            .from("connected_accounts")
-            .update({
-              last_sync_at: new Date().toISOString(),
-              status: "active",
-            })
-            .eq("id", connectedAccountId);
+          // Sync transactions for this account
+          const result = await syncPluggyAccount(pa, matchedCA.id, userId, pluggyToken, supabase);
+          totalImported += result.imported;
         }
 
         return new Response(
           JSON.stringify({
-            imported: rows.length,
-            totalFromPluggy: allTransactions.length,
+            imported: totalImported,
+            accountsSynced: pluggyAccounts.length,
             itemStatus,
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       } catch (syncError) {
         // Reset status on error
-        await supabase
-          .from("connected_accounts")
-          .update({ status: "error" })
-          .eq("id", connectedAccountId);
+        for (const ca of connectedAccounts) {
+          await supabase
+            .from("connected_accounts")
+            .update({ status: "error" })
+            .eq("id", ca.id);
+        }
         throw syncError;
       }
     }
@@ -409,13 +440,11 @@ Deno.serve(async (req) => {
   }
 });
 
-// ---- Webhook handler (called by Pluggy when an item is updated) ----
+// ---- Webhook handler ----
 async function handleWebhook(body: any) {
   console.log("[webhook] Received:", JSON.stringify(body));
 
-  const event = body?.event;
   const itemId = body?.itemId || body?.id || body?.data?.itemId;
-
   if (!itemId) {
     return new Response(JSON.stringify({ ok: true, message: "No itemId" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -428,7 +457,6 @@ async function handleWebhook(body: any) {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Find connected accounts with this item
     const { data: accounts } = await serviceSupabase
       .from("connected_accounts")
       .select("*")
@@ -442,67 +470,19 @@ async function handleWebhook(body: any) {
     }
 
     const pluggyToken = await getPluggyToken();
+    const pluggyAccounts = await fetchPluggyAccounts(itemId, pluggyToken);
 
-    for (const account of accounts) {
-      console.log(`[webhook] Syncing account ${account.id} for user ${account.user_id}`);
+    for (const pa of pluggyAccounts) {
+      const paType = mapAccountType(pa.type);
 
-      // Get actual pluggy account ID
-      const accountsRes = await fetch(
-        `https://api.pluggy.ai/accounts?itemId=${itemId}`,
-        { headers: { "X-API-KEY": pluggyToken } }
-      );
-      if (!accountsRes.ok) continue;
-      const accData = await accountsRes.json();
-      const pluggyAccount = accData.results?.[0];
-      if (!pluggyAccount) continue;
-
-      // Fetch all transactions
-      const allTx = await fetchAllTransactions(pluggyAccount.id, pluggyToken);
-
-      // Get user's category rules
-      const { data: rules } = await serviceSupabase
-        .from("category_rules")
-        .select("keyword, category_id")
-        .eq("user_id", account.user_id);
-
-      const { data: categories } = await serviceSupabase
-        .from("categories")
-        .select("id, name, dre_type")
-        .eq("user_id", account.user_id);
-
-      const rows = allTx
-        .filter((tx: any) => tx.id)
-        .map((tx: any) => ({
-          user_id: account.user_id,
-          connected_account_id: account.id,
-          external_id: tx.id,
-          date: tx.date.split("T")[0],
-          amount: Math.abs(tx.amount),
-          description: tx.description || tx.descriptionRaw || "",
-          transaction_type: tx.amount < 0 ? "debit" : "credit",
-          suggested_category_id: suggestCategoryFromRules(tx.description || tx.descriptionRaw || "", rules, categories),
-          status: "pending",
-        }));
-
-      // Batch upsert
-      const BATCH_SIZE = 200;
-      for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-        await serviceSupabase
-          .from("imported_transactions")
-          .upsert(rows.slice(i, i + BATCH_SIZE), { onConflict: "user_id,external_id", ignoreDuplicates: true });
+      // Match to connected_account
+      let matchedCA = accounts.find((ca: any) => ca.pluggy_account_id === pa.id);
+      if (!matchedCA) {
+        matchedCA = accounts.find((ca: any) => ca.account_type === paType);
       }
+      if (!matchedCA) continue;
 
-      // Update balance
-      await serviceSupabase
-        .from("connected_accounts")
-        .update({
-          balance: pluggyAccount.balance || account.balance,
-          last_sync_at: new Date().toISOString(),
-          status: "active",
-        })
-        .eq("id", account.id);
-
-      console.log(`[webhook] Synced ${rows.length} transactions for account ${account.id}`);
+      await syncPluggyAccount(pa, matchedCA.id, matchedCA.user_id, pluggyToken, serviceSupabase);
     }
   } catch (err) {
     console.error("[webhook] Error:", err);
@@ -547,65 +527,26 @@ async function handleSyncAll() {
 
   for (const [itemId, itemAccounts] of itemMap) {
     try {
-      // Force refresh
       await forceItemUpdate(itemId, pluggyToken);
       await waitForItemReady(itemId, pluggyToken, 45000);
 
-      // Get pluggy accounts
-      const accountsRes = await fetch(
-        `https://api.pluggy.ai/accounts?itemId=${itemId}`,
-        { headers: { "X-API-KEY": pluggyToken } }
-      );
-      if (!accountsRes.ok) continue;
-      const accData = await accountsRes.json();
+      const pluggyAccounts = await fetchPluggyAccounts(itemId, pluggyToken);
 
-      for (const account of itemAccounts) {
-        const pluggyAccount = accData.results?.[0];
-        if (!pluggyAccount) continue;
+      for (const pa of pluggyAccounts) {
+        const paType = mapAccountType(pa.type);
 
-        const allTx = await fetchAllTransactions(pluggyAccount.id, pluggyToken);
-
-        const { data: rules } = await serviceSupabase
-          .from("category_rules")
-          .select("keyword, category_id")
-          .eq("user_id", account.user_id);
-
-        const { data: categories } = await serviceSupabase
-          .from("categories")
-          .select("id, name, dre_type")
-          .eq("user_id", account.user_id);
-
-        const rows = allTx
-          .filter((tx: any) => tx.id)
-          .map((tx: any) => ({
-            user_id: account.user_id,
-            connected_account_id: account.id,
-            external_id: tx.id,
-            date: tx.date.split("T")[0],
-            amount: Math.abs(tx.amount),
-            description: tx.description || tx.descriptionRaw || "",
-            transaction_type: tx.amount < 0 ? "debit" : "credit",
-            suggested_category_id: suggestCategoryFromRules(tx.description || tx.descriptionRaw || "", rules, categories),
-            status: "pending",
-          }));
-
-        const BATCH_SIZE = 200;
-        for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-          await serviceSupabase
-            .from("imported_transactions")
-            .upsert(rows.slice(i, i + BATCH_SIZE), { onConflict: "user_id,external_id", ignoreDuplicates: true });
+        // Match to connected_account
+        let matchedCA = itemAccounts.find((ca: any) => ca.pluggy_account_id === pa.id);
+        if (!matchedCA) {
+          matchedCA = itemAccounts.find((ca: any) => ca.account_type === paType);
+        }
+        if (!matchedCA) {
+          console.log(`[cron] No connected_account for ${paType} on item ${itemId}, skipping`);
+          continue;
         }
 
-        await serviceSupabase
-          .from("connected_accounts")
-          .update({
-            balance: pluggyAccount.balance || account.balance,
-            last_sync_at: new Date().toISOString(),
-          })
-          .eq("id", account.id);
-
+        await syncPluggyAccount(pa, matchedCA.id, matchedCA.user_id, pluggyToken, serviceSupabase);
         syncedCount++;
-        console.log(`[cron] Synced account ${account.id}: ${rows.length} transactions`);
       }
     } catch (err) {
       console.error(`[cron] Error syncing item ${itemId}:`, err);

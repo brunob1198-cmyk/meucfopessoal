@@ -206,8 +206,11 @@ export type Database = {
           connector_logo: string | null
           connector_name: string
           created_at: string
+          credit_bill_amount: number | null
+          credit_limit: number | null
           id: string
           last_sync_at: string | null
+          pluggy_account_id: string | null
           pluggy_item_id: string
           status: string
           updated_at: string
@@ -220,8 +223,11 @@ export type Database = {
           connector_logo?: string | null
           connector_name: string
           created_at?: string
+          credit_bill_amount?: number | null
+          credit_limit?: number | null
           id?: string
           last_sync_at?: string | null
+          pluggy_account_id?: string | null
           pluggy_item_id: string
           status?: string
           updated_at?: string
@@ -234,8 +240,11 @@ export type Database = {
           connector_logo?: string | null
           connector_name?: string
           created_at?: string
+          credit_bill_amount?: number | null
+          credit_limit?: number | null
           id?: string
           last_sync_at?: string | null
+          pluggy_account_id?: string | null
           pluggy_item_id?: string
           status?: string
           updated_at?: string
