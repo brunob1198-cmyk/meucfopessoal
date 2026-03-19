@@ -6,7 +6,8 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Building2, CreditCard, RefreshCw, Trash2, Plus, Wifi, WifiOff,
-  Clock, Landmark, ArrowDownUp, Loader2, ShieldCheck, AlertCircle, CheckCircle2, Zap
+  Clock, Landmark, ArrowDownUp, Loader2, ShieldCheck, AlertCircle, CheckCircle2, Zap,
+  Wallet, Receipt
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,6 +32,7 @@ export default function ContasConectadas() {
       const { data, error } = await supabase
         .from('connected_accounts')
         .select('*')
+        .order('account_type', { ascending: true })
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data;
@@ -51,18 +53,18 @@ export default function ContasConectadas() {
     enabled: !!user,
   });
 
-  // Auto-sync on page open
+  // Auto-sync on page open — sync by unique item to cover all accounts
   useEffect(() => {
     if (accounts?.length && !autoSyncDone.current) {
       autoSyncDone.current = true;
-      const activeAccounts = accounts.filter(a => a.status === 'active' || a.status === 'error');
-      if (activeAccounts.length > 0) {
+      // Get unique items
+      const itemIds = [...new Set(accounts.map(a => a.pluggy_item_id))];
+      if (itemIds.length > 0) {
         toast.info('Sincronizando contas automaticamente...');
-        // Sync sequentially with small delay to avoid rate limits
         (async () => {
-          for (const acc of activeAccounts) {
+          for (const itemId of itemIds) {
             try {
-              await syncAccount(acc);
+              await syncByItem(itemId);
             } catch {
               // Individual errors handled inside
             }
@@ -75,34 +77,37 @@ export default function ContasConectadas() {
     }
   }, [accounts]);
 
-  const syncAccount = async (account: any) => {
-    setSyncingAccounts(prev => new Set(prev).add(account.id));
+  /** Sync all accounts for a given Pluggy item */
+  const syncByItem = async (itemId: string) => {
+    // Mark all accounts of this item as syncing in UI
+    const itemAccounts = accounts?.filter(a => a.pluggy_item_id === itemId) || [];
+    setSyncingAccounts(prev => {
+      const next = new Set(prev);
+      itemAccounts.forEach(a => next.add(a.id));
+      return next;
+    });
+
     try {
-      const { data, error } = await supabase.functions.invoke(
-        'pluggy-connect',
-        {
-          body: {
-            action: 'sync-transactions',
-            itemId: account.pluggy_item_id,
-            accountId: account.pluggy_item_id,
-            connectedAccountId: account.id,
-          },
-        }
-      );
+      const { data, error } = await supabase.functions.invoke('pluggy-connect', {
+        body: {
+          action: 'sync-transactions',
+          itemId,
+        },
+      });
       if (error) throw error;
       toast.success(
-        `${account.connector_name}: ${data?.imported || 0} transações sincronizadas (${data?.itemStatus || 'ok'})`
+        `${data?.accountsSynced || 0} conta(s) sincronizada(s): ${data?.imported || 0} transações`
       );
       queryClient.invalidateQueries({ queryKey: ['connected-accounts'] });
       queryClient.invalidateQueries({ queryKey: ['pending-transactions-count'] });
       return data;
     } catch (err: any) {
-      toast.error(`Erro ao sincronizar ${account.connector_name}: ${err.message}`);
+      toast.error(`Erro ao sincronizar: ${err.message}`);
       throw err;
     } finally {
       setSyncingAccounts(prev => {
         const next = new Set(prev);
-        next.delete(account.id);
+        itemAccounts.forEach(a => next.delete(a.id));
         return next;
       });
     }
@@ -111,9 +116,10 @@ export default function ContasConectadas() {
   const syncAllMutation = useMutation({
     mutationFn: async () => {
       if (!accounts?.length) return;
-      for (const acc of accounts.filter(a => a.status !== 'syncing')) {
+      const itemIds = [...new Set(accounts.map(a => a.pluggy_item_id))];
+      for (const itemId of itemIds) {
         try {
-          await syncAccount(acc);
+          await syncByItem(itemId);
         } catch {
           // Continue with next
         }
@@ -182,15 +188,32 @@ export default function ContasConectadas() {
             );
             if (fetchError) throw fetchError;
 
+            // Create a connected_account for EACH Pluggy account (checking + credit card)
             for (const acc of fetchData.accounts || []) {
+              const accountType = (acc.type || '').toUpperCase();
+              const mappedType = accountType === 'CREDIT' || accountType === 'CREDIT_CARD'
+                ? 'credit_card'
+                : accountType === 'SAVINGS' ? 'savings' : 'checking';
+
+              const creditData = acc.creditData || acc.creditCardData || {};
+
               await supabase.from('connected_accounts').insert({
                 user_id: user!.id,
                 pluggy_item_id: itemId,
+                pluggy_account_id: acc.id,
                 connector_name: fetchData.item?.connector?.name || 'Banco',
                 connector_logo: fetchData.item?.connector?.imageUrl || null,
-                account_type: acc.type === 'CREDIT' ? 'credit_card' : 'checking',
-                account_name: acc.name || acc.number || 'Conta',
-                balance: acc.balance || 0,
+                account_type: mappedType,
+                account_name: acc.name || acc.number || (mappedType === 'credit_card' ? 'Cartão de Crédito' : 'Conta'),
+                balance: mappedType === 'credit_card'
+                  ? (creditData.availableCreditLimit ?? creditData.creditLimit ?? 0)
+                  : (acc.balance || 0),
+                credit_limit: mappedType === 'credit_card'
+                  ? (creditData.creditLimit ?? creditData.availableCreditLimit ?? 0)
+                  : 0,
+                credit_bill_amount: mappedType === 'credit_card'
+                  ? Math.abs(acc.balance || 0)
+                  : 0,
                 last_sync_at: new Date().toISOString(),
                 status: 'active',
               });
@@ -228,9 +251,15 @@ export default function ContasConectadas() {
     mutationFn: async (accountId: string) => {
       const account = accounts?.find((a) => a.id === accountId);
       if (account) {
-        await supabase.functions.invoke('pluggy-connect', {
-          body: { action: 'delete-item', itemId: account.pluggy_item_id },
-        });
+        // Check if this is the last account for this item — if so, delete from Pluggy too
+        const otherAccounts = accounts?.filter(
+          a => a.pluggy_item_id === account.pluggy_item_id && a.id !== accountId
+        );
+        if (!otherAccounts?.length) {
+          await supabase.functions.invoke('pluggy-connect', {
+            body: { action: 'delete-item', itemId: account.pluggy_item_id },
+          });
+        }
       }
       const { error } = await supabase.from('connected_accounts').delete().eq('id', accountId);
       if (error) throw error;
@@ -282,6 +311,117 @@ export default function ContasConectadas() {
     }
   };
 
+  // Group accounts by type for display
+  const checkingAccounts = accounts?.filter(a => a.account_type === 'checking' || a.account_type === 'savings') || [];
+  const creditAccounts = accounts?.filter(a => a.account_type === 'credit_card') || [];
+
+  const renderAccountCard = (acc: any, i: number) => {
+    const isSyncing = syncingAccounts.has(acc.id) || acc.status === 'syncing';
+    const isCreditCard = acc.account_type === 'credit_card';
+
+    return (
+      <motion.div
+        key={acc.id}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ delay: i * 0.05 }}
+      >
+        <Card className="hover:border-primary/30 transition-colors">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {acc.connector_logo ? (
+                  <img
+                    src={acc.connector_logo}
+                    alt={acc.connector_name}
+                    className="h-10 w-10 rounded-lg object-contain bg-white p-1"
+                  />
+                ) : (
+                  <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                    {isCreditCard ? (
+                      <CreditCard className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <Building2 className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </div>
+                )}
+                <div>
+                  <CardTitle className="text-sm">{acc.connector_name}</CardTitle>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    {isCreditCard ? (
+                      <><CreditCard className="h-3 w-3" /> {acc.account_name}</>
+                    ) : (
+                      <><Wallet className="h-3 w-3" /> {acc.account_name}</>
+                    )}
+                  </p>
+                </div>
+              </div>
+              {getStatusBadge(acc.status, isSyncing)}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {isCreditCard ? (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <CreditCard className="h-3 w-3" /> Limite
+                    </p>
+                    <p className="text-lg font-bold text-foreground">
+                      {fmt((acc as any).credit_limit || 0)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Receipt className="h-3 w-3" /> Fatura atual
+                    </p>
+                    <p className="text-lg font-bold text-destructive">
+                      {fmt((acc as any).credit_bill_amount || 0)}
+                    </p>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Wallet className="h-3 w-3" /> Saldo conta corrente
+                </p>
+                <p className="text-xl font-bold text-foreground">{fmt(acc.balance || 0)}</p>
+              </div>
+            )}
+            {acc.last_sync_at && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Clock className="h-3 w-3" />
+                Última sync: {format(new Date(acc.last_sync_at), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
+              </div>
+            )}
+            <div className="flex gap-2 pt-2 border-t border-border/50">
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 gap-1"
+                onClick={() => syncByItem(acc.pluggy_item_id)}
+                disabled={isSyncing}
+              >
+                <RefreshCw className={`h-3 w-3 ${isSyncing ? 'animate-spin' : ''}`} />
+                {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-destructive hover:text-destructive"
+                onClick={() => setDeleteDialog(acc.id)}
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -292,7 +432,7 @@ export default function ContasConectadas() {
             Contas Conectadas
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Conecte suas contas bancárias via Open Finance para importar transações automaticamente.
+            Conecte suas contas bancárias e cartões de crédito via Open Finance para importar transações automaticamente.
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -364,7 +504,7 @@ export default function ContasConectadas() {
         </Card>
       )}
 
-      {/* Accounts grid */}
+      {/* Accounts */}
       {isLoading ? (
         <div className="flex justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -386,82 +526,36 @@ export default function ContasConectadas() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <AnimatePresence>
-            {accounts.map((acc, i) => {
-              const isSyncing = syncingAccounts.has(acc.id) || acc.status === 'syncing';
-              return (
-                <motion.div
-                  key={acc.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ delay: i * 0.05 }}
-                >
-                  <Card className="hover:border-primary/30 transition-colors">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          {acc.connector_logo ? (
-                            <img
-                              src={acc.connector_logo}
-                              alt={acc.connector_name}
-                              className="h-10 w-10 rounded-lg object-contain bg-white p-1"
-                            />
-                          ) : (
-                            <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                              {acc.account_type === 'credit_card' ? (
-                                <CreditCard className="h-5 w-5 text-muted-foreground" />
-                              ) : (
-                                <Building2 className="h-5 w-5 text-muted-foreground" />
-                              )}
-                            </div>
-                          )}
-                          <div>
-                            <CardTitle className="text-sm">{acc.connector_name}</CardTitle>
-                            <p className="text-xs text-muted-foreground">{acc.account_name}</p>
-                          </div>
-                        </div>
-                        {getStatusBadge(acc.status, isSyncing)}
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Saldo atual</p>
-                        <p className="text-xl font-bold text-foreground">{fmt(acc.balance || 0)}</p>
-                      </div>
-                      {acc.last_sync_at && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          Última sync: {format(new Date(acc.last_sync_at), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
-                        </div>
-                      )}
-                      <div className="flex gap-2 pt-2 border-t border-border/50">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1 gap-1"
-                          onClick={() => syncAccount(acc)}
-                          disabled={isSyncing}
-                        >
-                          <RefreshCw className={`h-3 w-3 ${isSyncing ? 'animate-spin' : ''}`} />
-                          {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => setDeleteDialog(acc.id)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
+        <div className="space-y-6">
+          {/* Checking accounts section */}
+          {checkingAccounts.length > 0 && (
+            <div>
+              <h2 className="text-lg font-semibold text-foreground flex items-center gap-2 mb-3">
+                <Wallet className="h-5 w-5 text-primary" />
+                Contas Correntes
+              </h2>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <AnimatePresence>
+                  {checkingAccounts.map((acc, i) => renderAccountCard(acc, i))}
+                </AnimatePresence>
+              </div>
+            </div>
+          )}
+
+          {/* Credit card accounts section */}
+          {creditAccounts.length > 0 && (
+            <div>
+              <h2 className="text-lg font-semibold text-foreground flex items-center gap-2 mb-3">
+                <CreditCard className="h-5 w-5 text-primary" />
+                Cartões de Crédito
+              </h2>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <AnimatePresence>
+                  {creditAccounts.map((acc, i) => renderAccountCard(acc, i))}
+                </AnimatePresence>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
