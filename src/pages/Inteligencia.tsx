@@ -181,6 +181,7 @@ export default function Inteligencia() {
         return;
       }
       setRadarResult(data);
+      setRadarDate(new Date().toISOString());
       toast.success('Radar Econômico atualizado!');
     } catch (err: any) {
       toast.error('Erro ao gerar radar: ' + (err.message || 'Erro desconhecido'));
