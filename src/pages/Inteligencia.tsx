@@ -7,7 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Brain, AlertTriangle, Lightbulb, TrendingUp, RefreshCw, Sparkles, History, Calendar, Trash2, Radio, ArrowUp, ArrowDown, Minus, ShieldAlert, DollarSign, Fuel, ShoppingCart, Banknote } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -71,8 +70,6 @@ function monthOptions() {
 
 export default function Inteligencia() {
   const { user } = useAuth();
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('GEMINI_API_KEY') || '');
-  const [showKeyDialog, setShowKeyDialog] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -165,180 +162,22 @@ export default function Inteligencia() {
     };
   };
 
-  const handleSaveKey = (val: string) => {
-    setApiKey(val);
-    localStorage.setItem('GEMINI_API_KEY', val);
-    setShowKeyDialog(false);
-    toast.success("Chave salva! O Consultor IA está pronto.");
-  };
-
   const runAnalysis = async () => {
-    if (!apiKey) {
-      setShowKeyDialog(true);
-      return;
-    }
     setLoading(true);
     try {
       const { periodStart, periodEnd } = getPeriodDates();
-      const now = new Date();
-      const nowStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-      
-      const histStart = (() => {
-        const d = new Date();
-        d.setFullYear(d.getFullYear() - 10);
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
-      })();
-      const filterStart = periodStart || histStart;
-      const filterEnd = periodEnd || (() => {
-        const d = new Date();
-        d.setFullYear(d.getFullYear() + 1);
-        return `${d.getFullYear()}-12-31`;
-      })();
-
-      const [txRes, projRes] = await Promise.all([
-        supabase.from("transactions").select("*, categories(name, dre_type, parent_id)").gte("date", filterStart).lte("date", filterEnd).order("date"),
-        supabase.from("projections").select("*, categories(name, dre_type, parent_id)").gte("month", filterStart).lte("month", filterEnd).order("month"),
-      ]);
-
-      if (txRes.error) throw txRes.error;
-      if (projRes.error) throw projRes.error;
-
-      const transactions = txRes.data || [];
-      const projections = projRes.data || [];
-
-      if (transactions.length === 0 && projections.length === 0) {
-        throw new Error("Ainda não há lançamentos financeiros neste período para gerar análises.");
-      }
-
-      const pastTransactions = transactions.filter((tx: any) => tx.date.substring(0, 7) <= nowStr);
-      const futureProjections = projections.filter((p: any) => p.month.substring(0, 7) > nowStr);
-
-      const monthlyTotals: Record<string, any> = {};
-      const categorySpending: Record<string, any> = {};
-
-      for (const tx of pastTransactions) {
-        const m = tx.date.substring(0, 7);
-        const catName = tx.categories?.name || "Sem categoria";
-        const catType = tx.categories?.dre_type || "despesa";
-
-        if (!monthlyTotals[m]) monthlyTotals[m] = { receita: 0, despesa: 0, custo: 0, desconto: 0 };
-        const type = catType as string;
-        if (type === "receita") monthlyTotals[m].receita += Number(tx.amount);
-        else if (type === "despesa") monthlyTotals[m].despesa += Number(tx.amount);
-        else if (type === "custo") monthlyTotals[m].custo += Number(tx.amount);
-        else if (type === "desconto") monthlyTotals[m].desconto += Number(tx.amount);
-
-        if (!categorySpending[tx.category_id]) {
-          categorySpending[tx.category_id] = { name: catName, type: catType, total: 0, count: 0, months: {} };
-        }
-        categorySpending[tx.category_id].total += Number(tx.amount);
-        categorySpending[tx.category_id].count++;
-        categorySpending[tx.category_id].months[m] = (categorySpending[tx.category_id].months[m] || 0) + Number(tx.amount);
-      }
-
-      const sortedMonths = Object.keys(monthlyTotals).sort();
-      const last3Months = sortedMonths.slice(-3);
-      const last6Months = sortedMonths.slice(-6);
-
-      const futureProjectedByCategory: Record<string, any> = {};
-      const futureMonthlyTotals: Record<string, any> = {};
-      
-      for (const p of futureProjections) {
-        const m = p.month.substring(0, 7);
-        const catName = p.categories?.name || "?";
-        const catType = p.categories?.dre_type as string;
-        if (!futureProjectedByCategory[catName]) futureProjectedByCategory[catName] = {};
-        futureProjectedByCategory[catName][m] = (futureProjectedByCategory[catName][m] || 0) + Number(p.amount);
-        if (!futureMonthlyTotals[m]) futureMonthlyTotals[m] = { receita: 0, despesa: 0, custo: 0, desconto: 0 };
-        if (catType === "receita") futureMonthlyTotals[m].receita += Number(p.amount);
-        else if (catType === "despesa") futureMonthlyTotals[m].despesa += Number(p.amount);
-        else if (catType === "custo") futureMonthlyTotals[m].custo += Number(p.amount);
-        else if (catType === "desconto") futureMonthlyTotals[m].desconto += Number(p.amount);
-      }
-
-      const categoryTrends: Record<string, any> = {};
-      for (const [catId, cat] of Object.entries(categorySpending)) {
-        if (cat.type !== "despesa" && cat.type !== "custo") continue;
-        const vals3 = last3Months.map(m => cat.months[m] || 0);
-        const vals6 = last6Months.map(m => cat.months[m] || 0);
-        const avg3 = vals3.reduce((a, b: any) => a + b, 0) / Math.max(vals3.filter((v: any) => v > 0).length, 1);
-        const avg6 = vals6.reduce((a, b: any) => a + b, 0) / Math.max(vals6.filter((v: any) => v > 0).length, 1);
-        let trend = "estável";
-        if (avg6 > 0 && avg3 > avg6 * 1.15) trend = "crescente";
-        else if (avg6 > 0 && avg3 < avg6 * 0.85) trend = "decrescente";
-        categoryTrends[cat.name] = { avg3m: avg3, avg6m: avg6, trend };
-      }
-
-      let summaryText = `ANÁLISE FINANCEIRA COMPLETA DO USUÁRIO\n`;
-      summaryText += `Período: ${filterStart} a ${filterEnd}\n\n`;
-
-      summaryText += `═══ PADRÕES (Dados reais) ═══\n`;
-      for (const m of sortedMonths.slice(-12)) {
-        const t = monthlyTotals[m];
-        const liquido = t.receita - t.desconto - t.custo - t.despesa;
-        summaryText += `${m}: Receita R$${t.receita.toFixed(0)} | Desp_Cust R$${(t.despesa + t.custo).toFixed(0)} | Líquido R$${liquido.toFixed(0)}\n`;
-      }
-
-      const topCats = Object.values(categorySpending)
-        .filter(c => c.type === "despesa" || c.type === "custo")
-        .sort((a, b) => b.total - a.total).slice(0, 15);
-
-      for (const cat of topCats) {
-        const trend = categoryTrends[cat.name];
-        const avgStr = trend ? `Média3m: R$${trend.avg3m.toFixed(0)} | Tendência: ${trend.trend}` : `Total: R$${cat.total.toFixed(0)}`;
-        summaryText += `- ${cat.name}: ${avgStr}\n`;
-      }
-
-      // Consulta direta ao Google Gemini
-      const cleanKey = apiKey.trim().replace(/[\r\n]/g, '');
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${cleanKey}`;
-      const promptSystem = `Você é um Consultor Financeiro IA avançado especializado em finanças pessoais.
-RESPONDA APENAS EM JSON VÁLIDO MANTENDO ESTA ESTRUTURA ESPECÍFICA (sem formatação markdown como \`\`\`json):
-{
-  "insights": ["3-4 percepções sobre padrões de gastos dos dados enviados"],
-  "alerts": ["1-3 alertas financeiros críticos"],
-  "suggestions": ["3 sugestões práticas para economizar"],
-  "forecast": {
-    "summary": "Resumo de previsão futura",
-    "projected_savings": 200,
-    "trend": "positiva",
-    "details": ["Detalhe 1"]
-  }
-}`;
-
-      const aiResponse = await fetch(geminiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: promptSystem + "\n\nAnalise os seguintes dados financeiros do usuário e preencha o JSON:\n" + summaryText }] }]
-        })
+      const { data, error } = await supabase.functions.invoke('financial-insights', {
+        body: { periodStart, periodEnd },
       });
-
-      if (!aiResponse.ok) {
-        throw new Error("A chave do Google Gemini fornecida é inválida ou expirou.");
+      if (error) throw error;
+      if (data.error) {
+        toast.error(data.error);
+        return;
       }
-
-      const aiData = await aiResponse.json();
-      const contentText = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      const cleanedJson = contentText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
-      
-      const parsedResult = JSON.parse(cleanedJson);
-      setResult(parsedResult);
-      
-      await supabase.from("analysis_history").insert({
-        user_id: user.id,
-        period_start: periodStart,
-        period_end: periodEnd,
-        result: parsedResult,
-      });
-      
-      toast.success('Análise concluída com Sucesso pelo seu Navegador!');
+      setResult(data);
+      toast.success('Análise concluída!');
     } catch (err: any) {
-      if (err.message.includes('Failed to fetch')) {
-        toast.error('Erro de Rede (CORS/Bloqueador). Desative o Adblock/Brave Shields ou verifique sua conexão.');
-      } else {
-        toast.error('Erro ao gerar análise: ' + (err.message || 'Erro desconhecido.'));
-      }
+      toast.error('Erro ao gerar análise: ' + (err.message || 'Erro desconhecido'));
     } finally {
       setLoading(false);
     }
@@ -382,9 +221,6 @@ RESPONDA APENAS EM JSON VÁLIDO MANTENDO ESTA ESTRUTURA ESPECÍFICA (sem formata
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Button variant="outline" size="sm" onClick={() => setShowKeyDialog(true)} className="gap-1.5" title="Configurar IA">
-            Configurar API
-          </Button>
           <Button variant="outline" size="sm" onClick={loadHistory} className="gap-1.5">
             <History className="h-4 w-4" />
             Histórico
@@ -470,37 +306,6 @@ RESPONDA APENAS EM JSON VÁLIDO MANTENDO ESTA ESTRUTURA ESPECÍFICA (sem formata
         onGenerate={runRadar}
         lastUpdated={radarDate}
       />
-
-      {/* Configure API Key Dialog */}
-      <Dialog open={showKeyDialog} onOpenChange={setShowKeyDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Configurar Inteligência Artificial (Google)</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-foreground">
-              Como bônus de independência, o seu aplicativo de finanças agora se conecta diretamente com a IA do Google direto do seu navegador, <strong>poupando gastos com servidores</strong>.
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Para liberar o Consultor IA, você só precisa colocar a sua chave de API gratuita do Gemini API Studio abaixo.
-            </p>
-            <Input 
-              type="password" 
-              placeholder="Ex: AIzaSyB..." 
-              value={apiKey} 
-              onChange={(e) => setApiKey(e.target.value)} 
-            />
-            <Button className="w-full" onClick={() => handleSaveKey(apiKey)}>
-              Salvar Chave e Continuar
-            </Button>
-            <p className="text-xs text-muted-foreground text-center">
-              <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-primary hover:underline">
-                Clique aqui para gerar sua chave Gemini gratuitamente
-              </a>
-            </p>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* History Dialog */}
       <Dialog open={showHistory} onOpenChange={setShowHistory}>
