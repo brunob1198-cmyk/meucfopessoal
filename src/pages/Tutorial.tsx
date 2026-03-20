@@ -23,7 +23,7 @@ const tutorialSections = [
     description: 'Tela principal para registrar todas as suas movimentações financeiras.',
     details: [
       `### Para que serve?
-A tela de **Lançamentos** é o coração do sistema. É aqui que você registra **todas** as suas movimentações financeiras — receitas, despesas, custos, investimentos e descontos. Todos os relatórios (DRE, Dashboard, CFO Digital) se alimentam dos dados inseridos aqui. Sem lançamentos, as demais telas ficam vazias.`,
+A tela de **Lançamentos** é o coração do sistema. É aqui que você registra **todas** as suas movimentações financeiras — receitas, despesas, custos, investimentos e descontos. Todos os relatórios (DRE, Dashboard, Consultor Financeiro IA) se alimentam dos dados inseridos aqui. Sem lançamentos, as demais telas ficam vazias.`,
 
       `### Estrutura: Categorias e Subcategorias
 O sistema organiza seus lançamentos em dois níveis:
@@ -87,7 +87,7 @@ Para importar múltiplos lançamentos de uma vez:
 - O contador aparece abaixo do título: "45/100 lançamentos este mês".
 - Ao atingir o limite, novos lançamentos são bloqueados até o próximo mês ou até fazer upgrade para Premium.
 
-**Dica do Especialista:** Registre seus lançamentos semanalmente para não acumular e perder detalhes. Quanto mais lançamentos registrados, mais precisa será a análise do CFO Digital IA.`,
+**Dica do Especialista:** Registre seus lançamentos semanalmente para não acumular e perder detalhes. Quanto mais lançamentos registrados, mais precisa será a análise do Consultor Financeiro IA.`,
     ],
   },
   {
@@ -234,7 +234,7 @@ Para evitar digitar o mesmo valor 12 vezes:
 - **Totais por categoria**: Cada linha de categoria pai soma automaticamente os valores das subcategorias.
 - **Integração com DRE**: Os valores projetados aparecem em **verde** no DRE Detalhado para meses futuros.
 - **Integração com Dashboard**: O gráfico "Realizado vs Projetado" usa esses dados.
-- **Integração com CFO Digital**: A IA considera suas projeções na análise.
+- **Integração com Consultor Financeiro IA**: A IA considera suas projeções na análise.
 
 **Dica do Especialista:** Projete pelo menos 6 meses à frente. Use como base a **média dos últimos 3 meses** de cada subcategoria (visível no DRE Detalhado). Revise mensalmente após fechar o mês real e ajuste as projeções dos meses seguintes.`,
     ],
@@ -280,12 +280,12 @@ Os cards no topo mostram os números mais importantes do período selecionado:
   },
   {
     icon: Sparkles,
-    title: 'CFO Digital IA',
+    title: 'Consultor Financeiro IA',
     route: '/inteligencia',
     description: 'Análise inteligente dos seus dados financeiros por inteligência artificial.',
     details: [
       `### Para que serve?
-O **CFO Digital** usa **inteligência artificial** para analisar automaticamente todos os seus dados financeiros e gerar recomendações personalizadas. Funciona como um **consultor financeiro pessoal** que conhece cada detalhe dos seus gastos, receitas e projeções.`,
+O **Consultor Financeiro IA** usa **inteligência artificial** para analisar automaticamente todos os seus dados financeiros e gerar recomendações personalizadas. Funciona como um **consultor financeiro pessoal** que conhece cada detalhe dos seus gastos, receitas e projeções.`,
 
       `### Como usar (passo a passo)
 1. Selecione o **período** que deseja analisar (padrão: últimos 12 meses). Quanto maior o período, mais contexto a IA tem para identificar tendências.
@@ -439,7 +439,7 @@ Para realizar uma simulação precisa, configure os seguintes pilares:
 
 **Exemplo:** Com receita de R$ 10.000, despesas de R$ 7.000 e aporte de R$ 2.500/mês a 1% ao mês, em 10 anos você acumula aproximadamente R$ 575.000 em investimentos.`,
 
-      `**Dica do Especialista:** Use o Simulador Financeiro em conjunto com o **CFO Digital IA** para validar se as suas projeções são realistas com base no seu histórico real de gastos registrados na tela de Lançamentos. Simule pelo menos 3 cenários: pessimista, realista e otimista.`,
+      `**Dica do Especialista:** Use o Simulador Financeiro em conjunto com o **Consultor Financeiro IA** para validar se as suas projeções são realistas com base no seu histórico real de gastos registrados na tela de Lançamentos. Simule pelo menos 3 cenários: pessimista, realista e otimista.`,
     ],
   },
   {
@@ -619,7 +619,7 @@ A tela **Revisar Transações** é onde você valida as transações importadas 
 Transações **confirmadas** são automaticamente convertidas em lançamentos no sistema e passam a alimentar:
 - **DRE Detalhado e Ajustado**
 - **Dashboard**
-- **CFO Digital IA**
+- **Consultor Financeiro IA**
 - **Mapa de Compromissos**
 
 **Dica do Especialista:** Revise as transações pelo menos uma vez por semana. Quanto mais transações você categorizar corretamente, mais inteligente o sistema fica — as regras aprendidas reduzem drasticamente a necessidade de revisão futura.`,

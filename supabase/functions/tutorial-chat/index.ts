@@ -46,7 +46,7 @@ Aqui estão as telas e funcionalidades do sistema:
 - Comparativo realizado vs planejado.
 - Principais KPIs financeiros.
 
-## CFO DIGITAL IA (/inteligencia)
+## CONSULTOR FINANCEIRO IA (/inteligencia)
 - Análise automática por inteligência artificial dos seus dados financeiros.
 - Gera insights sobre tendências, alertas de desvios, sugestões de otimização.
 - Previsão de fluxo de caixa baseada em comportamento histórico.

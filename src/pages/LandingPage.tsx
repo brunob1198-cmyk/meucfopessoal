@@ -47,7 +47,7 @@ const featureDescriptions: Record<string, { title: string; icon: any; content: s
 - Edição inline, movimentação entre categorias e exclusão com um clique
 - Limite mensal no plano gratuito com contador visual
 
-**Dica:** Registre seus lançamentos semanalmente para não acumular e ter análises mais precisas do CFO Digital IA.`
+**Dica:** Registre seus lançamentos semanalmente para não acumular e ter análises mais precisas do Consultor Financeiro IA.`
   },
   dre: {
     title: "DRE Detalhado",
@@ -70,7 +70,7 @@ Ideal para quem quer uma visão rápida da saúde financeira sem se perder nos d
     icon: Target,
     content: `Ferramenta de **orçamento e projeção mensal**. Defina quanto pretende gastar ou receber em cada subcategoria para meses futuros.
 
-**Recursos:** Preenchimento por célula, botão Replicar para copiar valores, meses passados bloqueados, integração com DRE (valores em verde), Dashboard e CFO Digital.
+**Recursos:** Preenchimento por célula, botão Replicar para copiar valores, meses passados bloqueados, integração com DRE (valores em verde), Dashboard e Consultor Financeiro IA.
 
 **Dica:** Projete pelo menos 6 meses à frente usando a média dos últimos 3 meses como base.`
   },
@@ -84,7 +84,7 @@ Ideal para quem quer uma visão rápida da saúde financeira sem se perder nos d
 **Meta ideal:** Taxa de economia de pelo menos 20% da receita líquida.`
   },
   inteligencia: {
-    title: "CFO Digital IA",
+    title: "Consultor Financeiro IA",
     icon: Brain,
     content: `Usa **inteligência artificial** para analisar automaticamente todos os seus dados financeiros e gerar recomendações personalizadas.
 
@@ -170,7 +170,7 @@ const faqItems = [
     a: "Você tem duas opções: 1) **Importar Excel**: Clique em 'Importar Excel', baixe o modelo, preencha com seus dados e faça upload. 2) **Open Finance**: Conecte suas contas bancárias automaticamente via 'Contas Conectadas' no menu."
   },
   {
-    q: "Como funciona o CFO Digital IA?",
+    q: "Como funciona o Consultor Financeiro IA?",
     a: "Acesse **Inteligência** no menu, selecione o período desejado (recomendado: últimos 6-12 meses) e clique em 'Gerar Análise'. A IA analisa seus lançamentos e gera insights, alertas, sugestões e previsões personalizadas com números concretos dos seus dados."
   },
   {
@@ -424,7 +424,7 @@ function AIHighlight() {
               Inteligência Artificial que <span className="text-primary">entende suas finanças</span>
             </motion.h2>
             <motion.p variants={fadeUp} custom={2} className="text-muted-foreground text-lg mb-6">
-              Nosso CFO Digital IA analisa automaticamente todos os seus dados financeiros e gera recomendações personalizadas — como um consultor financeiro que conhece cada detalhe dos seus gastos.
+              Nosso Consultor Financeiro IA analisa automaticamente todos os seus dados financeiros e gera recomendações personalizadas — como um consultor financeiro que conhece cada detalhe dos seus gastos.
             </motion.p>
             <motion.div variants={fadeUp} custom={3} className="space-y-3 mb-8">
               {[
@@ -538,7 +538,7 @@ function HowItWorks() {
   const steps = [
     { num: "01", title: "Lance seus gastos", desc: "Registre manualmente ou conecte suas contas via Open Finance." },
     { num: "02", title: "Planeje o futuro", desc: "Use o Planejador para definir orçamentos e metas por categoria." },
-    { num: "03", title: "Receba análises da IA", desc: "O CFO Digital analisa seus dados e gera recomendações personalizadas." },
+    { num: "03", title: "Receba análises da IA", desc: "O Consultor Financeiro IA analisa seus dados e gera recomendações personalizadas." },
   ];
   return (
     <section id="como-funciona" className="py-24">

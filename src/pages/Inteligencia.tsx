@@ -58,7 +58,7 @@ const PERIOD_OPTIONS = [
 function monthOptions() {
   const opts: { label: string; value: string }[] = [];
   const now = new Date();
-  for (let i = -24; i <= 12; i++) {
+  for (let i = -120; i <= 12; i++) {
     const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
     opts.push({
       label: format(d, 'MMM/yyyy', { locale: ptBR }),
@@ -137,9 +137,15 @@ export default function Inteligencia() {
   const getPeriodDates = () => {
     const now = new Date();
     if (periodType === 'custom') {
+      let pEnd = null;
+      if (customEnd) {
+        const [y, m] = customEnd.split('-');
+        const lastDay = new Date(Number(y), Number(m), 0).getDate();
+        pEnd = `${customEnd}-${String(lastDay).padStart(2, '0')}`;
+      }
       return {
         periodStart: customStart ? customStart + '-01' : null,
-        periodEnd: customEnd ? customEnd + '-28' : null,
+        periodEnd: pEnd,
       };
     }
     const monthsBack = periodType === '3m' ? 3 : periodType === '6m' ? 6 : 12;

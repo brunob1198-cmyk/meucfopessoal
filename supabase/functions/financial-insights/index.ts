@@ -37,7 +37,7 @@ serve(async (req) => {
     // Always fetch broad historical data for pattern recognition (last 12 months of actuals)
     const histStart = (() => {
       const d = new Date();
-      d.setMonth(d.getMonth() - 12);
+      d.setFullYear(d.getFullYear() - 10);
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
     })();
 
@@ -49,7 +49,7 @@ serve(async (req) => {
     })();
 
     const [txRes, catRes, projRes] = await Promise.all([
-      supabase.from("transactions").select("*, categories(name, dre_type, parent_id)").gte("date", histStart).lte("date", filterEnd).order("date"),
+      supabase.from("transactions").select("*, categories(name, dre_type, parent_id)").gte("date", filterStart).lte("date", filterEnd).order("date"),
       supabase.from("categories").select("*").order("sort_order"),
       supabase.from("projections").select("*, categories(name, dre_type, parent_id)").gte("month", histStart).lte("month", filterEnd).order("month"),
     ]);
@@ -241,7 +241,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `Você é um CFO pessoal digital com inteligência avançada em finanças pessoais. Você utiliza:
+            content: `Você é um Consultor Financeiro IA avançado especializado em finanças pessoais. Você utiliza:
 - Reconhecimento de padrões comportamentais (detectar hábitos recorrentes de gasto)
 - Inteligência preditiva (antecipar desvios antes que aconteçam)
 - Personalização profunda (cada análise é única para este usuário)
