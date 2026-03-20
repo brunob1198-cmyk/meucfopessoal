@@ -332,12 +332,7 @@ export default function BalancoPatrimonial() {
     }));
   }, [monthlyProfits]);
 
-  const assetDistribution = useMemo(() => {
-    return Object.entries(ASSET_GROUPS).map(([group, cats]) => {
-      const total = assets.filter(a => (cats as string[]).includes(a.category)).reduce((s, a) => s + Number(a.current_value), 0);
-      return { name: group, value: total };
-    }).filter(d => d.value > 0);
-  }, [assets]);
+
 
   // Alert: passivos > ativos
   const isPassivosExceedAtivos = totalLiabilities > totalAssets;
@@ -553,27 +548,7 @@ export default function BalancoPatrimonial() {
         </Card>
       )}
 
-      {/* Asset Distribution */}
-      {assetDistribution.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Distribuição de Ativos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[200px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={assetDistribution} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis type="number" tickFormatter={v => `${(v / 1000).toFixed(0)}k`} className="text-xs" />
-                  <YAxis type="category" dataKey="name" width={130} className="text-xs" />
-                  <Tooltip formatter={(v: number) => fmt(v)} />
-                  <Bar dataKey="value" fill="hsl(220, 70%, 45%)" radius={[0, 4, 4, 0]} name="Valor" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+
 
       <Tabs defaultValue="ativos" className="space-y-4">
         <TabsList>

@@ -296,9 +296,7 @@ export default function SimuladorFinanceiro() {
 
   const activeProjection = projections.find((p) => p.scenario.id === activeScenario) || projections[0];
 
-  // 4% rule kept as optional reference
-  const annualExpenses = avgMonthlyExpenses * 12 * Math.pow(1 + scenario.expenseGrowth / 100, 10);
-  const independenceTarget = annualExpenses / 0.04;
+
 
   // Find year when coverage reaches 100%
   const independenceYear = useMemo(() => {
@@ -316,16 +314,14 @@ export default function SimuladorFinanceiro() {
     });
   }, [activeProjection]);
 
-  // Progressive goals
   const progressiveGoals = useMemo(() => {
     const reservaEmergencia = avgMonthlyExpenses * 6;
     return [
       { label: 'Reserva de Emergência (6 meses)', target: reservaEmergencia, icon: PiggyBank },
       { label: 'Patrimônio R$ 100K', target: 100_000, icon: Target },
       { label: 'Patrimônio R$ 500K', target: 500_000, icon: TrendingUp },
-      { label: 'Independência (regra 4%)', target: independenceTarget, icon: Award },
     ];
-  }, [avgMonthlyExpenses, independenceTarget]);
+  }, [avgMonthlyExpenses]);
 
   const insights = useMemo(() => {
     const msgs: { icon: typeof Lightbulb; text: string; type: 'info' | 'warning' | 'success' }[] = [];
@@ -691,14 +687,7 @@ export default function SimuladorFinanceiro() {
             </Card>
           )}
 
-          {/* Referência 4% */}
-          <Card className="border-border/30 bg-muted/20">
-            <CardContent className="p-4">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Ref. Regra dos 4%</p>
-              <p className="text-sm font-bold tabular-nums text-muted-foreground">{formatBRL(independenceTarget)}</p>
-              <p className="text-[10px] text-muted-foreground mt-1">Apenas como referência teórica</p>
-            </CardContent>
-          </Card>
+
         </div>
 
         <div className="lg:col-span-2">
