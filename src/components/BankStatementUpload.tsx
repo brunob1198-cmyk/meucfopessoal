@@ -77,8 +77,17 @@ function parseCSV(text: string): { date: string; description: string; amount: nu
       dateStr = rawDate;
     }
     
-    // Parse amount (handle Brazilian format: 1.234,56)
-    const cleanAmount = rawAmount.replace(/\./g, '').replace(',', '.');
+    // Parse amount (handle BR format: 1.234,56 and US format: 1234.56)
+    let cleanAmount = rawAmount;
+    if (rawAmount.includes(',') && rawAmount.includes('.')) {
+      if (rawAmount.lastIndexOf(',') > rawAmount.lastIndexOf('.')) {
+        cleanAmount = rawAmount.replace(/\./g, '').replace(',', '.'); // 1.234,56
+      } else {
+        cleanAmount = rawAmount.replace(/,/g, ''); // 1,234.56
+      }
+    } else if (rawAmount.includes(',')) {
+      cleanAmount = rawAmount.replace(',', '.'); // 1234,56
+    }
     const amount = parseFloat(cleanAmount);
     
     if (dateStr && rawDesc && !isNaN(amount) && amount !== 0) {
@@ -390,7 +399,25 @@ export function BankStatementUpload() {
                 <table className="w-full text-xs">
                   <thead className="bg-muted sticky top-0 z-10">
                     <tr>
-                      <th className="text-left p-2 w-8">✓</th>
+                      <th className="text-left p-2 w-8 text-center" title="Marcar/Desmarcar Todos">
+                        <input
+                          type="checkbox"
+                          className="rounded cursor-pointer"
+                          checked={transactions.length > 0 && transactions.every(t => t.isDuplicate || t.selected)}
+                          ref={el => {
+                            if (el) {
+                              const some = transactions.some(t => t.selected && !t.isDuplicate);
+                              const all = transactions.every(t => t.isDuplicate || t.selected);
+                              if (some && !all) el.indeterminate = true;
+                              else el.indeterminate = false;
+                            }
+                          }}
+                          onChange={(e) => {
+                            const isChecked = e.target.checked;
+                            setTransactions(prev => prev.map(t => t.isDuplicate ? t : { ...t, selected: isChecked }));
+                          }}
+                        />
+                      </th>
                       <th className="text-left p-2">Data</th>
                       <th className="text-left p-2">Descrição</th>
                       <th className="text-left p-2">Tipo</th>

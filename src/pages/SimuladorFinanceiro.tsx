@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress';
 import { useAssets, useLiabilities } from '@/hooks/useBalanceSheet';
 import { useDREIntegration } from '@/hooks/useDREIntegration';
+import { useTransactions } from '@/hooks/useTransactions';
 import { formatBRL } from '@/lib/dre';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -186,6 +187,7 @@ export default function SimuladorFinanceiro() {
   const { data: assets = [] } = useAssets();
   const { data: liabilities = [] } = useLiabilities();
   const dreData = useDREIntegration();
+  const { data: transactions = [] } = useTransactions();
 
   const totalAssets = assets.reduce((s, a) => s + Number(a.current_value), 0);
   const totalLiabilities = liabilities.reduce((s, l) => s + Number(l.current_balance), 0);
@@ -205,11 +207,29 @@ export default function SimuladorFinanceiro() {
 
   // Current coverage
   const currentRendaPassiva = useMemo(() => {
-    // Estimate passive income from invested assets at conservative 8% annual
+    // 1. Estimate passive income from invested assets at conservative 8% annual
     const investedAssets = assets.filter(a => ['renda_fixa', 'acoes', 'fundos', 'criptomoedas'].includes(a.category));
     const totalInvested = investedAssets.reduce((s, a) => s + Number(a.current_value), 0);
-    return (totalInvested * 0.08) / 12;
-  }, [assets]);
+    const assetIncome = (totalInvested * 0.08) / 12;
+
+    // 2. Add real passive income from transactions (receitas with specific keywords like aluguéis, rendimentos)
+    const passiveTxs = (transactions as any[]).filter((t: any) => 
+      t.categories?.dre_type === 'receita' && 
+      ['alug', 'rendimento', 'dividendo', 'juro', 'passiv'].some((kw: string) => t.categories?.name.toLowerCase().includes(kw))
+    );
+    
+    // Calculate the average real passive income over the last 12 months
+    let realPassiveIncomeAvg = 0;
+    if (passiveTxs.length > 0) {
+      const now = new Date();
+      const twelveMonthsAgoStr = `${now.getFullYear() - 1}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      const lastYearTxs = passiveTxs.filter((t: any) => t.date.substring(0, 7) >= twelveMonthsAgoStr);
+      const totalLastYear = lastYearTxs.reduce((sum: number, t: any) => sum + Number(t.amount), 0);
+      realPassiveIncomeAvg = totalLastYear / 12;
+    }
+
+    return assetIncome + realPassiveIncomeAvg;
+  }, [assets, transactions]);
 
   const currentCoverage = avgMonthlyExpenses > 0 ? (currentRendaPassiva / avgMonthlyExpenses) * 100 : 0;
   const coverageLevel = getCoverageLevel(currentCoverage);

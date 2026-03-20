@@ -69,16 +69,17 @@ Ao lado de cada subcategoria, você encontra ícones de ação:
 - **🗑️ Lixeira**: Exclui a categoria pai, **todas** as subcategorias dentro dela e **todos** os lançamentos vinculados. Ação irreversível.
 - **Expandir/Recolher**: Clique no nome da categoria para mostrar ou ocultar suas subcategorias.`,
 
-      `### Importação via Excel
+      `### Importação via Excel / Extrato Bancário
 Para importar múltiplos lançamentos de uma vez:
 1. Clique em **"Importar Excel"** no canto superior direito.
 2. **Baixe o modelo** clicando no link disponibilizado — ele já vem com o formato correto e uma aba com os nomes das categorias.
 3. Preencha a planilha com:
    - **Data**: formato dd/mm/aaaa (ex: 05/03/2026)
    - **Categoria**: nome **exato** da subcategoria (ex: "Combustível", não "combustível" ou "Combustivel")
-   - **Valor**: número (ex: 650.00)
+   - **Valor**: número (ex: 650.00). Nosso sistema entende pontos (ex: 150.00) e vírgulas automaticamente!
    - **Comentário**: texto livre (opcional)
-4. Faça upload do arquivo preenchido. O sistema valida os dados e importa tudo de uma vez.
+4. Faça upload do arquivo preenchido. O sistema valida os dados e exibe a tela de revisão.
+5. **Novidade:** Na tela de revisão, use a caixa de seleção **"Marcar/Desmarcar todos"** para aprovar lançamentos em massa.
 
 **Dica:** Consulte a aba "Categorias" do modelo para copiar os nomes exatos e evitar erros de digitação.`,
 
@@ -117,10 +118,11 @@ O relatório segue esta ordem fixa:
 
 **Exemplo:** Se sua Receita Bruta é R$ 10.000, Descontos R$ 2.500, Custos R$ 200, Despesas R$ 5.800 → EBITDA = R$ 1.500. Isso significa que você gerou R$ 1.500 de caixa no mês.`,
 
-      `### Como usar o filtro de período
+      `### Como usar o filtro de período e Expansão Semanal
 - No topo da tela, selecione o **mês inicial** e o **mês final**.
 - A tabela mostra uma **coluna por mês** dentro do intervalo selecionado.
 - Para ver o ano inteiro, selecione Jan a Dez do ano desejado.
+- **NOVIDADE (Visão Semanal):** Caso queira olhar o detalhamento de perto, passe o mouse e clique no botão de seta ">" ao lado do título de cada mês. Ele vai expandir abrindo 5 subcolunas (S1 a S5) e distribuirá todos os lançamentos em suas respectivas semanas.
 - **Dica:** Para análise de tendência, use pelo menos 6 meses consecutivos.`,
 
       `### Navegação na tabela
@@ -433,6 +435,7 @@ Para realizar uma simulação precisa, configure os seguintes pilares:
 - O que preencher: Escolha o horizonte de tempo (ex: 12 meses, 5 anos, 10 anos).`,
 
       `### O que o sistema entrega
+- **Taxa de Cobertura Inteligente**: O sistema integra os valores do seu Balanço Patrimonial **E DE SUAS TRANSAÇÕES** reais (aluguéis e rendimentos). Isso consolida a Taxa de Cobertura de forma muito mais precisa ao mês real!
 - **Gráfico de Evolução**: Uma linha que mostra o crescimento (ou diminuição) do seu saldo e patrimônio ao longo do tempo.
 - **Análise de Sustentabilidade**: O sistema indica se, com base nos gastos atuais e rentabilidade, seus investimentos serão suficientes para cobrir seu custo de vida no futuro (independência financeira).
 - **Comparação de Cenários**: Você pode criar um "Cenário Otimista" (ganhando mais e gastando menos) e um "Cenário Conservador" para comparar os resultados.

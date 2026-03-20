@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Fragment } from 'react';
 import { parseLocalDate } from '@/lib/utils';
 import { useTransactions, useUpdateTransaction, useDeleteTransaction, useCreateTransaction } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
@@ -22,6 +22,7 @@ interface MonthData {
   month: string;
   lines: DRELine[];
   isProjected: boolean;
+  weeklyLines?: DRELine[][];
 }
 
 export default function DREDetalhado() {
@@ -72,7 +73,17 @@ export default function DREDetalhado() {
         }));
         return { month: m, lines: computeDRE([...projTx, ...monthTx], categories), isProjected: true };
       }
-      return { month: m, lines: computeDRE(monthTx as any, categories), isProjected: false };
+      
+      const weeklyTx: any[][] = Array.from({ length: 5 }, () => []);
+      monthTx.forEach((t: any) => {
+        const date = parseLocalDate(t.date);
+        const day = date.getDate();
+        const weekIdx = Math.min(Math.floor((day - 1) / 7), 4);
+        weeklyTx[weekIdx].push(t);
+      });
+      const weeklyLines = weeklyTx.map(txs => computeDRE(txs, categories));
+
+      return { month: m, lines: computeDRE(monthTx as any, categories), isProjected: false, weeklyLines };
     });
   }, [transactions, categories, projections, months, currentMonthEnd]);
 
@@ -100,6 +111,16 @@ export default function DREDetalhado() {
     } catch {}
     return false;
   });
+
+  const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set());
+  const toggleMonthWeeks = (month: string) => {
+    setExpandedWeeks(prev => {
+      const next = new Set(prev);
+      if (next.has(month)) next.delete(month);
+      else next.add(month);
+      return next;
+    });
+  };
 
   const persistExpanded = (groups: Set<string>, all: boolean) => {
     localStorage.setItem('dre-detalhado-expanded', JSON.stringify([...groups]));
@@ -208,12 +229,36 @@ export default function DREDetalhado() {
                 <thead className="sticky top-0 z-10">
                   <tr className="bg-[hsl(var(--table-total-bg))] text-[hsl(var(--table-total-fg))]">
                     <th className="text-left py-2.5 px-3 font-semibold min-w-[220px] sticky left-0 bg-[hsl(var(--table-total-bg))] z-20">Descrição</th>
-                    {monthsData.map((md) =>
-                  <th key={md.month} className={cn('text-right py-2.5 px-3 font-semibold min-w-[110px] capitalize', md.isProjected && 'text-sky-300')}>
-                        {format(filter.parseMonth(md.month), 'MMM/yy', { locale: ptBR })}
-                        {md.isProjected && <span className="block text-[9px] font-normal opacity-70">projetado</span>}
-                      </th>
-                  )}
+                    {monthsData.map((md) => {
+                      const label = format(filter.parseMonth(md.month), 'MMM/yy', { locale: ptBR });
+                      if (expandedWeeks.has(md.month) && md.weeklyLines) {
+                        return (
+                          <Fragment key={md.month}>
+                            {[1, 2, 3, 4, 5].map(w => (
+                              <th key={`${md.month}-w${w}`} className="text-right py-2.5 px-3 font-normal min-w-[90px] text-muted-foreground/80 bg-[hsl(var(--table-total-bg))]/60 text-xs">
+                                S{w}
+                              </th>
+                            ))}
+                            <th className={cn('text-right py-2.5 px-3 font-semibold min-w-[110px] capitalize bg-[hsl(var(--table-total-bg))] border-l border-border/50', md.isProjected && 'text-sky-300')}>
+                              Total
+                              <button onClick={() => toggleMonthWeeks(md.month)} className="ml-2 hover:text-primary"><ChevronRight className="inline h-3 w-3 -rotate-180" /></button>
+                              {md.isProjected && <span className="block text-[9px] font-normal opacity-70">projetado</span>}
+                            </th>
+                          </Fragment>
+                        );
+                      }
+                      return (
+                        <th key={md.month} className={cn('text-right py-2.5 px-3 font-semibold min-w-[110px] capitalize group', md.isProjected && 'text-sky-300')}>
+                          {label}
+                          {md.isProjected && <span className="block text-[9px] font-normal opacity-70">projetado</span>}
+                          {!md.isProjected && (
+                            <button onClick={() => toggleMonthWeeks(md.month)} className="ml-1 opacity-0 group-hover:opacity-100 hover:text-primary transition-opacity" title="Expandir Semanas">
+                              <ChevronRight className="inline h-3 w-3" />
+                            </button>
+                          )}
+                        </th>
+                      );
+                    })}
                   </tr>
                 </thead>
                 <tbody>
@@ -241,20 +286,36 @@ export default function DREDetalhado() {
                         const line = md.lines[rowIdx];
                         const val = line?.value ?? 0;
                         const isMargem = row.type === 'margem';
-                        return (
-                          <td key={md.month} className={cn('text-right py-2 px-3 tabular-nums relative group/cell', md.isProjected && !row.isTotal && !row.isGroupHeader && 'text-emerald-600', val < 0 && 'text-destructive')}>
-                              {line ? isMargem ? `${val.toFixed(1)}%` : formatBRL(val) : '-'}
-                              {row.isSubcategory && row.categoryId &&
-                            <button
-                              onClick={() => setAuditCategory({ id: row.categoryId!, name: row.label, month: md.month })}
-                              className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-muted opacity-0 group-hover/cell:opacity-100 transition-opacity"
-                              title={`Ver lançamentos de ${format(filter.parseMonth(md.month), 'MMM/yy', { locale: ptBR })}`}>
-                              
-                                  <Search className="h-3 w-3 text-muted-foreground" />
-                                </button>
-                            }
-                            </td>);
 
+                        const renderCell = (v: number, key: string, extraClasses: string = '', content?: React.ReactNode) => (
+                          <td key={key} className={cn('text-right py-2 px-3 tabular-nums relative group/cell', extraClasses, md.isProjected && !row.isTotal && !row.isGroupHeader && 'text-emerald-600', v < 0 && 'text-destructive')}>
+                              {line ? isMargem ? `${v.toFixed(1)}%` : formatBRL(v) : '-'}
+                              {content}
+                          </td>
+                        );
+
+                        const inspectButton = row.isSubcategory && row.categoryId ? (
+                          <button
+                            onClick={() => setAuditCategory({ id: row.categoryId!, name: row.label, month: md.month })}
+                            className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-muted opacity-0 group-hover/cell:opacity-100 transition-opacity"
+                            title={`Ver lançamentos de ${format(filter.parseMonth(md.month), 'MMM/yy', { locale: ptBR })}`}>
+                            <Search className="h-3 w-3 text-muted-foreground" />
+                          </button>
+                        ) : null;
+
+                        if (expandedWeeks.has(md.month) && md.weeklyLines) {
+                          return (
+                            <Fragment key={md.month}>
+                              {md.weeklyLines.map((wLineArr, wIdx) => {
+                                const wVal = wLineArr[rowIdx]?.value ?? 0;
+                                return renderCell(wVal, `${md.month}-w${wIdx}`, 'text-muted-foreground/80 bg-muted/5 text-xs opacity-70');
+                              })}
+                              {renderCell(val, `${md.month}-total`, 'font-medium bg-muted/20 border-l border-border/50', inspectButton)}
+                            </Fragment>
+                          );
+                        }
+
+                        return renderCell(val, md.month, '', inspectButton);
                       })}
                       </tr>);
 
