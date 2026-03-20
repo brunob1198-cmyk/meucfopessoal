@@ -298,13 +298,6 @@ function FreedomSimulator() {
         target: (gastos * 0.1 * 12) / rendAnual,
         icon: "📈",
       },
-      {
-        name: "Independência Total",
-        desc: "Investimentos pagam 100% das despesas (regra dos 4%)",
-        reached: percentual >= 100,
-        target: independenciaTarget,
-        icon: "🏆",
-      },
     ];
 
     // Progressive milestones
@@ -312,14 +305,12 @@ function FreedomSimulator() {
       { label: "Reserva de emergência", target: gastos * 6, reached: patrimonio >= gastos * 6 },
       { label: "Patrimônio financeiro", target: 100000, reached: patrimonio >= 100000 },
       { label: "Patrimônio investido", target: 500000, reached: patrimonio >= 500000 },
-      { label: "Independência financeira", target: independenciaTarget, reached: patrimonio >= independenciaTarget },
     ];
 
     // Projections: how long to reach each level
     const projecoes: { label: string; anos: number }[] = [];
     const targets = [
       { label: "50% de liberdade financeira", target: (gastos * 0.5 * 12) / rendAnual },
-      { label: "Independência total (100%)", target: independenciaTarget },
     ];
 
     for (const t of targets) {

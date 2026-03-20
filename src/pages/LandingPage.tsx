@@ -458,7 +458,7 @@ function Showcase() {
     { src: imgDashboard, title: "Dashboard Financeiro", desc: "Visão completa com gráficos e KPIs" },
     { src: imgPatrimonio, title: "Gráfico de Patrimônio", desc: "Evolução patrimonial ao longo do tempo" },
     { src: imgHealthScore, title: "Score de Saúde Financeira", desc: "Nota de 0 a 100 com 5 pilares" },
-    { src: imgWealthMap, title: "Mapa da Riqueza", desc: "Distribuição de ativos e investimentos" },
+    { src: imgWealthMap, title: "Mapa da Riqueza", desc: "Acompanhe a valorização do seu patrimônio." },
     { src: imgTimeline, title: "Timeline de Gastos", desc: "Todas as atividades em ordem cronológica" },
   ];
 
