@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, UserPlus, Trash2, Check, X, Crown, User, Save } from 'lucide-react';
+import { AvatarUpload } from '@/components/AvatarUpload';
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Pendente',
@@ -145,6 +146,10 @@ export default function Perfil() {
             <Loader2 className="h-5 w-5 animate-spin mx-auto" />
           ) : (
             <>
+              <div className="flex flex-col items-center sm:items-start mb-6">
+                <span className="text-sm font-medium mb-3 text-muted-foreground">Foto de Perfil</span>
+                <AvatarUpload />
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="displayName">Nome de Exibição</Label>
