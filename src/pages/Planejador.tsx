@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
+import { SuggestPlannerDialog } from '@/components/SuggestPlannerDialog';
 
 const STORAGE_KEY = 'planejador-expanded-groups';
 const REPLICATE_STORAGE_KEY = 'planejador-replicate-period';
@@ -371,6 +372,12 @@ export default function Planejador() {
             onStartChange={filter.setStartMonth}
             onEndChange={filter.setEndMonth}
             onYearClick={() => filter.setFullYear()}
+          />
+          <SuggestPlannerDialog 
+            tree={tree} 
+            availableMonths={months.filter(isMonthEditable)} 
+            setDraftValue={setDraftValue} 
+            setDraftNotesValue={setDraftNotesValue} 
           />
           <Button onClick={handleSave} disabled={!isDirty || replicate.isPending} className="gap-1.5" size="sm">
             {replicate.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
