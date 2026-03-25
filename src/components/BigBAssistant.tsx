@@ -279,7 +279,7 @@ export function BigBAssistant() {
           {/* Proactive alerts bar */}
           {hasAlerts && (
             <div className="border-b border-border bg-muted/30 px-3 py-2 space-y-1.5 max-h-[120px] overflow-y-auto">
-              {activeAlerts.map((alert, i) => (
+              {alerts.map((alert, i) => (
                 <div
                   key={i}
                   className={`flex items-start gap-2 text-[11px] rounded-lg px-2.5 py-1.5 ${
