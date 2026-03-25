@@ -290,7 +290,7 @@ export function BigBAssistant() {
                 >
                   <span className="flex-1 leading-tight">{alert.message}</span>
                   <button
-                    onClick={() => { setDismissedAlertCount(prev => prev + 1); }}
+                    onClick={() => dismissAlert(i)}
                     className="shrink-0 opacity-60 hover:opacity-100"
                   >
                     <X className="h-3 w-3" />
