@@ -4,6 +4,7 @@ import bigbAvatar from '@/assets/bigb-avatar.png';
 import { Button } from '@/components/ui/button';
 import ReactMarkdown from 'react-markdown';
 import { useProactiveAlerts } from '@/hooks/useProactiveAlerts';
+import { supabase } from '@/integrations/supabase/client';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
@@ -18,11 +19,16 @@ async function streamChat({
   onDelta: (text: string) => void;
   onDone: () => void;
 }) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) throw new Error('Você precisa estar logado para usar o assistente.');
+
   const resp = await fetch(CHAT_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      Authorization: `Bearer ${token}`,
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
     },
     body: JSON.stringify({ messages, mode: 'chat' }),
   });
@@ -87,13 +93,13 @@ export function BigBAssistant() {
   const [isLoading, setIsLoading] = useState(false);
   const { alerts, dismissAlert } = useProactiveAlerts();
   const [showAlertBubble, setShowAlertBubble] = useState(false);
-  const [dismissedAlertCount, setDismissedAlertCount] = useState(0);
 
-  // Show alert bubble when new alerts arrive
+  // Show alert bubble only when alerts first arrive
   useEffect(() => {
     if (alerts.length > 0 && !open) {
       setShowAlertBubble(true);
-      setDismissedAlertCount(0);
+    } else if (alerts.length === 0) {
+      setShowAlertBubble(false);
     }
   }, [alerts.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -194,8 +200,7 @@ export function BigBAssistant() {
     }
   };
 
-  const activeAlerts = alerts.slice(dismissedAlertCount);
-  const hasAlerts = activeAlerts.length > 0;
+  const hasAlerts = alerts.length > 0;
 
   return (
     <>
@@ -220,7 +225,7 @@ export function BigBAssistant() {
               <div className="relative bg-destructive/10 border border-destructive/30 rounded-lg px-2.5 py-1.5 shadow-sm max-w-[110px]">
                 <span className="text-[10px] font-medium text-destructive whitespace-nowrap leading-none flex items-center gap-1">
                   <AlertTriangle className="h-3 w-3 shrink-0" />
-                  {activeAlerts.length} alerta{activeAlerts.length > 1 ? 's' : ''}!
+                  {alerts.length} alerta{alerts.length > 1 ? 's' : ''}!
                 </span>
                 <div className="absolute top-1/2 -translate-y-1/2 -right-[5px] w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent border-l-[5px] border-l-destructive/30"></div>
               </div>
@@ -263,7 +268,7 @@ export function BigBAssistant() {
             {hasAlerts && (
               <div className="flex items-center gap-1 bg-primary-foreground/20 rounded-full px-2 py-0.5">
                 <Bell className="h-3 w-3" />
-                <span className="text-[10px] font-bold">{activeAlerts.length}</span>
+                <span className="text-[10px] font-bold">{alerts.length}</span>
               </div>
             )}
             <button onClick={() => setOpen(false)} className="p-1 hover:bg-primary-foreground/20 rounded-full transition-colors">
@@ -274,7 +279,7 @@ export function BigBAssistant() {
           {/* Proactive alerts bar */}
           {hasAlerts && (
             <div className="border-b border-border bg-muted/30 px-3 py-2 space-y-1.5 max-h-[120px] overflow-y-auto">
-              {activeAlerts.map((alert, i) => (
+              {alerts.map((alert, i) => (
                 <div
                   key={i}
                   className={`flex items-start gap-2 text-[11px] rounded-lg px-2.5 py-1.5 ${
@@ -285,7 +290,7 @@ export function BigBAssistant() {
                 >
                   <span className="flex-1 leading-tight">{alert.message}</span>
                   <button
-                    onClick={() => { setDismissedAlertCount(prev => prev + 1); }}
+                    onClick={() => dismissAlert(i)}
                     className="shrink-0 opacity-60 hover:opacity-100"
                   >
                     <X className="h-3 w-3" />
