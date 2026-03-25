@@ -200,7 +200,7 @@ export function BigBAssistant() {
     }
   };
 
-  const activeAlerts = alerts.slice(dismissedAlertCount);
+  const hasAlerts = alerts.length > 0;
   const hasAlerts = activeAlerts.length > 0;
 
   return (
