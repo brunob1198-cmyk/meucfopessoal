@@ -201,7 +201,6 @@ export function BigBAssistant() {
   };
 
   const hasAlerts = alerts.length > 0;
-  const hasAlerts = activeAlerts.length > 0;
 
   return (
     <>
