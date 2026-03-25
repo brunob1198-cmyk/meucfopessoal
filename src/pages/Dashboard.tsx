@@ -15,6 +15,7 @@ import { Loader2, TrendingUp, TrendingDown, DollarSign, ImageDown, Wallet, BarCh
 import { ExportMenu } from '@/components/ExportMenu';
 import { FinancialTimeline } from '@/components/FinancialTimeline';
 import { exportChartAsPNG } from '@/lib/exportChart';
+import { ProactiveAlertsCard } from '@/components/ProactiveAlertsCard';
 import { Button } from '@/components/ui/button';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
@@ -281,6 +282,9 @@ export default function Dashboard() {
           </motion.div>
         )}
       </div>
+
+      {/* Proactive Alerts from Big B */}
+      <ProactiveAlertsCard />
 
       {/* Score + Timeline side by side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
