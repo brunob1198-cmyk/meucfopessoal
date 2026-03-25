@@ -268,7 +268,7 @@ export function BigBAssistant() {
             {hasAlerts && (
               <div className="flex items-center gap-1 bg-primary-foreground/20 rounded-full px-2 py-0.5">
                 <Bell className="h-3 w-3" />
-                <span className="text-[10px] font-bold">{activeAlerts.length}</span>
+                <span className="text-[10px] font-bold">{alerts.length}</span>
               </div>
             )}
             <button onClick={() => setOpen(false)} className="p-1 hover:bg-primary-foreground/20 rounded-full transition-colors">
