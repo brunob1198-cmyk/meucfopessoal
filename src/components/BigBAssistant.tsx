@@ -93,13 +93,13 @@ export function BigBAssistant() {
   const [isLoading, setIsLoading] = useState(false);
   const { alerts, dismissAlert } = useProactiveAlerts();
   const [showAlertBubble, setShowAlertBubble] = useState(false);
-  const [dismissedAlertCount, setDismissedAlertCount] = useState(0);
 
-  // Show alert bubble when new alerts arrive
+  // Show alert bubble only when alerts first arrive
   useEffect(() => {
     if (alerts.length > 0 && !open) {
       setShowAlertBubble(true);
-      setDismissedAlertCount(0);
+    } else if (alerts.length === 0) {
+      setShowAlertBubble(false);
     }
   }, [alerts.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
