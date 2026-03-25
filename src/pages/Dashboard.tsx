@@ -15,6 +15,7 @@ import { Loader2, TrendingUp, TrendingDown, DollarSign, ImageDown, Wallet, BarCh
 import { ExportMenu } from '@/components/ExportMenu';
 import { FinancialTimeline } from '@/components/FinancialTimeline';
 import { exportChartAsPNG } from '@/lib/exportChart';
+import { ProactiveAlertsCard } from '@/components/ProactiveAlertsCard';
 import { Button } from '@/components/ui/button';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
