@@ -225,7 +225,7 @@ export function BigBAssistant() {
               <div className="relative bg-destructive/10 border border-destructive/30 rounded-lg px-2.5 py-1.5 shadow-sm max-w-[110px]">
                 <span className="text-[10px] font-medium text-destructive whitespace-nowrap leading-none flex items-center gap-1">
                   <AlertTriangle className="h-3 w-3 shrink-0" />
-                  {activeAlerts.length} alerta{activeAlerts.length > 1 ? 's' : ''}!
+                  {alerts.length} alerta{alerts.length > 1 ? 's' : ''}!
                 </span>
                 <div className="absolute top-1/2 -translate-y-1/2 -right-[5px] w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent border-l-[5px] border-l-destructive/30"></div>
               </div>
