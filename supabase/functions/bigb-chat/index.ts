@@ -38,10 +38,10 @@ serve(async (req) => {
     // Fetch user financial data in parallel
     const [txRes, catRes, projRes, dreamsRes, profileRes, assetsRes, liabilitiesRes, healthRes] = await Promise.all([
       supabase.from("transactions").select("*, categories(name, dre_type, parent_id)")
-        .gte("date", sixMonthsAgo).lte("date", endOfMonth).order("date"),
+        .gte("date", twelveMonthsAgo).lte("date", endOfMonth).order("date"),
       supabase.from("categories").select("*").order("sort_order"),
       supabase.from("projections").select("*, categories(name, dre_type, parent_id)")
-        .gte("month", sixMonthsAgo).lte("month", endOfMonth).order("month"),
+        .gte("month", twelveMonthsAgo).lte("month", endOfMonth).order("month"),
       supabase.from("financial_dreams").select("*"),
       supabase.from("profiles").select("display_name, profession, birth_date, gender").eq("user_id", user.id).single(),
       supabase.from("balance_sheet_assets").select("*"),
