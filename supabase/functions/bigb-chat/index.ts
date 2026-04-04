@@ -121,7 +121,7 @@ serve(async (req) => {
     financialContext += `Data atual: ${now.toISOString().split("T")[0]}\n\n`;
 
     // Monthly summary
-    financialContext += `═══ RESUMO MENSAL (últimos 6 meses) ═══\n`;
+    financialContext += `═══ RESUMO MENSAL (últimos 12 meses) ═══\n`;
     for (const m of sortedMonths) {
       const d = monthlyData[m];
       const liquido = d.receita - d.desconto - d.custo - d.despesa;
