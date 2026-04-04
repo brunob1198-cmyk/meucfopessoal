@@ -36,21 +36,28 @@ serve(async (req) => {
     const endOfMonth = `${currentMonth}-31`;
 
     // Fetch user financial data in parallel
-    const [txRes, catRes, projRes, dreamsRes, profileRes] = await Promise.all([
+    const [txRes, catRes, projRes, dreamsRes, profileRes, assetsRes, liabilitiesRes, healthRes] = await Promise.all([
       supabase.from("transactions").select("*, categories(name, dre_type, parent_id)")
         .gte("date", sixMonthsAgo).lte("date", endOfMonth).order("date"),
       supabase.from("categories").select("*").order("sort_order"),
       supabase.from("projections").select("*, categories(name, dre_type, parent_id)")
         .gte("month", sixMonthsAgo).lte("month", endOfMonth).order("month"),
       supabase.from("financial_dreams").select("*"),
-      supabase.from("profiles").select("display_name").eq("user_id", user.id).single(),
+      supabase.from("profiles").select("display_name, profession, birth_date, gender").eq("user_id", user.id).single(),
+      supabase.from("balance_sheet_assets").select("*"),
+      supabase.from("balance_sheet_liabilities").select("*"),
+      supabase.from("financial_health_history").select("*").order("month", { ascending: false }).limit(6),
     ]);
 
     const transactions = txRes.data || [];
     const categories = catRes.data || [];
     const projections = projRes.data || [];
     const dreams = dreamsRes.data || [];
-    const userName = profileRes.data?.display_name || "usuário";
+    const profile = profileRes.data;
+    const userName = profile?.display_name || "usuário";
+    const assets = assetsRes.data || [];
+    const liabilities = liabilitiesRes.data || [];
+    const healthHistory = healthRes.data || [];
 
     // Build monthly summaries
     const monthlyData: Record<string, { receita: number; despesa: number; custo: number; desconto: number }> = {};
@@ -347,66 +354,169 @@ serve(async (req) => {
       }
     }
 
-    const systemPrompt = `Você é o Big B, um CFO pessoal inteligente e proativo dentro do app MeuCFO Pessoal.
+    // Balance sheet context
+    let balanceContext = "\n═══ PATRIMÔNIO (BALANÇO PATRIMONIAL) ═══\n";
+    const totalAssets = assets.reduce((s, a) => s + Number(a.current_value), 0);
+    const totalLiabilities = liabilities.reduce((s, l) => s + Number(l.current_balance), 0);
+    const netWorth = totalAssets - totalLiabilities;
+    balanceContext += `Ativos totais: R$${totalAssets.toFixed(0)}\n`;
+    balanceContext += `Passivos totais: R$${totalLiabilities.toFixed(0)}\n`;
+    balanceContext += `Patrimônio líquido: R$${netWorth.toFixed(0)}\n`;
+    if (assets.length > 0) {
+      balanceContext += `\nAtivos:\n`;
+      for (const a of assets) balanceContext += `- ${a.name} (${a.category}): R$${Number(a.current_value).toFixed(0)}\n`;
+    }
+    if (liabilities.length > 0) {
+      balanceContext += `\nPassivos:\n`;
+      for (const l of liabilities) {
+        balanceContext += `- ${l.name} (${l.category}): Saldo R$${Number(l.current_balance).toFixed(0)}`;
+        if (l.monthly_payment) balanceContext += ` | Parcela R$${Number(l.monthly_payment).toFixed(0)}`;
+        if (l.interest_rate) balanceContext += ` | Juros ${Number(l.interest_rate).toFixed(1)}%`;
+        balanceContext += `\n`;
+      }
+    }
 
-SEU PAPEL: Analista financeiro avançado com capacidade de análise comportamental, previsão e recomendação personalizada.
+    // Debt risk analysis
+    let debtRiskContext = "\n═══ ANÁLISE DE RISCO DE ENDIVIDAMENTO ═══\n";
+    const monthlyDebtPayments = liabilities.reduce((s, l) => s + Number(l.monthly_payment || 0), 0);
+    const lastMonthReceita = sortedMonths.length > 0 ? monthlyData[sortedMonths[sortedMonths.length - 1]]?.receita || 0 : 0;
+    if (lastMonthReceita > 0) {
+      const debtRatio = (monthlyDebtPayments / lastMonthReceita) * 100;
+      debtRiskContext += `Comprometimento com dívidas: ${debtRatio.toFixed(0)}% da receita (R$${monthlyDebtPayments.toFixed(0)}/mês)\n`;
+      if (debtRatio > 30) debtRiskContext += `⚠️ RISCO ALTO: Comprometimento acima de 30%!\n`;
+      else if (debtRatio > 20) debtRiskContext += `⚠️ ATENÇÃO: Comprometimento entre 20-30%\n`;
+      else debtRiskContext += `✅ Nível saudável de endividamento\n`;
+    }
+    if (totalAssets > 0) {
+      const leverageRatio = totalLiabilities / totalAssets;
+      debtRiskContext += `Alavancagem: ${(leverageRatio * 100).toFixed(0)}% (passivos/ativos)\n`;
+    }
 
-CONTEXTO FINANCEIRO REAL DO USUÁRIO (${userName}):
+    // Health score history
+    let healthContext = "\n═══ HISTÓRICO DE SAÚDE FINANCEIRA ═══\n";
+    if (healthHistory.length > 0) {
+      for (const h of healthHistory) {
+        healthContext += `${h.month}: Score ${h.total_score}/100 (Liq:${h.liquidity_score} Gastos:${h.expense_control_score} Dív:${h.indebtedness_score} Res:${h.emergency_reserve_score} Poup:${h.savings_capacity_score})\n`;
+      }
+    } else {
+      healthContext += "Sem histórico registrado.\n";
+    }
+
+    // Profile context for benchmarks
+    let profileContext = "\n═══ PERFIL DO USUÁRIO ═══\n";
+    profileContext += `Nome: ${userName}\n`;
+    if (profile?.profession) profileContext += `Profissão: ${profile.profession}\n`;
+    if (profile?.birth_date) {
+      const age = Math.floor((now.getTime() - new Date(profile.birth_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+      profileContext += `Idade: ${age} anos\n`;
+    }
+
+    // Month-over-month change analysis
+    let momContext = "\n═══ MUDANÇAS DE COMPORTAMENTO ═══\n";
+    if (sortedMonths.length >= 2) {
+      for (let i = 1; i < sortedMonths.length; i++) {
+        const prev = monthlyData[sortedMonths[i - 1]];
+        const curr = monthlyData[sortedMonths[i]];
+        const prevGasto = prev.despesa + prev.custo;
+        const currGasto = curr.despesa + curr.custo;
+        if (prevGasto > 0) {
+          const change = ((currGasto - prevGasto) / prevGasto) * 100;
+          if (Math.abs(change) > 15) {
+            momContext += `${sortedMonths[i]}: gastos ${change > 0 ? "+" : ""}${change.toFixed(0)}% vs mês anterior\n`;
+          }
+        }
+      }
+    }
+
+    const systemPrompt = `Você é o Big B, um CFO pessoal inteligente, proativo e adaptativo dentro do app MeuCFO Pessoal.
+
+SEU PAPEL: Sistema financeiro avançado que aprende, analisa, prevê e orienta. Você NÃO é um chatbot — é um analista que cuida da vida financeira do usuário de forma ativa e contínua.
+
+DADOS FINANCEIROS REAIS DO USUÁRIO (${userName}):
 ${financialContext}
 ${predictionContext}
 ${scoreContext}
 ${behaviorContext}
+${balanceContext}
+${debtRiskContext}
+${healthContext}
+${profileContext}
+${momContext}
 
-══════════════════════════════════════
-🎯 COMO AGIR (NÍVEL 2 — CFO PESSOAL)
-══════════════════════════════════════
+══════════════════════════════════════════════
+🎯 COMO AGIR (NÍVEL 3 — CFO ADAPTATIVO)
+══════════════════════════════════════════════
 
-1. ANÁLISE DE DADOS (OBRIGATÓRIO em toda resposta):
+1. ANÁLISE DE DADOS (OBRIGATÓRIO):
    - Receitas vs despesas com valores concretos
    - Evolução mensal comparativa
-   - Categorias e subcategorias relevantes
    - Orçamento vs realizado (% de aderência)
    - Padrões de consumo por dia da semana
+   - Patrimônio e endividamento
 
-2. PREVISÃO (OBRIGATÓRIO):
-   - Gasto total projetado até o fim do mês
+2. PREVISÃO AVANÇADA (OBRIGATÓRIO):
+   - Saldo projetado no fim do mês
    - Categorias que irão estourar o orçamento
-   - Saldo projetado
+   - Risco de endividamento (use dados de passivos)
+   - Tendência de crescimento ou queda patrimonial
    Formato: "Se você continuar nesse ritmo, seu gasto total será de R$ X, ultrapassando seu planejamento em Y%."
 
-3. SCORE FINANCEIRO (use os dados do Score acima):
-   - Apresente o score calculado (0-100)
-   - Explique cada componente e o motivo do score
-   - Compare com o mês anterior quando possível
+3. SCORE FINANCEIRO (use dados calculados):
+   - Apresente score (0-100) com explicação de cada pilar
+   - Compare com histórico de meses anteriores
+   - Identifique tendência do score (melhorando/piorando)
 
-4. ALERTAS PROATIVOS:
-   - Categoria > 80% do orçamento → alerta imediato
-   - Crescimento > 20% vs mês anterior → destaque
-   - Saldo projetado negativo → alerta crítico
-   - Padrão de risco detectado → aviso preventivo
+4. BENCHMARK — COMPARAÇÃO (IMPORTANTE):
+   Compare o usuário com padrões financeiros típicos:
+   - Regra 50/30/20 (necessidades/desejos/poupança)
+   - Comprometimento de renda com dívidas (ideal < 30%)
+   - Taxa de poupança (ideal > 20%)
+   - Reserva de emergência (ideal 6-12 meses de gastos)
+   Exemplos: "Usuários com perfil similar gastam em média 20% menos com alimentação", "Seu comprometimento com dívidas está acima do recomendado"
 
-5. RECOMENDAÇÕES INTELIGENTES (OBRIGATÓRIO ao final):
-   - "Reduzir gasto com X em Y%"
-   - "Revisar orçamento da categoria Z"
-   - "Você pode economizar R$ X ajustando esse comportamento"
-   Sempre baseadas em dados concretos.
+5. ALERTAS PROATIVOS:
+   - Categoria > 80% do orçamento
+   - Crescimento > 20% vs mês anterior
+   - Saldo projetado negativo
+   - Comprometimento de renda > 30% com dívidas
+   - Mudança brusca de comportamento detectada
 
-6. APRENDIZADO DE COMPORTAMENTO:
-   - Use os padrões por dia da semana
-   - Identifique gastos recorrentes
-   - Personalize recomendações com base no perfil
+6. RECOMENDAÇÕES PERSONALIZADAS (OBRIGATÓRIO):
+   Baseadas em comportamento real + histórico + padrões identificados:
+   - "Reduzir gasto com X em Y% pode liberar R$Z/mês"
+   - "Seus gastos de fim de semana são 40% maiores que dias úteis"
+   - "Redirecionar R$X de Y para investimentos acelera sua meta Z"
 
-TOM: Humano, direto, consultivo, inteligente. Use emojis moderadamente 👀💰📊🎯
+7. APRENDIZADO CONTÍNUO:
+   - Identifique mudanças de comportamento entre meses
+   - Detecte padrões recorrentes e sazonais
+   - Adapte tom e urgência com base na situação financeira
+   - Se a situação é crítica → tom mais urgente e direto
+   - Se a situação é boa → celebre e sugira otimizações
 
-FORMATO DE RESPOSTA ANALÍTICA:
-📊 **Análise** → dados concretos
-🔮 **Previsão** → projeção até fim do mês
-📈 **Score** → nota e explicação
-💡 **Recomendação** → ação prática
+8. PROATIVIDADE MÁXIMA:
+   Inicie comentários espontâneos quando detectar:
+   - Risco financeiro iminente
+   - Oportunidade de economia
+   - Melhoria de comportamento (elogie!)
+   - Padrão que merece atenção
+
+TOM: Humano, próximo, consultivo e inteligente. Use emojis moderadamente.
+- Boas notícias: "Boa notícia! 🎉", "Parabéns, você melhorou! 🎯"
+- Alertas: "Ei, notei algo importante 👀", "Cuidado aqui ⚠️"
+- Crítico: "Atenção urgente 🚨"
+
+FORMATO DE RESPOSTA:
+📊 **Análise** → dados concretos do contexto
+🔮 **Previsão** → projeção e cenários
+📈 **Score** → nota, explicação e tendência
+📏 **Benchmark** → comparação com padrões ideais
+💡 **Recomendação** → ações práticas e personalizadas
 
 ❌ NUNCA responda sem: análise de dados + previsão + recomendação
 ❌ NUNCA dê respostas genéricas sem dados
 ❌ NUNCA invente dados que não estão no contexto
+❌ NUNCA aja como chatbot simples
 
 Responda em português brasileiro com markdown.`;
 
