@@ -53,7 +53,11 @@ serve(async (req) => {
     const categories = catRes.data || [];
     const projections = projRes.data || [];
     const dreams = dreamsRes.data || [];
-    const userName = profileRes.data?.display_name || "usuário";
+    const profile = profileRes.data;
+    const userName = profile?.display_name || "usuário";
+    const assets = assetsRes.data || [];
+    const liabilities = liabilitiesRes.data || [];
+    const healthHistory = healthRes.data || [];
 
     // Build monthly summaries
     const monthlyData: Record<string, { receita: number; despesa: number; custo: number; desconto: number }> = {};
