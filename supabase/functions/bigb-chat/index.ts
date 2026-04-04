@@ -28,9 +28,9 @@ serve(async (req) => {
 
     const now = new Date();
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const sixMonthsAgo = (() => {
+    const twelveMonthsAgo = (() => {
       const d = new Date();
-      d.setMonth(d.getMonth() - 6);
+      d.setMonth(d.getMonth() - 12);
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
     })();
     const endOfMonth = `${currentMonth}-31`;
