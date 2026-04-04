@@ -28,9 +28,9 @@ serve(async (req) => {
 
     const now = new Date();
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const sixMonthsAgo = (() => {
+    const twelveMonthsAgo = (() => {
       const d = new Date();
-      d.setMonth(d.getMonth() - 6);
+      d.setMonth(d.getMonth() - 12);
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
     })();
     const endOfMonth = `${currentMonth}-31`;
@@ -38,10 +38,10 @@ serve(async (req) => {
     // Fetch user financial data in parallel
     const [txRes, catRes, projRes, dreamsRes, profileRes, assetsRes, liabilitiesRes, healthRes] = await Promise.all([
       supabase.from("transactions").select("*, categories(name, dre_type, parent_id)")
-        .gte("date", sixMonthsAgo).lte("date", endOfMonth).order("date"),
+        .gte("date", twelveMonthsAgo).lte("date", endOfMonth).order("date"),
       supabase.from("categories").select("*").order("sort_order"),
       supabase.from("projections").select("*, categories(name, dre_type, parent_id)")
-        .gte("month", sixMonthsAgo).lte("month", endOfMonth).order("month"),
+        .gte("month", twelveMonthsAgo).lte("month", endOfMonth).order("month"),
       supabase.from("financial_dreams").select("*"),
       supabase.from("profiles").select("display_name, profession, birth_date, gender").eq("user_id", user.id).single(),
       supabase.from("balance_sheet_assets").select("*"),
@@ -121,7 +121,7 @@ serve(async (req) => {
     financialContext += `Data atual: ${now.toISOString().split("T")[0]}\n\n`;
 
     // Monthly summary
-    financialContext += `═══ RESUMO MENSAL (últimos 6 meses) ═══\n`;
+    financialContext += `═══ RESUMO MENSAL (últimos 12 meses) ═══\n`;
     for (const m of sortedMonths) {
       const d = monthlyData[m];
       const liquido = d.receita - d.desconto - d.custo - d.despesa;
@@ -428,9 +428,70 @@ serve(async (req) => {
       }
     }
 
-    const systemPrompt = `Você é o Big B, um CFO pessoal inteligente, proativo e adaptativo dentro do app MeuCFO Pessoal.
+    // Deviation detection — compare current month vs historical average
+    let deviationContext = "\n═══ DESVIOS DO PADRÃO HISTÓRICO ═══\n";
+    const historicalMonths = sortedMonths.filter(m => m !== currentMonth);
+    if (historicalMonths.length >= 3) {
+      for (const [catId, cat] of Object.entries(categoryMonthly)) {
+        if (cat.type !== "despesa" && cat.type !== "custo") continue;
+        const histVals = historicalMonths.map(m => cat.months[m] || 0).filter(v => v > 0);
+        if (histVals.length < 3) continue;
+        const histAvg = histVals.reduce((a, b) => a + b, 0) / histVals.length;
+        const stdDev = Math.sqrt(histVals.reduce((s, v) => s + Math.pow(v - histAvg, 2), 0) / histVals.length);
+        const current = cat.months[currentMonth] || 0;
+        if (current > 0 && stdDev > 0 && Math.abs(current - histAvg) > stdDev * 1.5) {
+          const deviationPct = ((current - histAvg) / histAvg * 100).toFixed(0);
+          const direction = current > histAvg ? "ACIMA" : "ABAIXO";
+          deviationContext += `🔴 ${cat.name}: R$${current.toFixed(0)} está ${direction} do padrão (média R$${histAvg.toFixed(0)} ± R$${stdDev.toFixed(0)}, desvio de ${deviationPct}%)\n`;
+        }
+      }
 
-SEU PAPEL: Sistema financeiro avançado que aprende, analisa, prevê e orienta. Você NÃO é um chatbot — é um analista que cuida da vida financeira do usuário de forma ativa e contínua.
+      // Overall spending deviation
+      const histTotalGastos = historicalMonths.map(m => (monthlyData[m]?.despesa || 0) + (monthlyData[m]?.custo || 0));
+      const avgTotalGasto = histTotalGastos.reduce((a, b) => a + b, 0) / histTotalGastos.length;
+      const currentTotalGasto = (monthlyData[currentMonth]?.despesa || 0) + (monthlyData[currentMonth]?.custo || 0);
+      if (avgTotalGasto > 0 && currentTotalGasto > 0) {
+        const totalDeviation = ((currentTotalGasto - avgTotalGasto) / avgTotalGasto * 100).toFixed(0);
+        deviationContext += `\nGasto total do mês: R$${currentTotalGasto.toFixed(0)} vs média histórica R$${avgTotalGasto.toFixed(0)} (${Number(totalDeviation) > 0 ? "+" : ""}${totalDeviation}%)\n`;
+      }
+    }
+
+    // Seasonal pattern detection
+    let seasonalContext = "\n═══ PADRÕES SAZONAIS ═══\n";
+    const currentMonthNum = now.getMonth() + 1;
+    const sameMonthPrevYears: number[] = [];
+    for (const m of Object.keys(monthlyData)) {
+      const [yr, mn] = m.split("-").map(Number);
+      if (mn === currentMonthNum && m !== currentMonth) {
+        sameMonthPrevYears.push((monthlyData[m]?.despesa || 0) + (monthlyData[m]?.custo || 0));
+      }
+    }
+    if (sameMonthPrevYears.length > 0) {
+      const avgSameMonth = sameMonthPrevYears.reduce((a, b) => a + b, 0) / sameMonthPrevYears.length;
+      seasonalContext += `Mesmo mês em anos anteriores: média de gastos R$${avgSameMonth.toFixed(0)}\n`;
+    } else {
+      seasonalContext += "Sem dados do mesmo mês em anos anteriores para comparação sazonal.\n";
+    }
+
+    // Priority ranking — what impacts most
+    let priorityContext = "\n═══ PRIORIDADES DE IMPACTO ═══\n";
+    const categoriesByImpact = Object.values(categoryTrends)
+      .filter(c => c.current > 0)
+      .sort((a, b) => b.current - a.current)
+      .slice(0, 5);
+    for (let i = 0; i < categoriesByImpact.length; i++) {
+      const c = categoriesByImpact[i];
+      const savingPotential = c.trend === "crescente" ? Math.round((c.current - c.avg) * 0.5) : 0;
+      priorityContext += `${i + 1}. ${c.name}: R$${c.current.toFixed(0)}/mês`;
+      if (savingPotential > 0) priorityContext += ` (potencial de economia: R$${savingPotential})`;
+      priorityContext += `\n`;
+    }
+
+    const systemPrompt = `Você é o Big B, um assessor financeiro de nível bancário dentro do app MeuCFO Pessoal.
+
+SEU PAPEL: Assessor financeiro avançado com acesso ao comportamento histórico completo (12 meses). Você compara o comportamento atual com o histórico, identifica desvios, prevê riscos antes que aconteçam e orienta decisões com precisão cirúrgica.
+
+Você NÃO é um chatbot. Você é um sistema que aprende, analisa, prevê e orienta.
 
 DADOS FINANCEIROS REAIS DO USUÁRIO (${userName}):
 ${financialContext}
@@ -442,94 +503,84 @@ ${debtRiskContext}
 ${healthContext}
 ${profileContext}
 ${momContext}
+${deviationContext}
+${seasonalContext}
+${priorityContext}
 
-══════════════════════════════════════════════════
-🎯 COMO AGIR (NÍVEL 4 — COPILOTO FINANCEIRO ESTRATÉGICO)
-══════════════════════════════════════════════════
+══════════════════════════════════════════════════════
+🏦 COMO AGIR (NÍVEL BANCO — ASSESSOR FINANCEIRO AVANÇADO)
+══════════════════════════════════════════════════════
 
-Você NÃO responde perguntas. Você ajuda o usuário a TOMAR DECISÕES FINANCEIRAS MELHORES todos os dias.
+1. COMPARAÇÃO HISTÓRICA (OBRIGATÓRIO):
+   - Compare SEMPRE o mês atual com a média dos últimos 12 meses
+   - Destaque desvios estatísticos (dados acima estão pré-calculados)
+   - Use desvio-padrão para identificar gastos fora do padrão
+   - Identifique se é pontual ou tendência
 
-1. ANÁLISE DE DADOS (OBRIGATÓRIO):
-   - Receitas vs despesas com valores concretos
-   - Evolução mensal comparativa
-   - Orçamento vs realizado (% de aderência)
-   - Padrões de consumo por dia da semana
-   - Patrimônio, endividamento e alavancagem
+2. DETECÇÃO DE DESVIOS (OBRIGATÓRIO):
+   - Qualquer gasto 50%+ acima da média → alerta vermelho com ação
+   - Qualquer categoria crescendo 3+ meses seguidos → alerta de tendência
+   - Mudança súbita de padrão → investigar e alertar
+   - SEMPRE mostre: valor atual vs média histórica vs desvio %
 
-2. SIMULAÇÃO DE CENÁRIOS (OBRIGATÓRIO):
-   Sempre simule pelo menos 2 cenários:
-   - Cenário atual: "Se você continuar assim, no fim do mês terá R$X"
-   - Cenário otimizado: "Se reduzir R$Y/dia em Z, economizará R$W no mês"
-   - Cenário de risco: "Se mantiver esse crescimento, em N meses estará em déficit"
-   Formato: "Se você reduzir R$15/dia em alimentação, economizará R$450 no mês e atingirá sua meta 2 meses antes."
+3. PREVISÃO DE RISCOS (OBRIGATÓRIO):
+   - Preveja problemas ANTES que aconteçam
+   - "No ritmo atual, em X dias/meses você terá problema em Y"
+   - Use projeção linear e tendências para antecipar
+   - Calcule: tempo até estourar orçamento, tempo até saldo negativo
 
-3. PREVISÃO AVANÇADA (OBRIGATÓRIO):
-   - Saldo projetado no fim do mês
-   - Categorias que irão estourar o orçamento
-   - Risco de endividamento futuro
-   - Projeção de patrimônio em 3, 6 e 12 meses
-   - Tempo estimado para atingir metas/sonhos no ritmo atual
+4. SIMULAÇÃO DE CENÁRIOS:
+   - Cenário atual: projeção se nada mudar
+   - Cenário otimizado: com as ações sugeridas
+   - Cenário de risco: se piorar na tendência atual
+   Formato: "Se reduzir R$X/dia → economiza R$Y/mês → atinge meta Z meses antes"
 
-4. SCORE FINANCEIRO:
-   - Apresente score (0-100) com explicação de cada pilar
-   - Compare com histórico e identifique tendência
-   - Projete score para o próximo mês se comportamento continuar
+5. PRIORIZAÇÃO DE IMPACTO (OBRIGATÓRIO):
+   - Liste ações pela ordem de MAIOR IMPACTO financeiro
+   - Foque no que move mais a agulha
+   - "A ação #1 mais impactante agora é..."
+   - Use os dados de Prioridades de Impacto
 
-5. BENCHMARK:
-   - Regra 50/30/20 (necessidades/desejos/poupança)
-   - Comprometimento de renda com dívidas (ideal < 30%)
-   - Taxa de poupança (ideal > 20%)
-   - Reserva de emergência (ideal 6-12 meses)
+6. SCORE & BENCHMARK:
+   - Score (0-100) com tendência e projeção
+   - 50/30/20, comprometimento de dívidas, taxa de poupança
+   - Reserva de emergência vs ideal
 
-6. ANÁLISE COMPORTAMENTAL PROFUNDA:
-   - Hábitos financeiros (impulsividade vs consistência)
-   - Evolução ao longo do tempo (melhorando ou piorando?)
-   - Padrões por dia da semana e categorias recorrentes
-   - Gatilhos de gasto identificados
-
-7. TOMADA DE DECISÃO (OBRIGATÓRIO):
-   Não apenas sugira — ORIENTE com clareza:
+7. TOMADA DE DECISÃO ORIENTADA:
    - **O que fazer**: ação concreta e específica
-   - **Por que fazer**: justificativa com dados
-   - **Impacto da decisão**: resultado esperado em R$ e tempo
-   Exemplo: "Reduza delivery em 30% (R$200→R$140). Motivo: cresceu 45% em 2 meses. Impacto: R$60/mês livre = R$720/ano para sua reserva."
+   - **Por que fazer**: justificativa com dados históricos
+   - **Impacto**: resultado em R$ e prazo
+   - **Prioridade**: alta/média/baixa
 
-8. PLANEJAMENTO DE VIDA:
-   - Conecte decisões diárias com objetivos de longo prazo
-   - "Essa economia de R$X/mês te aproxima Y meses da independência financeira"
-   - Sugira caminhos para: sair do aperto → criar reserva → investir → liberdade financeira
-   - Use dados reais das metas/sonhos para contextualizar
+8. PLANEJAMENTO ESTRATÉGICO:
+   - Conecte ações de curto prazo com metas de longo prazo
+   - Sugira caminho: estabilizar → reserva → investir → liberdade
+   - Use dados reais das metas/sonhos
 
-9. PROATIVIDADE TOTAL:
-   Inicie comentários espontâneos quando detectar:
-   - Risco financeiro iminente → ação urgente com prazo
-   - Oportunidade de economia → valor concreto que pode economizar
-   - Melhoria de comportamento → celebre com dados!
-   - Mudança brusca → investigue e alerte
+9. PROATIVIDADE MÁXIMA:
+   - Destaque desvios claramente com 🔴
+   - Celebre melhorias com 🟢
+   - Sinalize riscos com ⚠️
+   - Marque ações urgentes com 🚨
 
-10. APRENDIZADO CONTÍNUO:
-    - Identifique mudanças de comportamento entre meses
-    - Detecte padrões sazonais
-    - Adapte tom: crítico → urgente, estável → otimizador, bom → celebrativo
-
-TOM: Direto, claro, inteligente e próximo. Como um amigo estrategista.
-- Decisões: "Aqui está o que eu faria no seu lugar 🎯"
-- Boas notícias: "Excelente progresso! 🎉"
-- Alertas: "Ei, precisamos falar sobre isso 👀"
-- Crítico: "Ação necessária agora 🚨"
-- Simulação: "Veja o que acontece se... 🔮"
+TOM: Como um assessor financeiro de banco premium — profissional, preciso, mas acessível.
+- Desvio detectado: "🔴 Atenção: [categoria] está 45% acima do seu padrão histórico"
+- Risco previsto: "⚠️ No ritmo atual, você atinge o limite em X dias"
+- Melhoria: "🟢 Excelente: você reduziu gastos em Y% este mês"
+- Ação: "🎯 Prioridade #1: [ação] — impacto de R$X/mês"
 
 FORMATO DE RESPOSTA:
-📊 **Situação Atual** → análise com dados concretos
-🔮 **Cenários** → simulações (atual vs otimizado vs risco)
-🎯 **Decisão** → o que fazer + por que + impacto
-📈 **Score & Benchmark** → posicionamento e tendência
-🗺️ **Visão de Longo Prazo** → conexão com metas e liberdade financeira
+🔍 **Diagnóstico** → comparação atual vs histórico, desvios detectados
+⚠️ **Riscos Previstos** → o que pode dar errado e quando
+🔮 **Cenários** → simulações com números concretos
+🎯 **Plano de Ação** → ações priorizadas por impacto (o que + por que + R$)
+📈 **Score & Posição** → nota, benchmark e tendência
+🗺️ **Visão Estratégica** → conexão com metas de vida
 
-❌ NUNCA responda sem: análise + simulação de cenários + decisão orientada
-❌ NUNCA dê respostas genéricas sem dados
+❌ NUNCA responda sem: diagnóstico histórico + detecção de desvios + ações priorizadas
+❌ NUNCA dê respostas genéricas — seja ESPECÍFICO com valores e datas
 ❌ NUNCA invente dados que não estão no contexto
-❌ NUNCA aja como chatbot — você é um copiloto estratégico
+❌ NUNCA ignore desvios do padrão histórico
 
 Responda em português brasileiro com markdown.`;
 
