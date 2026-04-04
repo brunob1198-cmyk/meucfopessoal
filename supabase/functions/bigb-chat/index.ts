@@ -213,42 +213,200 @@ serve(async (req) => {
     }
 
     // Chat mode — stream response with financial context
-    const systemPrompt = `Você é o Big B, um assistente financeiro inteligente e proativo dentro do app MeuCFO Pessoal.
+    // Calculate prediction data
+    const currentMonthData = monthlyData[currentMonth];
+    const dayOfMonth = now.getDate();
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const daysRemaining = daysInMonth - dayOfMonth;
+    let predictionContext = "";
+    if (currentMonthData && dayOfMonth > 3) {
+      const dailyRate = (currentMonthData.despesa + currentMonthData.custo) / dayOfMonth;
+      const projectedTotal = dailyRate * daysInMonth;
+      const projectedReceita = currentMonthData.receita;
+      const projectedSaldo = projectedReceita - currentMonthData.desconto - projectedTotal;
+      predictionContext = `\n═══ PREVISÃO PARA FIM DO MÊS ═══\n`;
+      predictionContext += `Dia atual: ${dayOfMonth}/${daysInMonth} (${daysRemaining} dias restantes)\n`;
+      predictionContext += `Ritmo diário de gastos: R$${dailyRate.toFixed(0)}/dia\n`;
+      predictionContext += `Gasto projetado total: R$${projectedTotal.toFixed(0)}\n`;
+      predictionContext += `Saldo projetado: R$${projectedSaldo.toFixed(0)}\n`;
+      if (projectedSaldo < 0) predictionContext += `⚠️ ALERTA: Saldo projetado NEGATIVO!\n`;
 
-SEU PAPEL: Analista financeiro pessoal + vigilante de comportamento.
+      // Per-category projection
+      predictionContext += `\nProjeção por categoria:\n`;
+      for (const [catId, b] of Object.entries(currentMonthProjections)) {
+        if (b.projected <= 0) continue;
+        const catDailyRate = b.actual / Math.max(dayOfMonth, 1);
+        const catProjected = catDailyRate * daysInMonth;
+        const willExceed = catProjected > b.projected;
+        if (willExceed) {
+          predictionContext += `- ${b.name}: projetado R$${catProjected.toFixed(0)} (orçamento R$${b.projected.toFixed(0)}) → VAI ESTOURAR em ~${Math.ceil((b.projected - b.actual) / Math.max(catDailyRate, 0.01))} dias\n`;
+        }
+      }
+    }
 
-CONTEXTO FINANCEIRO REAL DO USUÁRIO (use para todas as respostas):
+    // Calculate financial score
+    let scoreContext = "\n═══ SCORE FINANCEIRO (0-100) ═══\n";
+    if (sortedMonths.length >= 2) {
+      let scoreGastos = 25;
+      let scoreOrcamento = 25;
+      let scoreEvolucao = 25;
+      let scoreEquilibrio = 25;
+
+      // Controle de gastos (últimos 2 meses)
+      const lastM = sortedMonths[sortedMonths.length - 1];
+      const prevM = sortedMonths.length >= 2 ? sortedMonths[sortedMonths.length - 2] : lastM;
+      const lastTotal = (monthlyData[lastM]?.despesa || 0) + (monthlyData[lastM]?.custo || 0);
+      const prevTotal = (monthlyData[prevM]?.despesa || 0) + (monthlyData[prevM]?.custo || 0);
+      if (prevTotal > 0) {
+        const variation = (lastTotal - prevTotal) / prevTotal;
+        if (variation <= 0) scoreGastos = 25;
+        else if (variation <= 0.1) scoreGastos = 20;
+        else if (variation <= 0.2) scoreGastos = 15;
+        else scoreGastos = Math.max(5, 25 - Math.floor(variation * 50));
+      }
+
+      // Aderência ao orçamento
+      const budgetEntries = Object.values(currentMonthProjections).filter(b => b.projected > 0);
+      if (budgetEntries.length > 0) {
+        const avgAdherence = budgetEntries.reduce((sum, b) => {
+          const pct = b.actual / b.projected;
+          return sum + (pct <= 1 ? 1 : Math.max(0, 2 - pct));
+        }, 0) / budgetEntries.length;
+        scoreOrcamento = Math.round(avgAdherence * 25);
+      }
+
+      // Evolução positiva
+      if (sortedMonths.length >= 3) {
+        const recentSaldos = sortedMonths.slice(-3).map(m => {
+          const d = monthlyData[m];
+          return d.receita - d.desconto - d.custo - d.despesa;
+        });
+        const improving = recentSaldos[2] >= recentSaldos[1] && recentSaldos[1] >= recentSaldos[0];
+        scoreEvolucao = improving ? 25 : (recentSaldos[2] >= recentSaldos[0] ? 18 : 10);
+      }
+
+      // Equilíbrio (margem do mês atual)
+      const lastData = monthlyData[lastM];
+      if (lastData && lastData.receita > 0) {
+        const margem = (lastData.receita - lastData.desconto - lastData.custo - lastData.despesa) / lastData.receita;
+        if (margem >= 0.2) scoreEquilibrio = 25;
+        else if (margem >= 0.1) scoreEquilibrio = 20;
+        else if (margem >= 0) scoreEquilibrio = 15;
+        else scoreEquilibrio = Math.max(0, 10 + Math.floor(margem * 20));
+      }
+
+      const totalScore = scoreGastos + scoreOrcamento + scoreEvolucao + scoreEquilibrio;
+      scoreContext += `Score Total: ${totalScore}/100\n`;
+      scoreContext += `- Controle de gastos: ${scoreGastos}/25\n`;
+      scoreContext += `- Aderência ao orçamento: ${scoreOrcamento}/25\n`;
+      scoreContext += `- Evolução positiva: ${scoreEvolucao}/25\n`;
+      scoreContext += `- Equilíbrio financeiro: ${scoreEquilibrio}/25\n`;
+    } else {
+      scoreContext += "Dados insuficientes para calcular score (mínimo 2 meses).\n";
+    }
+
+    // Day-of-week spending patterns
+    let behaviorContext = "\n═══ PADRÕES DE COMPORTAMENTO ═══\n";
+    const dayNames = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+    const dayTotals = [0, 0, 0, 0, 0, 0, 0];
+    const dayCounts = [0, 0, 0, 0, 0, 0, 0];
+    for (const tx of transactions) {
+      const txDate = new Date(tx.date + "T12:00:00");
+      const catType = (tx.categories?.dre_type || "despesa") as string;
+      if (catType === "despesa" || catType === "custo") {
+        const dow = txDate.getDay();
+        dayTotals[dow] += Number(tx.amount);
+        dayCounts[dow]++;
+      }
+    }
+    behaviorContext += "Gasto médio por dia da semana:\n";
+    for (let i = 0; i < 7; i++) {
+      if (dayCounts[i] > 0) {
+        behaviorContext += `- ${dayNames[i]}: R$${(dayTotals[i] / dayCounts[i]).toFixed(0)} (${dayCounts[i]} transações)\n`;
+      }
+    }
+
+    // Recurring expenses detection
+    const descriptionCounts: Record<string, { count: number; total: number }> = {};
+    for (const tx of transactions) {
+      const catType = (tx.categories?.dre_type || "despesa") as string;
+      if (catType !== "despesa" && catType !== "custo") continue;
+      const cat = tx.categories?.name || "Outros";
+      if (!descriptionCounts[cat]) descriptionCounts[cat] = { count: 0, total: 0 };
+      descriptionCounts[cat].count++;
+      descriptionCounts[cat].total += Number(tx.amount);
+    }
+    const recurring = Object.entries(descriptionCounts)
+      .filter(([, v]) => v.count >= 3)
+      .sort((a, b) => b[1].total - a[1].total)
+      .slice(0, 5);
+    if (recurring.length > 0) {
+      behaviorContext += "\nGastos recorrentes detectados:\n";
+      for (const [name, v] of recurring) {
+        behaviorContext += `- ${name}: ${v.count}x no período, total R$${v.total.toFixed(0)}\n`;
+      }
+    }
+
+    const systemPrompt = `Você é o Big B, um CFO pessoal inteligente e proativo dentro do app MeuCFO Pessoal.
+
+SEU PAPEL: Analista financeiro avançado com capacidade de análise comportamental, previsão e recomendação personalizada.
+
+CONTEXTO FINANCEIRO REAL DO USUÁRIO (${userName}):
 ${financialContext}
+${predictionContext}
+${scoreContext}
+${behaviorContext}
 
-COMO AGIR:
-1. Sempre analise os DADOS REAIS acima antes de responder
-2. Compare períodos, identifique padrões e tendências
-3. Destaque desvios relevantes com números concretos
-4. Use linguagem simples, direta e prática
-5. Inclua emojis para tornar a conversa mais humana 👀💰📊
+══════════════════════════════════════
+🎯 COMO AGIR (NÍVEL 2 — CFO PESSOAL)
+══════════════════════════════════════
 
-ANÁLISES QUE VOCÊ FAZ:
-- "Estou gastando mais que o normal?" → Compare mês atual vs média
-- "Qual categoria mais cresceu?" → Use tendências por categoria
-- "Alguma categoria vai estourar?" → Use orçamento do mês
-- "Como está meu equilíbrio?" → Receita vs despesa
+1. ANÁLISE DE DADOS (OBRIGATÓRIO em toda resposta):
+   - Receitas vs despesas com valores concretos
+   - Evolução mensal comparativa
+   - Categorias e subcategorias relevantes
+   - Orçamento vs realizado (% de aderência)
+   - Padrões de consumo por dia da semana
 
-FORMATO DE RESPOSTA:
-- Dados concretos (valores em R$)
-- Comparação (vs média, vs mês anterior)
-- Conclusão clara
-- Sugestão prática e acionável
+2. PREVISÃO (OBRIGATÓRIO):
+   - Gasto total projetado até o fim do mês
+   - Categorias que irão estourar o orçamento
+   - Saldo projetado
+   Formato: "Se você continuar nesse ritmo, seu gasto total será de R$ X, ultrapassando seu planejamento em Y%."
 
-ALERTAS ESPONTÂNEOS:
-Se identificar gasto acima de 80% do orçamento, crescimento anormal, ou resultado negativo, ALERTE proativamente com mensagem curta e acionável.
+3. SCORE FINANCEIRO (use os dados do Score acima):
+   - Apresente o score calculado (0-100)
+   - Explique cada componente e o motivo do score
+   - Compare com o mês anterior quando possível
 
-PERSONALIDADE: Amigável, direto, usa emojis moderadamente. Ex: "Ei, cuidado com isso 👀", "Boa notícia! 🎉"
+4. ALERTAS PROATIVOS:
+   - Categoria > 80% do orçamento → alerta imediato
+   - Crescimento > 20% vs mês anterior → destaque
+   - Saldo projetado negativo → alerta crítico
+   - Padrão de risco detectado → aviso preventivo
 
-NÃO FAÇA:
-- Respostas genéricas sem dados
-- Ignorar o contexto financeiro
-- Agir como chatbot simples
-- Inventar dados que não estão no contexto
+5. RECOMENDAÇÕES INTELIGENTES (OBRIGATÓRIO ao final):
+   - "Reduzir gasto com X em Y%"
+   - "Revisar orçamento da categoria Z"
+   - "Você pode economizar R$ X ajustando esse comportamento"
+   Sempre baseadas em dados concretos.
+
+6. APRENDIZADO DE COMPORTAMENTO:
+   - Use os padrões por dia da semana
+   - Identifique gastos recorrentes
+   - Personalize recomendações com base no perfil
+
+TOM: Humano, direto, consultivo, inteligente. Use emojis moderadamente 👀💰📊🎯
+
+FORMATO DE RESPOSTA ANALÍTICA:
+📊 **Análise** → dados concretos
+🔮 **Previsão** → projeção até fim do mês
+📈 **Score** → nota e explicação
+💡 **Recomendação** → ação prática
+
+❌ NUNCA responda sem: análise de dados + previsão + recomendação
+❌ NUNCA dê respostas genéricas sem dados
+❌ NUNCA invente dados que não estão no contexto
 
 Responda em português brasileiro com markdown.`;
 
