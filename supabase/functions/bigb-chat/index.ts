@@ -103,14 +103,15 @@ serve(async (req) => {
       }
     }
 
-    // Calculate trends
+    // Calculate trends — use ALL historical months (not just last 3) for accurate averages
     const sortedMonths = Object.keys(monthlyData).sort();
-    const last3 = sortedMonths.slice(-3);
+    const historicalMonthsForAvg = sortedMonths.filter(m => m !== currentMonth);
     const categoryTrends: Record<string, { name: string; avg: number; current: number; trend: string }> = {};
     for (const [catId, cat] of Object.entries(categoryMonthly)) {
       if (cat.type !== "despesa" && cat.type !== "custo") continue;
-      const vals = last3.map(m => cat.months[m] || 0);
-      const avg = vals.reduce((a, b) => a + b, 0) / Math.max(vals.filter(v => v > 0).length, 1);
+      // Average across ALL historical months (divide by total months, not just months with spend)
+      const histVals = historicalMonthsForAvg.map(m => cat.months[m] || 0);
+      const avg = histVals.length > 0 ? histVals.reduce((a, b) => a + b, 0) / histVals.length : 0;
       const current = cat.months[currentMonth] || 0;
       let trend = "estável";
       if (avg > 0 && current > avg * 1.2) trend = "crescente";
@@ -122,12 +123,35 @@ serve(async (req) => {
     let financialContext = `CONTEXTO FINANCEIRO DO USUÁRIO (${userName})\n`;
     financialContext += `Data atual: ${now.toISOString().split("T")[0]}\n\n`;
 
+    // CRITICAL: Explicit current month real numbers FIRST so AI cannot hallucinate
+    const cm = monthlyData[currentMonth] || { receita: 0, despesa: 0, custo: 0, desconto: 0 };
+    const cmLiquido = cm.receita - cm.desconto - cm.custo - cm.despesa;
+    financialContext += `═══ NÚMEROS REAIS DO MÊS ATUAL (${currentMonth}) — USE EXATAMENTE ESTES VALORES ═══\n`;
+    financialContext += `Receita Bruta REAL: R$ ${cm.receita.toFixed(2)}\n`;
+    financialContext += `Descontos REAL: R$ ${cm.desconto.toFixed(2)}\n`;
+    financialContext += `Custos REAL: R$ ${cm.custo.toFixed(2)}\n`;
+    financialContext += `Despesas REAL: R$ ${cm.despesa.toFixed(2)}\n`;
+    financialContext += `Total Saídas (custo+despesa): R$ ${(cm.custo + cm.despesa).toFixed(2)}\n`;
+    financialContext += `Resultado Líquido REAL: R$ ${cmLiquido.toFixed(2)}\n\n`;
+
+    // Historical average (excluding current month)
+    if (historicalMonthsForAvg.length > 0) {
+      const histReceita = historicalMonthsForAvg.map(m => monthlyData[m]?.receita || 0);
+      const histGastos = historicalMonthsForAvg.map(m => (monthlyData[m]?.despesa || 0) + (monthlyData[m]?.custo || 0));
+      const avgReceita = histReceita.reduce((a, b) => a + b, 0) / histReceita.length;
+      const avgGastos = histGastos.reduce((a, b) => a + b, 0) / histGastos.length;
+      financialContext += `═══ MÉDIA HISTÓRICA (${historicalMonthsForAvg.length} meses anteriores, EXCLUINDO mês atual) ═══\n`;
+      financialContext += `Receita média: R$ ${avgReceita.toFixed(2)}\n`;
+      financialContext += `Gastos médios (custo+despesa): R$ ${avgGastos.toFixed(2)}\n\n`;
+    }
+
     // Monthly summary
     financialContext += `═══ RESUMO MENSAL (últimos 12 meses) ═══\n`;
     for (const m of sortedMonths) {
       const d = monthlyData[m];
       const liquido = d.receita - d.desconto - d.custo - d.despesa;
-      financialContext += `${m}: Receita R$${d.receita.toFixed(0)} | Gastos R$${(d.despesa + d.custo).toFixed(0)} | Líquido R$${liquido.toFixed(0)}\n`;
+      const flag = m === currentMonth ? " ← MÊS ATUAL" : "";
+      financialContext += `${m}: Receita R$${d.receita.toFixed(2)} | Custo R$${d.custo.toFixed(2)} | Despesa R$${d.despesa.toFixed(2)} | Líquido R$${liquido.toFixed(2)}${flag}\n`;
     }
 
     // Budget usage (current month)
