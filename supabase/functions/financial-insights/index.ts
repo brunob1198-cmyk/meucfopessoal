@@ -48,10 +48,18 @@ serve(async (req) => {
       return `${d.getFullYear()}-12-31`;
     })();
 
+    // Projections must ALWAYS look ahead regardless of the user's period filter,
+    // so the AI can analyze future Planejador entries even when the user selected a past period.
+    const projectionEnd = (() => {
+      const d = new Date();
+      d.setFullYear(d.getFullYear() + 2);
+      return `${d.getFullYear()}-12-31`;
+    })();
+
     const [txRes, catRes, projRes] = await Promise.all([
       supabase.from("transactions").select("*, categories(name, dre_type, parent_id)").gte("date", filterStart).lte("date", filterEnd).order("date"),
       supabase.from("categories").select("*").order("sort_order"),
-      supabase.from("projections").select("*, categories(name, dre_type, parent_id)").gte("month", histStart).lte("month", filterEnd).order("month"),
+      supabase.from("projections").select("*, categories(name, dre_type, parent_id)").gte("month", histStart).lte("month", projectionEnd).order("month"),
     ]);
 
     if (txRes.error) throw txRes.error;
