@@ -33,7 +33,9 @@ serve(async (req) => {
       d.setMonth(d.getMonth() - 12);
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
     })();
-    const endOfMonth = `${currentMonth}-31`;
+    // Last real day of current month (avoids invalid dates like 2026-04-31)
+    const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const endOfMonth = `${currentMonth}-${String(lastDayOfMonth).padStart(2, "0")}`;
 
     // Fetch user financial data in parallel
     const [txRes, catRes, projRes, dreamsRes, profileRes, assetsRes, liabilitiesRes, healthRes] = await Promise.all([
