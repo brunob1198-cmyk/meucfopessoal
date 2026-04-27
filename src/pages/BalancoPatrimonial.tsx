@@ -678,6 +678,7 @@ export default function BalancoPatrimonial() {
         <TabsList>
           <TabsTrigger value="ativos">Ativos</TabsTrigger>
           <TabsTrigger value="passivos">Passivos</TabsTrigger>
+          <TabsTrigger value="mapa-riqueza">Mapa de Riqueza</TabsTrigger>
         </TabsList>
 
         <TabsContent value="ativos">
@@ -758,6 +759,142 @@ export default function BalancoPatrimonial() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="mapa-riqueza" className="space-y-6">
+          {/* Mapa de Riqueza Integrated Content */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              { label: 'Taxa de Crescimento', value: `${growthRate.toFixed(1)}%`, icon: TrendingUp },
+              { label: 'Taxa de Poupança', value: `${savingsRate.toFixed(0)}%`, icon: PiggyBankIcon },
+              { label: 'Patrimônio / Renda', value: `${wealthToIncomeYears.toFixed(1)} anos`, icon: BarChart3 },
+            ].map((kpi, i) => (
+              <motion.div key={kpi.label} custom={i} initial="hidden" animate="visible" variants={cardVariant}>
+                <Card className="glass-card border-border/30">
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: 'hsl(var(--primary) / 0.1)' }}>
+                      <kpi.icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{kpi.label}</p>
+                      <p className="text-xl font-bold">{kpi.value}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <motion.div custom={4} initial="hidden" animate="visible" variants={cardVariant}>
+              <Card className="glass-card border-border/30">
+                <CardHeader>
+                  <CardTitle className="text-base font-display">Composição do Patrimônio</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {compositionData.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-8">Cadastre ativos para ver a composição</p>
+                  ) : (
+                    <>
+                      <div className="h-[250px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={compositionData} cx="50%" cy="50%" innerRadius={55} outerRadius={80}
+                              paddingAngle={2} dataKey="value"
+                              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                              labelLine={false}
+                            >
+                              {compositionData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                            </Pie>
+                            <Tooltip formatter={(v: number) => formatBRL(v)} {...tooltipStyle} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="space-y-2 mt-4">
+                        {compositionData.map((d, i) => (
+                          <div key={d.name} className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2">
+                              <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                              <span className="text-muted-foreground">{d.name}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="font-medium">{formatBRL(d.value)}</span>
+                              <Badge variant="secondary" className="text-xs">
+                                {totalAssets > 0 ? ((d.value / totalAssets) * 100).toFixed(0) : 0}%
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            <motion.div custom={5} initial="hidden" animate="visible" variants={cardVariant}>
+              <Card className="glass-card border-border/30">
+                <CardHeader>
+                  <CardTitle className="text-base font-display">Motores de Crescimento</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {totalGrowth <= 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-8">Dados insuficientes para calcular motores de crescimento</p>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="h-[200px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={growthDrivers} layout="vertical" margin={{ left: 20 }}>
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                            <XAxis type="number" hide />
+                            <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={120} />
+                            <Tooltip formatter={(v: number) => formatBRL(v)} {...tooltipStyle} />
+                            <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                              {growthDrivers.map((d, i) => <Cell key={i} fill={d.color} />)}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="space-y-2">
+                        {growthDrivers.map(d => (
+                          <div key={d.name} className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border/30">
+                            <div className="flex items-center gap-2">
+                              <span className="h-3 w-3 rounded-full" style={{ backgroundColor: d.color }} />
+                              <span className="text-xs font-medium">{d.name}</span>
+                            </div>
+                            <span className="text-sm font-bold">{formatBRL(d.value)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
+
+          <motion.div custom={6} initial="hidden" animate="visible" variants={cardVariant}>
+            <Card className="glass-card border-border/30">
+              <CardHeader>
+                <CardTitle className="text-base font-display flex items-center gap-2">
+                  <Lightbulb className="h-5 w-5 text-warning" />
+                  Insights Estratégicos
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {riquezaInsights.map((msg, i) => (
+                  <div key={i} className="flex items-start gap-3 rounded-lg p-3 bg-primary/5 text-sm">
+                    <TrendingUp className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                    <p className="text-foreground">{msg}</p>
+                  </div>
+                ))}
+                {riquezaInsights.length === 0 && (
+                  <p className="text-sm text-muted-foreground">Cadastre seus dados para gerar insights.</p>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
         </TabsContent>
       </Tabs>
     </div>
