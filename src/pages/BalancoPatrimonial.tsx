@@ -1,9 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { motion } from 'framer-motion';
 import {
   Plus, Trash2, Edit2, TrendingUp, TrendingDown, Minus,
-  Landmark, CreditCard, PiggyBank, ChevronDown, ChevronRight, Save, Wallet, ArrowUpRight, AlertTriangle, ShieldAlert
+  Landmark, CreditCard, PiggyBank, ChevronDown, ChevronRight, Save, Wallet, ArrowUpRight, AlertTriangle, ShieldAlert,
+  Gem, Wallet as WalletIcon, BarChart3, PiggyBank as PiggyBankIcon, Lightbulb
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +15,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, BarChart, Bar, Legend, ComposedChart } from 'recharts';
+import { 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  Area, AreaChart, BarChart, Bar, Legend, ComposedChart, PieChart, Pie, Cell 
+} from 'recharts';
 import {
   useAssets, useLiabilities, useNetWorthHistory,
   ASSET_CATEGORY_LABELS, LIABILITY_CATEGORY_LABELS,
@@ -22,8 +27,44 @@ import {
 } from '@/hooks/useBalanceSheet';
 import { useDREIntegration } from '@/hooks/useDREIntegration';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { formatBRL } from '@/lib/dre';
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+const COLORS = [
+  'hsl(160, 50%, 40%)', 'hsl(220, 50%, 45%)', 'hsl(38, 55%, 45%)',
+  'hsl(280, 40%, 45%)', 'hsl(0, 45%, 42%)', 'hsl(180, 40%, 38%)',
+];
+
+const cardVariant = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (i: number) => ({
+    opacity: 1, y: 0,
+    transition: { delay: i * 0.1, duration: 0.5, ease: 'easeOut' as const }
+  })
+};
+
+const tooltipStyle = {
+  contentStyle: {
+    background: 'hsl(200 35% 12% / 0.95)',
+    border: '1px solid hsl(200 25% 20%)',
+    borderRadius: '8px',
+    backdropFilter: 'blur(8px)',
+    color: 'hsl(var(--foreground))'
+  },
+  labelStyle: { color: 'hsl(var(--foreground))' },
+  itemStyle: { color: 'hsl(var(--foreground))' }
+};
+
+// Group asset categories for composition
+const COMPOSITION_GROUPS: Record<string, string[]> = {
+  'Investimentos': ['renda_fixa', 'acoes', 'fundos', 'criptomoedas'],
+  'Imóveis': ['imoveis'],
+  'Caixa': ['conta_corrente', 'poupanca', 'dinheiro_caixa'],
+  'Veículos': ['veiculos'],
+  'Outros': ['participacoes', 'outros_bens'],
+};
 
 function AssetForm({ asset, onSave, onClose }: { asset?: Asset; onSave: (a: any) => void; onClose: () => void }) {
   const [name, setName] = useState(asset?.name ?? '');
@@ -332,6 +373,89 @@ export default function BalancoPatrimonial() {
     }));
   }, [monthlyProfits]);
 
+  // Mapa de Riqueza Merged Logic
+  const growth12m = useMemo(() => {
+    if (history.length < 2) return null;
+    const sorted = [...history].sort((a, b) => a.month.localeCompare(b.month));
+    const latest = sorted[sorted.length - 1];
+    const yearAgo = sorted.find(s => {
+      const d = new Date(s.month);
+      const l = new Date(latest.month);
+      return l.getFullYear() - d.getFullYear() === 1 && l.getMonth() === d.getMonth();
+    }) || sorted[0];
+    return Number(latest.net_worth) - Number(yearAgo.net_worth);
+  }, [history]);
+
+  const compositionData = useMemo(() => {
+    return Object.entries(COMPOSITION_GROUPS).map(([label, cats]) => {
+      const value = assets
+        .filter(a => cats.includes(a.category))
+        .reduce((s, a) => s + Number(a.current_value), 0);
+      return { name: label, value };
+    }).filter(d => d.value > 0);
+  }, [assets]);
+
+  const evolutionData = useMemo(() => {
+    return [...history]
+      .sort((a, b) => a.month.localeCompare(b.month))
+      .map(s => ({
+        month: new Date(s.month).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }),
+        patrimonio: Number(s.net_worth),
+        ativos: Number(s.total_assets),
+        passivos: Number(s.total_liabilities),
+      }));
+  }, [history]);
+
+  const avgMonthlySavings = useMemo(() => {
+    const profits = monthlyProfits.filter(p => p.receita > 0);
+    if (profits.length === 0) return 0;
+    return profits.reduce((s, p) => s + (p.receita - p.despesas), 0) / profits.length;
+  }, [monthlyProfits]);
+
+  const annualSavings = avgMonthlySavings * 12;
+  const totalGrowth = growth12m || 0;
+  const investmentReturns = Math.max(0, totalGrowth - annualSavings) * 0.7;
+  const assetAppreciation = Math.max(0, totalGrowth - annualSavings - investmentReturns);
+
+  const growthDrivers = [
+    { name: 'Poupança', value: Math.max(0, annualSavings), color: 'hsl(160, 50%, 40%)' },
+    { name: 'Retorno Investimentos', value: Math.max(0, investmentReturns), color: 'hsl(220, 50%, 45%)' },
+    { name: 'Valorização de Ativos', value: Math.max(0, assetAppreciation), color: 'hsl(38, 55%, 45%)' },
+  ];
+
+  const avgMonthlyIncome = useMemo(() => {
+    const profits = monthlyProfits.filter(p => p.receita > 0);
+    return profits.length > 0 ? profits.reduce((s, p) => s + p.receita, 0) / profits.length : 0;
+  }, [monthlyProfits]);
+
+  const savingsRate = avgMonthlyIncome > 0 ? (avgMonthlySavings / avgMonthlyIncome) * 100 : 0;
+  const wealthToIncomeYears = avgMonthlyIncome > 0 ? netWorth / (avgMonthlyIncome * 12) : 0;
+  const growthRate = growth12m !== null && netWorth > 0 ? (growth12m / (netWorth - growth12m)) * 100 : 0;
+
+  const riquezaInsights = useMemo(() => {
+    const msgs: string[] = [];
+    if (growth12m !== null && growth12m > 0 && netWorth > 0) {
+      msgs.push(`Seu patrimônio cresceu ${growthRate.toFixed(0)}% no último ano.`);
+    }
+    if (annualSavings > 0 && totalGrowth > 0) {
+      const poupancaPct = (annualSavings / totalGrowth) * 100;
+      msgs.push(`${Math.min(100, poupancaPct).toFixed(0)}% do crescimento veio da sua poupança.`);
+    }
+    const investPct = totalAssets > 0
+      ? (assets.filter(a => ['renda_fixa', 'acoes', 'fundos', 'criptomoedas'].includes(a.category))
+          .reduce((s, a) => s + Number(a.current_value), 0) / totalAssets) * 100
+      : 0;
+    if (investPct > 0) {
+      msgs.push(`Seus investimentos representam ${investPct.toFixed(0)}% do seu patrimônio.`);
+    }
+    if (savingsRate >= 20) {
+      msgs.push('Sua taxa de poupança está acima da média. Continue assim!');
+    } else if (savingsRate > 0) {
+      msgs.push(`Sua taxa de poupança é ${savingsRate.toFixed(0)}%. Tente aumentar para 20%+..`);
+    }
+    return msgs;
+  }, [growth12m, growthRate, annualSavings, totalGrowth, totalAssets, assets, savingsRate, netWorth]);
+
 
 
   // Alert: passivos > ativos
@@ -554,6 +678,7 @@ export default function BalancoPatrimonial() {
         <TabsList>
           <TabsTrigger value="ativos">Ativos</TabsTrigger>
           <TabsTrigger value="passivos">Passivos</TabsTrigger>
+          <TabsTrigger value="mapa-riqueza">Mapa de Riqueza</TabsTrigger>
         </TabsList>
 
         <TabsContent value="ativos">
@@ -634,6 +759,142 @@ export default function BalancoPatrimonial() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="mapa-riqueza" className="space-y-6">
+          {/* Mapa de Riqueza Integrated Content */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              { label: 'Taxa de Crescimento', value: `${growthRate.toFixed(1)}%`, icon: TrendingUp },
+              { label: 'Taxa de Poupança', value: `${savingsRate.toFixed(0)}%`, icon: PiggyBankIcon },
+              { label: 'Patrimônio / Renda', value: `${wealthToIncomeYears.toFixed(1)} anos`, icon: BarChart3 },
+            ].map((kpi, i) => (
+              <motion.div key={kpi.label} custom={i} initial="hidden" animate="visible" variants={cardVariant}>
+                <Card className="glass-card border-border/30">
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: 'hsl(var(--primary) / 0.1)' }}>
+                      <kpi.icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{kpi.label}</p>
+                      <p className="text-xl font-bold">{kpi.value}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <motion.div custom={4} initial="hidden" animate="visible" variants={cardVariant}>
+              <Card className="glass-card border-border/30">
+                <CardHeader>
+                  <CardTitle className="text-base font-display">Composição do Patrimônio</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {compositionData.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-8">Cadastre ativos para ver a composição</p>
+                  ) : (
+                    <>
+                      <div className="h-[250px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={compositionData} cx="50%" cy="50%" innerRadius={55} outerRadius={80}
+                              paddingAngle={2} dataKey="value"
+                              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                              labelLine={false}
+                            >
+                              {compositionData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                            </Pie>
+                            <Tooltip formatter={(v: number) => formatBRL(v)} {...tooltipStyle} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="space-y-2 mt-4">
+                        {compositionData.map((d, i) => (
+                          <div key={d.name} className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2">
+                              <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                              <span className="text-muted-foreground">{d.name}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="font-medium">{formatBRL(d.value)}</span>
+                              <Badge variant="secondary" className="text-xs">
+                                {totalAssets > 0 ? ((d.value / totalAssets) * 100).toFixed(0) : 0}%
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            <motion.div custom={5} initial="hidden" animate="visible" variants={cardVariant}>
+              <Card className="glass-card border-border/30">
+                <CardHeader>
+                  <CardTitle className="text-base font-display">Motores de Crescimento</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {totalGrowth <= 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-8">Dados insuficientes para calcular motores de crescimento</p>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="h-[200px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={growthDrivers} layout="vertical" margin={{ left: 20 }}>
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                            <XAxis type="number" hide />
+                            <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={120} />
+                            <Tooltip formatter={(v: number) => formatBRL(v)} {...tooltipStyle} />
+                            <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                              {growthDrivers.map((d, i) => <Cell key={i} fill={d.color} />)}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="space-y-2">
+                        {growthDrivers.map(d => (
+                          <div key={d.name} className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border/30">
+                            <div className="flex items-center gap-2">
+                              <span className="h-3 w-3 rounded-full" style={{ backgroundColor: d.color }} />
+                              <span className="text-xs font-medium">{d.name}</span>
+                            </div>
+                            <span className="text-sm font-bold">{formatBRL(d.value)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
+
+          <motion.div custom={6} initial="hidden" animate="visible" variants={cardVariant}>
+            <Card className="glass-card border-border/30">
+              <CardHeader>
+                <CardTitle className="text-base font-display flex items-center gap-2">
+                  <Lightbulb className="h-5 w-5 text-warning" />
+                  Insights Estratégicos
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {riquezaInsights.map((msg, i) => (
+                  <div key={i} className="flex items-start gap-3 rounded-lg p-3 bg-primary/5 text-sm">
+                    <TrendingUp className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                    <p className="text-foreground">{msg}</p>
+                  </div>
+                ))}
+                {riquezaInsights.length === 0 && (
+                  <p className="text-sm text-muted-foreground">Cadastre seus dados para gerar insights.</p>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
         </TabsContent>
       </Tabs>
     </div>
