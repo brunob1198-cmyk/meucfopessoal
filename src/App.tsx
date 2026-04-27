@@ -21,7 +21,7 @@ import Tutorial from "./pages/Tutorial";
 import FinancialHealthScorePage from "./pages/FinancialHealthScore";
 import MapaRiqueza from "./pages/MapaRiqueza";
 import MapaSonhos from "./pages/MapaSonhos";
-import DataIntelligence from "./pages/DataIntelligence";
+
 import ContasConectadas from "./pages/ContasConectadas";
 import RevisarTransacoes from "./pages/RevisarTransacoes";
 import NotFound from "./pages/NotFound";
@@ -74,7 +74,7 @@ const App = () => (
             <Route path="/health-score" element={<ProtectedRoute><FinancialHealthScorePage /></ProtectedRoute>} />
             <Route path="/mapa-riqueza" element={<ProtectedRoute><MapaRiqueza /></ProtectedRoute>} />
             <Route path="/mapa-sonhos" element={<ProtectedRoute><MapaSonhos /></ProtectedRoute>} />
-            <Route path="/data-intelligence" element={<ProtectedRoute><DataIntelligence /></ProtectedRoute>} />
+            
             <Route path="/contas-conectadas" element={<ProtectedRoute><ContasConectadas /></ProtectedRoute>} />
             <Route path="/revisar-transacoes" element={<ProtectedRoute><RevisarTransacoes /></ProtectedRoute>} />
             <Route path="/tutorial" element={<ProtectedRoute><Tutorial /></ProtectedRoute>} />
