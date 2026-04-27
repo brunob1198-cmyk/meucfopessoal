@@ -373,6 +373,89 @@ export default function BalancoPatrimonial() {
     }));
   }, [monthlyProfits]);
 
+  // Mapa de Riqueza Merged Logic
+  const growth12m = useMemo(() => {
+    if (history.length < 2) return null;
+    const sorted = [...history].sort((a, b) => a.month.localeCompare(b.month));
+    const latest = sorted[sorted.length - 1];
+    const yearAgo = sorted.find(s => {
+      const d = new Date(s.month);
+      const l = new Date(latest.month);
+      return l.getFullYear() - d.getFullYear() === 1 && l.getMonth() === d.getMonth();
+    }) || sorted[0];
+    return Number(latest.net_worth) - Number(yearAgo.net_worth);
+  }, [history]);
+
+  const compositionData = useMemo(() => {
+    return Object.entries(COMPOSITION_GROUPS).map(([label, cats]) => {
+      const value = assets
+        .filter(a => cats.includes(a.category))
+        .reduce((s, a) => s + Number(a.current_value), 0);
+      return { name: label, value };
+    }).filter(d => d.value > 0);
+  }, [assets]);
+
+  const evolutionData = useMemo(() => {
+    return [...history]
+      .sort((a, b) => a.month.localeCompare(b.month))
+      .map(s => ({
+        month: new Date(s.month).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }),
+        patrimonio: Number(s.net_worth),
+        ativos: Number(s.total_assets),
+        passivos: Number(s.total_liabilities),
+      }));
+  }, [history]);
+
+  const avgMonthlySavings = useMemo(() => {
+    const profits = monthlyProfits.filter(p => p.receita > 0);
+    if (profits.length === 0) return 0;
+    return profits.reduce((s, p) => s + (p.receita - p.despesas), 0) / profits.length;
+  }, [monthlyProfits]);
+
+  const annualSavings = avgMonthlySavings * 12;
+  const totalGrowth = growth12m || 0;
+  const investmentReturns = Math.max(0, totalGrowth - annualSavings) * 0.7;
+  const assetAppreciation = Math.max(0, totalGrowth - annualSavings - investmentReturns);
+
+  const growthDrivers = [
+    { name: 'Poupança', value: Math.max(0, annualSavings), color: 'hsl(160, 50%, 40%)' },
+    { name: 'Retorno Investimentos', value: Math.max(0, investmentReturns), color: 'hsl(220, 50%, 45%)' },
+    { name: 'Valorização de Ativos', value: Math.max(0, assetAppreciation), color: 'hsl(38, 55%, 45%)' },
+  ];
+
+  const avgMonthlyIncome = useMemo(() => {
+    const profits = monthlyProfits.filter(p => p.receita > 0);
+    return profits.length > 0 ? profits.reduce((s, p) => s + p.receita, 0) / profits.length : 0;
+  }, [monthlyProfits]);
+
+  const savingsRate = avgMonthlyIncome > 0 ? (avgMonthlySavings / avgMonthlyIncome) * 100 : 0;
+  const wealthToIncomeYears = avgMonthlyIncome > 0 ? netWorth / (avgMonthlyIncome * 12) : 0;
+  const growthRate = growth12m !== null && netWorth > 0 ? (growth12m / (netWorth - growth12m)) * 100 : 0;
+
+  const riquezaInsights = useMemo(() => {
+    const msgs: string[] = [];
+    if (growth12m !== null && growth12m > 0 && netWorth > 0) {
+      msgs.push(`Seu patrimônio cresceu ${growthRate.toFixed(0)}% no último ano.`);
+    }
+    if (annualSavings > 0 && totalGrowth > 0) {
+      const poupancaPct = (annualSavings / totalGrowth) * 100;
+      msgs.push(`${Math.min(100, poupancaPct).toFixed(0)}% do crescimento veio da sua poupança.`);
+    }
+    const investPct = totalAssets > 0
+      ? (assets.filter(a => ['renda_fixa', 'acoes', 'fundos', 'criptomoedas'].includes(a.category))
+          .reduce((s, a) => s + Number(a.current_value), 0) / totalAssets) * 100
+      : 0;
+    if (investPct > 0) {
+      msgs.push(`Seus investimentos representam ${investPct.toFixed(0)}% do seu patrimônio.`);
+    }
+    if (savingsRate >= 20) {
+      msgs.push('Sua taxa de poupança está acima da média. Continue assim!');
+    } else if (savingsRate > 0) {
+      msgs.push(`Sua taxa de poupança é ${savingsRate.toFixed(0)}%. Tente aumentar para 20%+..`);
+    }
+    return msgs;
+  }, [growth12m, growthRate, annualSavings, totalGrowth, totalAssets, assets, savingsRate, netWorth]);
+
 
 
   // Alert: passivos > ativos
