@@ -24,7 +24,6 @@ const items = [
   { title: 'Consultor Financeiro IA', url: '/inteligencia', icon: Sparkles },
   { title: 'Mapa de Compromissos', url: '/compromissos', icon: CalendarRange },
   { title: 'Balanço Patrimonial', url: '/balanco', icon: Scale },
-  { title: 'Mapa de Riqueza', url: '/mapa-riqueza', icon: Gem },
   { title: 'Mapa de Sonhos', url: '/mapa-sonhos', icon: Star },
   { title: 'Contas Conectadas', url: '/contas-conectadas', icon: Landmark },
   { title: 'Revisar Transações', url: '/revisar-transacoes', icon: ArrowDownUp },
