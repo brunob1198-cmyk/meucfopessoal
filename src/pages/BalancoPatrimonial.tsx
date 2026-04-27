@@ -1,9 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { motion } from 'framer-motion';
 import {
   Plus, Trash2, Edit2, TrendingUp, TrendingDown, Minus,
-  Landmark, CreditCard, PiggyBank, ChevronDown, ChevronRight, Save, Wallet, ArrowUpRight, AlertTriangle, ShieldAlert
+  Landmark, CreditCard, PiggyBank, ChevronDown, ChevronRight, Save, Wallet, ArrowUpRight, AlertTriangle, ShieldAlert,
+  Gem, Wallet as WalletIcon, BarChart3, PiggyBank as PiggyBankIcon, Lightbulb
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +15,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, BarChart, Bar, Legend, ComposedChart } from 'recharts';
+import { 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  Area, AreaChart, BarChart, Bar, Legend, ComposedChart, PieChart, Pie, Cell 
+} from 'recharts';
 import {
   useAssets, useLiabilities, useNetWorthHistory,
   ASSET_CATEGORY_LABELS, LIABILITY_CATEGORY_LABELS,
@@ -22,6 +27,8 @@ import {
 } from '@/hooks/useBalanceSheet';
 import { useDREIntegration } from '@/hooks/useDREIntegration';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { formatBRL } from '@/lib/dre';
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
