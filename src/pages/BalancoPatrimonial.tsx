@@ -32,6 +32,40 @@ import { formatBRL } from '@/lib/dre';
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+const COLORS = [
+  'hsl(160, 50%, 40%)', 'hsl(220, 50%, 45%)', 'hsl(38, 55%, 45%)',
+  'hsl(280, 40%, 45%)', 'hsl(0, 45%, 42%)', 'hsl(180, 40%, 38%)',
+];
+
+const cardVariant = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (i: number) => ({
+    opacity: 1, y: 0,
+    transition: { delay: i * 0.1, duration: 0.5, ease: 'easeOut' as const }
+  })
+};
+
+const tooltipStyle = {
+  contentStyle: {
+    background: 'hsl(200 35% 12% / 0.95)',
+    border: '1px solid hsl(200 25% 20%)',
+    borderRadius: '8px',
+    backdropFilter: 'blur(8px)',
+    color: 'hsl(var(--foreground))'
+  },
+  labelStyle: { color: 'hsl(var(--foreground))' },
+  itemStyle: { color: 'hsl(var(--foreground))' }
+};
+
+// Group asset categories for composition
+const COMPOSITION_GROUPS: Record<string, string[]> = {
+  'Investimentos': ['renda_fixa', 'acoes', 'fundos', 'criptomoedas'],
+  'Imóveis': ['imoveis'],
+  'Caixa': ['conta_corrente', 'poupanca', 'dinheiro_caixa'],
+  'Veículos': ['veiculos'],
+  'Outros': ['participacoes', 'outros_bens'],
+};
+
 function AssetForm({ asset, onSave, onClose }: { asset?: Asset; onSave: (a: any) => void; onClose: () => void }) {
   const [name, setName] = useState(asset?.name ?? '');
   const [category, setCategory] = useState<AssetCategory>(asset?.category ?? 'conta_corrente');
