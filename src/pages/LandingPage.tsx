@@ -159,35 +159,35 @@ Calculado automaticamente com dados do DRE e Balanço Patrimonial. Histórico me
 
 const faqItems = [
   {
-    q: "Como lançar meu patrimônio?",
+    q: "Como faço para lançar meu patrimônio?",
     a: "Acesse o **Balanço Patrimonial** no menu lateral. Clique em 'Novo Ativo' para cadastrar bens (imóveis, investimentos, veículos) ou 'Novo Passivo' para dívidas (financiamentos, cartão de crédito). Informe nome, categoria, valor atual e data de aquisição. O patrimônio líquido é calculado automaticamente."
   },
   {
-    q: "Como fazer lançamentos?",
+    q: "Quais são os passos para fazer lançamentos?",
     a: "Na tela de **Lançamentos**, localize a subcategoria desejada (ex: Combustível em AUTOMÓVEL). Clique no '+' à direita, preencha valor, data e comentário opcional, e clique em Salvar. Para compras parceladas, ative o switch 'Parcelado', informe o valor total e o número de parcelas."
   },
   {
-    q: "Como importar extratos bancários?",
+    q: "Como posso importar meus extratos bancários?",
     a: "Você tem duas opções: 1) **Importar Excel**: Clique em 'Importar Excel', baixe o modelo, preencha com seus dados e faça upload. 2) **Open Finance**: Conecte suas contas bancárias automaticamente via 'Contas Conectadas' no menu."
   },
   {
-    q: "Como funciona o Consultor Financeiro IA?",
+    q: "De que forma funciona o Consultor Financeiro IA?",
     a: "Acesse **Inteligência** no menu, selecione o período desejado (recomendado: últimos 6-12 meses) e clique em 'Gerar Análise'. A IA analisa seus lançamentos e gera insights, alertas, sugestões e previsões personalizadas com números concretos dos seus dados."
   },
   {
-    q: "Como criar metas financeiras?",
+    q: "Como é possível criar metas financeiras?",
     a: "Use o **Mapa de Sonhos Financeiros** para criar objetivos de vida (casa, viagem, aposentadoria). Defina nome, valor necessário, valor acumulado e data desejada. O sistema calcula automaticamente o valor mensal necessário e monitora seu progresso."
   },
   {
-    q: "Como acompanhar minha saúde financeira?",
+    q: "Como acompanhar o score de saúde financeira?",
     a: "O **Score de Saúde Financeira** calcula uma nota de 0 a 100 baseada em 5 pilares: poupança, controle de despesas, liquidez, endividamento e reserva de emergência. Acesse pelo menu lateral e acompanhe a evolução mensal."
   },
   {
-    q: "Como compartilhar meus dados com um contador?",
+    q: "Como compartilhar dados com um contador?",
     a: "Em **Meu Perfil**, use a seção 'Compartilhamento de Acesso'. Informe o e-mail da pessoa, selecione a permissão (Visualização ou Edição) e envie o convite. A pessoa precisa ter conta no sistema."
   },
   {
-    q: "O que é o planejador e para que serve?",
+    q: "O que é o planejador e qual sua finalidade?",
     a: "O **Planejador** é sua ferramenta de orçamento mensal. Defina quanto pretende gastar em cada categoria para meses futuros. Os valores aparecem em verde no DRE para comparar planejado vs realizado. Projete pelo menos 6 meses à frente."
   },
 ];
@@ -402,7 +402,13 @@ function Hero() {
         <motion.div initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8, delay: 0.3 }} className="hidden lg:block">
           <div className="relative">
             <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 to-primary/5 rounded-2xl blur-xl" />
-            <img src={dashboardMockup} alt="Dashboard do Meu CFO Pessoal mostrando gráficos financeiros" className="relative rounded-2xl border border-border shadow-2xl shadow-primary/10 w-full" />
+            <img 
+              src={dashboardMockup} 
+              alt="Interface do dashboard financeiro Meu CFO Pessoal" 
+              width={800}
+              height={500}
+              className="relative rounded-2xl border border-border shadow-2xl shadow-primary/10 w-full h-auto" 
+            />
           </div>
         </motion.div>
       </div>
@@ -445,7 +451,14 @@ function AIHighlight() {
             </motion.div>
           </motion.div>
           <motion.div initial={{ opacity: 0, x: 40 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
-            <img src={imgAI} alt="Consultor Financeiro IA analisando dados" className="rounded-2xl border border-border shadow-2xl" />
+            <img 
+              src={imgAI} 
+              alt="Interface do consultor financeiro com inteligência artificial" 
+              width={600}
+              height={400}
+              loading="lazy"
+              className="rounded-2xl border border-border shadow-2xl w-full h-auto" 
+            />
           </motion.div>
         </div>
       </div>
@@ -476,7 +489,14 @@ function Showcase() {
           {images.map((img, i) => (
             <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i}>
               <Card className="bg-card/60 border-border overflow-hidden hover:border-primary/40 transition-all hover:-translate-y-1">
-                <img src={img.src} alt={img.title} className="w-full h-44 object-cover" loading="lazy" />
+                <img 
+                  src={img.src} 
+                  alt={img.title} 
+                  width={400}
+                  height={250}
+                  className="w-full h-44 object-cover" 
+                  loading="lazy" 
+                />
                 <CardContent className="p-4">
                   <h3 className="font-semibold text-foreground text-sm">{img.title}</h3>
                   <p className="text-xs text-muted-foreground">{img.desc}</p>

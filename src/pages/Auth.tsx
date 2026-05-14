@@ -43,12 +43,13 @@ export default function Auth() {
         <meta property="og:title" content="Entrar ou Criar Conta — Meu CFO Pessoal" />
         <meta property="og:url" content="https://meucfopessoal.bssassessoria.com.br/auth" />
       </Helmet>
-      {/* Background image with overlay */}
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${fintechBg})` }}
+      {/* Background container */}
+      <div className="absolute inset-0 bg-background/85 fintech-gradient-deep" style={{ mixBlendMode: 'multiply', zIndex: -1 }} />
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-40"
+        style={{ backgroundImage: `url(${fintechBg})`, zIndex: -2 }}
+        aria-hidden="true"
       />
-      <div className="absolute inset-0 bg-background/85 fintech-gradient-deep" style={{ mixBlendMode: 'multiply' }} />
       <div className="absolute inset-0 grid-bg" />
 
       {/* Ambient glow effects */}
