@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,13 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+      <Helmet>
+        <title>Entrar ou Criar Conta — Meu CFO Pessoal</title>
+        <meta name="description" content="Acesse sua conta no Meu CFO Pessoal ou crie uma nova para gerenciar suas finanças com DRE e Consultor IA." />
+        <link rel="canonical" href="https://meucfopessoal.bssassessoria.com.br/auth" />
+        <meta property="og:title" content="Entrar ou Criar Conta — Meu CFO Pessoal" />
+        <meta property="og:url" content="https://meucfopessoal.bssassessoria.com.br/auth" />
+      </Helmet>
       {/* Background image with overlay */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"

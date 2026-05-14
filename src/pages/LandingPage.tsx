@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import {
   BarChart3, Target, Star, Brain, FileUp, Link2, Map,
@@ -695,6 +696,14 @@ function Footer() {
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <Helmet>
+        <title>Meu CFO Pessoal — Gestão Financeira com IA e DRE</title>
+        <meta name="description" content="Controle suas finanças com DRE, Consultor IA, Score de Saúde Financeira e Open Finance. Planeje, acompanhe e conquiste a liberdade financeira." />
+        <link rel="canonical" href="https://meucfopessoal.bssassessoria.com.br/" />
+        <meta property="og:title" content="Meu CFO Pessoal — Gestão Financeira com IA e DRE" />
+        <meta property="og:description" content="Controle suas finanças com DRE, Consultor IA e Score de Saúde Financeira." />
+        <meta property="og:url" content="https://meucfopessoal.bssassessoria.com.br/" />
+      </Helmet>
       <Navbar />
       <Hero />
       <AIHighlight />
