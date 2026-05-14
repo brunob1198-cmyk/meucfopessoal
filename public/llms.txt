@@ -1,0 +1,12 @@
+# Meu CFO Pessoal
+
+> Plataforma de gestão financeira pessoal com DRE, Consultor IA, Score de Saúde Financeira, Mapa de Sonhos e integração Open Finance. Ajuda o usuário a planejar, acompanhar e conquistar liberdade financeira com mentalidade empresarial.
+
+## Pages
+
+- [Início](/): Apresentação do produto, recursos, planos e perguntas frequentes.
+- [Entrar ou criar conta](/auth): Acesso e cadastro de usuários.
+
+## Optional
+
+- O restante do aplicativo (Dashboard, DRE, Planejador, Balanço Patrimonial, Inteligência, Compromissos, Fluxo de Caixa, Mapa de Sonhos, Score de Saúde Financeira, Simulador, Contas Conectadas) é privado e exige autenticação.
