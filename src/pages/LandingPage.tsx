@@ -159,35 +159,35 @@ Calculado automaticamente com dados do DRE e Balanço Patrimonial. Histórico me
 
 const faqItems = [
   {
-    q: "Como lançar meu patrimônio?",
+    q: "Como faço para lançar meu patrimônio?",
     a: "Acesse o **Balanço Patrimonial** no menu lateral. Clique em 'Novo Ativo' para cadastrar bens (imóveis, investimentos, veículos) ou 'Novo Passivo' para dívidas (financiamentos, cartão de crédito). Informe nome, categoria, valor atual e data de aquisição. O patrimônio líquido é calculado automaticamente."
   },
   {
-    q: "Como fazer lançamentos?",
+    q: "Quais são os passos para fazer lançamentos?",
     a: "Na tela de **Lançamentos**, localize a subcategoria desejada (ex: Combustível em AUTOMÓVEL). Clique no '+' à direita, preencha valor, data e comentário opcional, e clique em Salvar. Para compras parceladas, ative o switch 'Parcelado', informe o valor total e o número de parcelas."
   },
   {
-    q: "Como importar extratos bancários?",
+    q: "Como posso importar meus extratos bancários?",
     a: "Você tem duas opções: 1) **Importar Excel**: Clique em 'Importar Excel', baixe o modelo, preencha com seus dados e faça upload. 2) **Open Finance**: Conecte suas contas bancárias automaticamente via 'Contas Conectadas' no menu."
   },
   {
-    q: "Como funciona o Consultor Financeiro IA?",
+    q: "De que forma funciona o Consultor Financeiro IA?",
     a: "Acesse **Inteligência** no menu, selecione o período desejado (recomendado: últimos 6-12 meses) e clique em 'Gerar Análise'. A IA analisa seus lançamentos e gera insights, alertas, sugestões e previsões personalizadas com números concretos dos seus dados."
   },
   {
-    q: "Como criar metas financeiras?",
+    q: "Como é possível criar metas financeiras?",
     a: "Use o **Mapa de Sonhos Financeiros** para criar objetivos de vida (casa, viagem, aposentadoria). Defina nome, valor necessário, valor acumulado e data desejada. O sistema calcula automaticamente o valor mensal necessário e monitora seu progresso."
   },
   {
-    q: "Como acompanhar minha saúde financeira?",
+    q: "Como acompanhar o score de saúde financeira?",
     a: "O **Score de Saúde Financeira** calcula uma nota de 0 a 100 baseada em 5 pilares: poupança, controle de despesas, liquidez, endividamento e reserva de emergência. Acesse pelo menu lateral e acompanhe a evolução mensal."
   },
   {
-    q: "Como compartilhar meus dados com um contador?",
+    q: "Como compartilhar dados com um contador?",
     a: "Em **Meu Perfil**, use a seção 'Compartilhamento de Acesso'. Informe o e-mail da pessoa, selecione a permissão (Visualização ou Edição) e envie o convite. A pessoa precisa ter conta no sistema."
   },
   {
-    q: "O que é o planejador e para que serve?",
+    q: "O que é o planejador e qual sua finalidade?",
     a: "O **Planejador** é sua ferramenta de orçamento mensal. Defina quanto pretende gastar em cada categoria para meses futuros. Os valores aparecem em verde no DRE para comparar planejado vs realizado. Projete pelo menos 6 meses à frente."
   },
 ];
