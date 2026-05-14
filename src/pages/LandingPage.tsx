@@ -402,7 +402,13 @@ function Hero() {
         <motion.div initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8, delay: 0.3 }} className="hidden lg:block">
           <div className="relative">
             <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 to-primary/5 rounded-2xl blur-xl" />
-            <img src={dashboardMockup} alt="Dashboard do Meu CFO Pessoal mostrando gráficos financeiros" className="relative rounded-2xl border border-border shadow-2xl shadow-primary/10 w-full" />
+            <img 
+              src={dashboardMockup} 
+              alt="Interface do dashboard financeiro Meu CFO Pessoal" 
+              width={800}
+              height={500}
+              className="relative rounded-2xl border border-border shadow-2xl shadow-primary/10 w-full h-auto" 
+            />
           </div>
         </motion.div>
       </div>
@@ -445,7 +451,14 @@ function AIHighlight() {
             </motion.div>
           </motion.div>
           <motion.div initial={{ opacity: 0, x: 40 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
-            <img src={imgAI} alt="Consultor Financeiro IA analisando dados" className="rounded-2xl border border-border shadow-2xl" />
+            <img 
+              src={imgAI} 
+              alt="Interface do consultor financeiro com inteligência artificial" 
+              width={600}
+              height={400}
+              loading="lazy"
+              className="rounded-2xl border border-border shadow-2xl w-full h-auto" 
+            />
           </motion.div>
         </div>
       </div>
@@ -476,7 +489,14 @@ function Showcase() {
           {images.map((img, i) => (
             <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i}>
               <Card className="bg-card/60 border-border overflow-hidden hover:border-primary/40 transition-all hover:-translate-y-1">
-                <img src={img.src} alt={img.title} className="w-full h-44 object-cover" loading="lazy" />
+                <img 
+                  src={img.src} 
+                  alt={img.title} 
+                  width={400}
+                  height={250}
+                  className="w-full h-44 object-cover" 
+                  loading="lazy" 
+                />
                 <CardContent className="p-4">
                   <h3 className="font-semibold text-foreground text-sm">{img.title}</h3>
                   <p className="text-xs text-muted-foreground">{img.desc}</p>
