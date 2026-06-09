@@ -355,12 +355,62 @@ export function BankStatementUpload() {
     setDone(true);
   };
 
+  const toggleFilter = (type: 'type' | 'category', value: string) => {
+    if (type === 'type') {
+      setFilterType(prev => prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]);
+    } else {
+      setFilterCategory(prev => prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]);
+    }
+  };
+
+  const filteredAndSortedTransactions = useMemo(() => {
+    let result = [...transactions];
+
+    // Filters
+    if (filterType.length > 0) {
+      result = result.filter(t => filterType.includes(t.type));
+    }
+    if (filterCategory.length > 0) {
+      result = result.filter(t => filterCategory.includes(t.categoryId || 'none'));
+    }
+
+    // Sort
+    if (sortConfig) {
+      result.sort((a, b) => {
+        const aValue = a[sortConfig.key];
+        const bValue = b[sortConfig.key];
+
+        if (aValue === bValue) return 0;
+        if (aValue === null || aValue === undefined) return 1;
+        if (bValue === null || bValue === undefined) return -1;
+
+        const comparison = aValue < bValue ? -1 : 1;
+        return sortConfig.direction === 'asc' ? comparison : -comparison;
+      });
+    }
+
+    return result;
+  }, [transactions, sortConfig, filterType, filterCategory]);
+
+  const requestSort = (key: keyof ParsedTransaction) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key: keyof ParsedTransaction) => {
+    if (!sortConfig || sortConfig.key !== key) return <ArrowUpDown className="h-3 w-3 ml-1 text-muted-foreground/50" />;
+    return sortConfig.direction === 'asc' ? <ArrowUp className="h-3 w-3 ml-1 text-primary" /> : <ArrowDown className="h-3 w-3 ml-1 text-primary" />;
+  };
+
   const validCount = transactions.filter(t => t.selected && t.categoryId && !t.isDuplicate).length;
   const dupeCount = transactions.filter(t => t.isDuplicate).length;
   const noCatCount = transactions.filter(t => t.selected && !t.categoryId && !t.isDuplicate).length;
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setTransactions([]); setDone(false); } }}>
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setTransactions([]); setDone(false); setSortConfig(null); setFilterType([]); setFilterCategory([]); } }}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="gap-1.5">
           <FileText className="h-4 w-4" /> Importar Extrato
