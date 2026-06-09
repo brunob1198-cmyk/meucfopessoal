@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Upload, CheckCircle, AlertCircle, FileText, Trash2 } from 'lucide-react';
+import { Loader2, Upload, CheckCircle, AlertCircle, FileText, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Filter } from 'lucide-react';
 import { toast } from 'sonner';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface ParsedTransaction {
   date: string;
