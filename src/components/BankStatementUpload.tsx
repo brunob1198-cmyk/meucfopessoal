@@ -537,7 +537,6 @@ export function BankStatementUpload() {
                                     className="w-full pl-7 pr-3 py-1.5 text-xs bg-muted border-none rounded focus:ring-1 focus:ring-primary outline-none"
                                     value={filterSearch}
                                     onChange={(e) => setFilterSearch(e.target.value)}
-                                    autoFocus
                                   />
                                   {filterSearch && (
                                     <button 
