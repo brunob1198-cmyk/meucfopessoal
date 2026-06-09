@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Upload, CheckCircle, AlertCircle, FileText, Trash2 } from 'lucide-react';
+import { Loader2, Upload, CheckCircle, AlertCircle, FileText, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Filter } from 'lucide-react';
 import { toast } from 'sonner';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface ParsedTransaction {
   date: string;
@@ -138,6 +140,10 @@ export function BankStatementUpload() {
   const [importing, setImporting] = useState(false);
   const [done, setDone] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [sortConfig, setSortConfig] = useState<{ key: keyof ParsedTransaction; direction: 'asc' | 'desc' } | null>(null);
+  const [filterType, setFilterType] = useState<string[]>([]);
+  const [filterCategory, setFilterCategory] = useState<string[]>([]);
+
 
   // Load user's custom rules
   const { data: userRules } = useQuery({
@@ -349,12 +355,62 @@ export function BankStatementUpload() {
     setDone(true);
   };
 
+  const toggleFilter = (type: 'type' | 'category', value: string) => {
+    if (type === 'type') {
+      setFilterType(prev => prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]);
+    } else {
+      setFilterCategory(prev => prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]);
+    }
+  };
+
+  const filteredAndSortedTransactions = useMemo(() => {
+    let result = [...transactions];
+
+    // Filters
+    if (filterType.length > 0) {
+      result = result.filter(t => filterType.includes(t.type));
+    }
+    if (filterCategory.length > 0) {
+      result = result.filter(t => filterCategory.includes(t.categoryId || 'none'));
+    }
+
+    // Sort
+    if (sortConfig) {
+      result.sort((a, b) => {
+        const aValue = a[sortConfig.key];
+        const bValue = b[sortConfig.key];
+
+        if (aValue === bValue) return 0;
+        if (aValue === null || aValue === undefined) return 1;
+        if (bValue === null || bValue === undefined) return -1;
+
+        const comparison = aValue < bValue ? -1 : 1;
+        return sortConfig.direction === 'asc' ? comparison : -comparison;
+      });
+    }
+
+    return result;
+  }, [transactions, sortConfig, filterType, filterCategory]);
+
+  const requestSort = (key: keyof ParsedTransaction) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key: keyof ParsedTransaction) => {
+    if (!sortConfig || sortConfig.key !== key) return <ArrowUpDown className="h-3 w-3 ml-1 text-muted-foreground/50" />;
+    return sortConfig.direction === 'asc' ? <ArrowUp className="h-3 w-3 ml-1 text-primary" /> : <ArrowDown className="h-3 w-3 ml-1 text-primary" />;
+  };
+
   const validCount = transactions.filter(t => t.selected && t.categoryId && !t.isDuplicate).length;
   const dupeCount = transactions.filter(t => t.isDuplicate).length;
   const noCatCount = transactions.filter(t => t.selected && !t.categoryId && !t.isDuplicate).length;
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setTransactions([]); setDone(false); } }}>
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setTransactions([]); setDone(false); setSortConfig(null); setFilterType([]); setFilterCategory([]); } }}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="gap-1.5">
           <FileText className="h-4 w-4" /> Importar Extrato
@@ -446,69 +502,135 @@ export function BankStatementUpload() {
                           }}
                         />
                       </th>
-                      <th className="text-left p-2">Data</th>
-                      <th className="text-left p-2">Descrição</th>
-                      <th className="text-left p-2">Tipo</th>
-                      <th className="text-right p-2">Valor</th>
-                      <th className="text-left p-2">Categoria</th>
+                      <th className="text-left p-2 cursor-pointer hover:bg-muted-foreground/10 transition-colors" onClick={() => requestSort('date')}>
+                        <div className="flex items-center">Data {getSortIcon('date')}</div>
+                      </th>
+                      <th className="text-left p-2 cursor-pointer hover:bg-muted-foreground/10 transition-colors" onClick={() => requestSort('description')}>
+                        <div className="flex items-center">Descrição {getSortIcon('description')}</div>
+                      </th>
+                      <th className="text-left p-2">
+                        <div className="flex items-center gap-1">
+                          <span className="cursor-pointer hover:underline" onClick={() => requestSort('type')}>Tipo {getSortIcon('type')}</span>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-5 w-5 p-0">
+                                <Filter className={`h-3 w-3 ${filterType.length > 0 ? 'text-primary fill-primary/20' : 'text-muted-foreground'}`} />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-40 p-2" align="start">
+                              <div className="space-y-2">
+                                <p className="text-[10px] font-bold uppercase text-muted-foreground px-1">Filtrar Tipo</p>
+                                <div className="space-y-1">
+                                  {['entrada', 'saida'].map(type => (
+                                    <div key={type} className="flex items-center space-x-2 p-1 hover:bg-muted rounded cursor-pointer" onClick={() => toggleFilter('type', type)}>
+                                      <Checkbox id={`type-${type}`} checked={filterType.includes(type)} />
+                                      <label htmlFor={`type-${type}`} className="text-xs capitalize cursor-pointer">{type}</label>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </th>
+                      <th className="text-right p-2 cursor-pointer hover:bg-muted-foreground/10 transition-colors" onClick={() => requestSort('amount')}>
+                        <div className="flex items-center justify-end">Valor {getSortIcon('amount')}</div>
+                      </th>
+                      <th className="text-left p-2">
+                        <div className="flex items-center gap-1">
+                          <span className="cursor-pointer hover:underline" onClick={() => requestSort('categoryName')}>Categoria {getSortIcon('categoryName')}</span>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-5 w-5 p-0">
+                                <Filter className={`h-3 w-3 ${filterCategory.length > 0 ? 'text-primary fill-primary/20' : 'text-muted-foreground'}`} />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-56 p-2" align="start">
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between px-1">
+                                  <p className="text-[10px] font-bold uppercase text-muted-foreground">Filtrar Categoria</p>
+                                  {filterCategory.length > 0 && (
+                                    <button className="text-[10px] text-primary hover:underline" onClick={() => setFilterCategory([])}>Limpar</button>
+                                  )}
+                                </div>
+                                <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
+                                  <div className="flex items-center space-x-2 p-1 hover:bg-muted rounded cursor-pointer" onClick={() => toggleFilter('category', 'none')}>
+                                    <Checkbox id="cat-none" checked={filterCategory.includes('none')} />
+                                    <label htmlFor="cat-none" className="text-xs cursor-pointer italic text-muted-foreground">Sem categoria</label>
+                                  </div>
+                                  {subcategories.map(cat => (
+                                    <div key={cat.id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded cursor-pointer" onClick={() => toggleFilter('category', cat.id)}>
+                                      <Checkbox id={`cat-${cat.id}`} checked={filterCategory.includes(cat.id)} />
+                                      <label htmlFor={`cat-${cat.id}`} className="text-xs cursor-pointer truncate">{cat.name}</label>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </th>
                       <th className="text-center p-2 w-8"></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {transactions.map((t, i) => (
-                      <tr
-                        key={i}
-                        className={`${t.isDuplicate ? 'bg-muted/30 opacity-50' : !t.categoryId ? 'bg-amber-500/5' : ''}`}
-                      >
-                        <td className="p-2">
-                          <input
-                            type="checkbox"
-                            checked={t.selected && !t.isDuplicate}
-                            disabled={t.isDuplicate}
-                            onChange={() => toggleSelect(i)}
-                            className="rounded"
-                          />
-                        </td>
-                        <td className="p-2 tabular-nums whitespace-nowrap">{t.date}</td>
-                        <td className="p-2 max-w-[180px] truncate" title={t.description}>{t.description}</td>
-                        <td className="p-2">
-                          <Badge variant={t.type === 'entrada' ? 'default' : 'destructive'} className="text-[10px] px-1.5 py-0">
-                            {t.type === 'entrada' ? 'Entrada' : 'Saída'}
-                          </Badge>
-                          {t.isDuplicate && (
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 ml-1 border-muted-foreground/30">
-                              Duplicada
+                    {filteredAndSortedTransactions.map((t, idx) => {
+                      const originalIndex = transactions.findIndex(orig => orig === t);
+                      return (
+                        <tr
+                          key={`${t.date}-${t.description}-${idx}`}
+                          className={`${t.isDuplicate ? 'bg-muted/30 opacity-50' : !t.categoryId ? 'bg-amber-500/5' : ''}`}
+                        >
+                          <td className="p-2">
+                            <input
+                              type="checkbox"
+                              checked={t.selected && !t.isDuplicate}
+                              disabled={t.isDuplicate}
+                              onChange={() => toggleSelect(originalIndex)}
+                              className="rounded"
+                            />
+                          </td>
+                          <td className="p-2 tabular-nums whitespace-nowrap">{t.date}</td>
+                          <td className="p-2 max-w-[180px] truncate" title={t.description}>{t.description}</td>
+                          <td className="p-2">
+                            <Badge variant={t.type === 'entrada' ? 'default' : 'destructive'} className="text-[10px] px-1.5 py-0">
+                              {t.type === 'entrada' ? 'Entrada' : 'Saída'}
                             </Badge>
-                          )}
-                        </td>
-                        <td className="p-2 text-right tabular-nums font-medium">
-                          R$ {t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </td>
-                        <td className="p-2">
-                          <Select
-                            value={t.categoryId || ''}
-                            onValueChange={(v) => updateCategory(i, v)}
-                            disabled={t.isDuplicate}
-                          >
-                            <SelectTrigger className="h-7 text-xs w-40">
-                              <SelectValue placeholder="Selecionar..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {subcategories.map(c => (
-                                <SelectItem key={c.id} value={c.id} className="text-xs">
-                                  {c.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </td>
-                        <td className="p-2 text-center">
-                          <button onClick={() => removeTransaction(i)} className="p-1 hover:bg-destructive/10 rounded">
-                            <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                            {t.isDuplicate && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 ml-1 border-muted-foreground/30">
+                                Duplicada
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="p-2 text-right tabular-nums font-medium">
+                            R$ {t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className="p-2">
+                            <Select
+                              value={t.categoryId || ''}
+                              onValueChange={(v) => updateCategory(originalIndex, v)}
+                              disabled={t.isDuplicate}
+                            >
+                              <SelectTrigger className="h-7 text-xs w-40">
+                                <SelectValue placeholder="Selecionar..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {subcategories.map(c => (
+                                  <SelectItem key={c.id} value={c.id} className="text-xs">
+                                    {c.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </td>
+                          <td className="p-2 text-center">
+                            <button onClick={() => removeTransaction(originalIndex)} className="p-1 hover:bg-destructive/10 rounded">
+                              <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
