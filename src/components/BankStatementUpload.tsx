@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Upload, CheckCircle, AlertCircle, FileText, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Filter } from 'lucide-react';
+import { Loader2, Upload, CheckCircle, AlertCircle, FileText, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Filter, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -143,6 +143,7 @@ export function BankStatementUpload() {
   const [sortConfig, setSortConfig] = useState<{ key: keyof ParsedTransaction; direction: 'asc' | 'desc' } | null>(null);
   const [filterType, setFilterType] = useState<string[]>([]);
   const [filterCategory, setFilterCategory] = useState<string[]>([]);
+  const [filterSearch, setFilterSearch] = useState('');
 
 
   // Load user's custom rules
@@ -373,6 +374,10 @@ export function BankStatementUpload() {
     if (filterCategory.length > 0) {
       result = result.filter(t => filterCategory.includes(t.categoryId || 'none'));
     }
+    if (filterSearch) {
+      const search = filterSearch.toLowerCase();
+      result = result.filter(t => t.description.toLowerCase().includes(search));
+    }
 
     // Sort
     if (sortConfig) {
@@ -410,7 +415,7 @@ export function BankStatementUpload() {
   const noCatCount = transactions.filter(t => t.selected && !t.categoryId && !t.isDuplicate).length;
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setTransactions([]); setDone(false); setSortConfig(null); setFilterType([]); setFilterCategory([]); } }}>
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setTransactions([]); setDone(false); setSortConfig(null); setFilterType([]); setFilterCategory([]); setFilterSearch(''); } }}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="gap-1.5">
           <FileText className="h-4 w-4" /> Importar Extrato
@@ -505,8 +510,41 @@ export function BankStatementUpload() {
                       <th className="text-left p-2 cursor-pointer hover:bg-muted-foreground/10 transition-colors" onClick={() => requestSort('date')}>
                         <div className="flex items-center">Data {getSortIcon('date')}</div>
                       </th>
-                      <th className="text-left p-2 cursor-pointer hover:bg-muted-foreground/10 transition-colors" onClick={() => requestSort('description')}>
-                        <div className="flex items-center">Descrição {getSortIcon('description')}</div>
+                      <th className="text-left p-2">
+                        <div className="flex items-center gap-1">
+                          <span className="cursor-pointer hover:underline" onClick={() => requestSort('description')}>Descrição {getSortIcon('description')}</span>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-5 w-5 p-0">
+                                <Search className={`h-3 w-3 ${filterSearch ? 'text-primary' : 'text-muted-foreground'}`} />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-64 p-2" align="start">
+                              <div className="space-y-2">
+                                <p className="text-[10px] font-bold uppercase text-muted-foreground px-1">Pesquisar Descrição</p>
+                                <div className="relative">
+                                  <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                                  <input
+                                    type="text"
+                                    placeholder="Digite para buscar..."
+                                    className="w-full pl-7 pr-3 py-1.5 text-xs bg-muted border-none rounded focus:ring-1 focus:ring-primary outline-none"
+                                    value={filterSearch}
+                                    onChange={(e) => setFilterSearch(e.target.value)}
+                                    autoFocus
+                                  />
+                                  {filterSearch && (
+                                    <button 
+                                      className="absolute right-2 top-2 text-[10px] text-muted-foreground hover:text-primary"
+                                      onClick={() => setFilterSearch('')}
+                                    >
+                                      Limpar
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
                       </th>
                       <th className="text-left p-2">
                         <div className="flex items-center gap-1">
