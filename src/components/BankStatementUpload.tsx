@@ -139,6 +139,7 @@ export function BankStatementUpload() {
   const [transactions, setTransactions] = useState<ParsedTransaction[]>([]);
   const [importing, setImporting] = useState(false);
   const [done, setDone] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ key: keyof ParsedTransaction; direction: 'asc' | 'desc' } | null>(null);
   const [filterType, setFilterType] = useState<string[]>([]);
   const [filterCategory, setFilterCategory] = useState<string[]>([]);
