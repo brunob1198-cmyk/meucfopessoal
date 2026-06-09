@@ -520,7 +520,14 @@ export function BankStatementUpload() {
                       <th className="text-left p-2">
                         <div className="flex items-center gap-1">
                           <span className="cursor-pointer hover:underline" onClick={() => requestSort('description')}>Descrição {getSortIcon('description')}</span>
-                          <Popover>
+                          <Popover onOpenChange={(open) => {
+                            if (open) {
+                              setTimeout(() => {
+                                const input = document.getElementById('search-description-input');
+                                if (input) input.focus();
+                              }, 0);
+                            }
+                          }}>
                             <PopoverTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-5 w-5 p-0">
                                 <Search className={`h-3 w-3 ${filterSearch ? 'text-primary' : 'text-muted-foreground'}`} />
@@ -532,6 +539,7 @@ export function BankStatementUpload() {
                                 <div className="relative">
                                   <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                                   <input
+                                    id="search-description-input"
                                     type="text"
                                     placeholder="Digite para buscar..."
                                     className="w-full pl-7 pr-3 py-1.5 text-xs bg-muted border-none rounded focus:ring-1 focus:ring-primary outline-none"
