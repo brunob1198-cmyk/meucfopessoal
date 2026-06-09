@@ -285,6 +285,14 @@ export function BankStatementUpload() {
     setTransactions(prev => prev.filter((_, i) => i !== index));
   };
 
+  const bulkUpdateCategory = (categoryId: string) => {
+    const cat = subcategories.find(c => c.id === categoryId);
+    setTransactions(prev => prev.map(t => 
+      t.selected && !t.isDuplicate ? { ...t, categoryId, categoryName: cat?.name || null } : t
+    ));
+    toast.success('Categoria aplicada aos selecionados');
+  };
+
   const handleImport = async () => {
     if (!user) return;
     setImporting(true);
