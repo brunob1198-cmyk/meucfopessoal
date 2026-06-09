@@ -285,6 +285,14 @@ export function BankStatementUpload() {
     setTransactions(prev => prev.filter((_, i) => i !== index));
   };
 
+  const bulkUpdateCategory = (categoryId: string) => {
+    const cat = subcategories.find(c => c.id === categoryId);
+    setTransactions(prev => prev.map(t => 
+      t.selected && !t.isDuplicate ? { ...t, categoryId, categoryName: cat?.name || null } : t
+    ));
+    toast.success('Categoria aplicada aos selecionados');
+  };
+
   const handleImport = async () => {
     if (!user) return;
     setImporting(true);
@@ -379,19 +387,39 @@ export function BankStatementUpload() {
 
           {transactions.length > 0 && !done && (
             <>
-              <div className="flex items-center gap-3 text-sm flex-wrap">
-                <span className="flex items-center gap-1 text-primary">
-                  <CheckCircle className="h-4 w-4" /> {validCount} prontas
-                </span>
-                {noCatCount > 0 && (
-                  <span className="flex items-center gap-1 text-amber-500">
-                    <AlertCircle className="h-4 w-4" /> {noCatCount} sem categoria
+              <div className="flex items-center justify-between gap-3 text-sm flex-wrap">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="flex items-center gap-1 text-primary">
+                    <CheckCircle className="h-4 w-4" /> {validCount} prontas
                   </span>
-                )}
-                {dupeCount > 0 && (
-                  <span className="flex items-center gap-1 text-muted-foreground">
-                    {dupeCount} duplicada{dupeCount > 1 ? 's' : ''} (ignoradas)
-                  </span>
+                  {noCatCount > 0 && (
+                    <span className="flex items-center gap-1 text-amber-500">
+                      <AlertCircle className="h-4 w-4" /> {noCatCount} sem categoria
+                    </span>
+                  )}
+                  {dupeCount > 0 && (
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      {dupeCount} duplicada{dupeCount > 1 ? 's' : ''} (ignoradas)
+                    </span>
+                  )}
+                </div>
+
+                {transactions.some(t => t.selected && !t.isDuplicate) && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">Categorizar selecionados:</span>
+                    <Select onValueChange={bulkUpdateCategory}>
+                      <SelectTrigger className="h-8 text-xs w-48 bg-primary/10 border-primary/20 hover:bg-primary/20 transition-colors">
+                        <SelectValue placeholder="Escolher categoria..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {subcategories.map(c => (
+                          <SelectItem key={c.id} value={c.id} className="text-xs">
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 )}
               </div>
 
