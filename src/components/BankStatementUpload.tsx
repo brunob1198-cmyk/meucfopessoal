@@ -518,46 +518,28 @@ export function BankStatementUpload() {
                         <div className="flex items-center">Data {getSortIcon('date')}</div>
                       </th>
                       <th className="text-left p-2">
-                        <div className="flex items-center gap-1">
-                          <span className="cursor-pointer hover:underline" onClick={() => requestSort('description')}>Descrição {getSortIcon('description')}</span>
-                          <Popover onOpenChange={(open) => {
-                            if (open) {
-                              setTimeout(() => {
-                                const input = document.getElementById('search-description-input');
-                                if (input) input.focus();
-                              }, 0);
-                            }
-                          }}>
-                            <PopoverTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-5 w-5 p-0">
-                                <Search className={`h-3 w-3 ${filterSearch ? 'text-primary' : 'text-muted-foreground'}`} />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-64 p-2" align="start">
-                              <div className="space-y-2">
-                                <p className="text-[10px] font-bold uppercase text-muted-foreground px-1">Pesquisar Descrição</p>
-                                <div className="relative">
-                                  <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                                  <input
-                                    id="search-description-input"
-                                    type="text"
-                                    placeholder="Digite para buscar..."
-                                    className="w-full pl-7 pr-3 py-1.5 text-xs bg-muted border-none rounded focus:ring-1 focus:ring-primary outline-none"
-                                    value={filterSearch}
-                                    onChange={(e) => setFilterSearch(e.target.value)}
-                                  />
-                                  {filterSearch && (
-                                    <button 
-                                      className="absolute right-2 top-2 text-[10px] text-muted-foreground hover:text-primary"
-                                      onClick={() => setFilterSearch('')}
-                                    >
-                                      Limpar
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            </PopoverContent>
-                          </Popover>
+                        <div className="flex flex-col gap-1.5 min-w-[150px]">
+                          <div className="flex items-center gap-1">
+                            <span className="cursor-pointer hover:underline" onClick={() => requestSort('description')}>Descrição {getSortIcon('description')}</span>
+                          </div>
+                          <div className="relative">
+                            <Search className="absolute left-2 top-2 h-3 w-3 text-muted-foreground" />
+                            <input
+                              type="text"
+                              placeholder="Pesquisar..."
+                              className="w-full pl-7 pr-7 py-1 text-[10px] bg-muted/50 border border-muted-foreground/10 rounded focus:ring-1 focus:ring-primary/30 outline-none transition-all"
+                              value={filterSearch}
+                              onChange={(e) => setFilterSearch(e.target.value)}
+                            />
+                            {filterSearch && (
+                              <button 
+                                className="absolute right-2 top-2 text-[10px] text-muted-foreground hover:text-primary"
+                                onClick={() => setFilterSearch('')}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </th>
                       <th className="text-left p-2">
