@@ -488,22 +488,29 @@ export function BankStatementUpload() {
                 <table className="w-full text-xs">
                   <thead className="bg-muted sticky top-0 z-10">
                     <tr>
-                      <th className="text-left p-2 w-8 text-center" title="Marcar/Desmarcar Todos">
+                      <th className="text-left p-2 w-8 text-center" title="Marcar/Desmarcar Todos os Visíveis">
                         <input
                           type="checkbox"
                           className="rounded cursor-pointer"
-                          checked={transactions.length > 0 && transactions.every(t => t.isDuplicate || t.selected)}
+                          checked={filteredAndSortedTransactions.length > 0 && filteredAndSortedTransactions.every(t => t.isDuplicate || t.selected)}
                           ref={el => {
                             if (el) {
-                              const some = transactions.some(t => t.selected && !t.isDuplicate);
-                              const all = transactions.every(t => t.isDuplicate || t.selected);
+                              const some = filteredAndSortedTransactions.some(t => t.selected && !t.isDuplicate);
+                              const all = filteredAndSortedTransactions.every(t => t.isDuplicate || t.selected);
                               if (some && !all) el.indeterminate = true;
                               else el.indeterminate = false;
                             }
                           }}
                           onChange={(e) => {
                             const isChecked = e.target.checked;
-                            setTransactions(prev => prev.map(t => t.isDuplicate ? t : { ...t, selected: isChecked }));
+                            const filteredIds = new Set(filteredAndSortedTransactions.map(t => `${t.date}-${t.description}-${t.amount}`));
+                            setTransactions(prev => prev.map(t => {
+                              const id = `${t.date}-${t.description}-${t.amount}`;
+                              if (filteredIds.has(id) && !t.isDuplicate) {
+                                return { ...t, selected: isChecked };
+                              }
+                              return t;
+                            }));
                           }}
                         />
                       </th>
@@ -513,7 +520,14 @@ export function BankStatementUpload() {
                       <th className="text-left p-2">
                         <div className="flex items-center gap-1">
                           <span className="cursor-pointer hover:underline" onClick={() => requestSort('description')}>Descrição {getSortIcon('description')}</span>
-                          <Popover>
+                          <Popover onOpenChange={(open) => {
+                            if (open) {
+                              setTimeout(() => {
+                                const input = document.getElementById('search-description-input');
+                                if (input) input.focus();
+                              }, 0);
+                            }
+                          }}>
                             <PopoverTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-5 w-5 p-0">
                                 <Search className={`h-3 w-3 ${filterSearch ? 'text-primary' : 'text-muted-foreground'}`} />
@@ -525,12 +539,12 @@ export function BankStatementUpload() {
                                 <div className="relative">
                                   <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                                   <input
+                                    id="search-description-input"
                                     type="text"
                                     placeholder="Digite para buscar..."
                                     className="w-full pl-7 pr-3 py-1.5 text-xs bg-muted border-none rounded focus:ring-1 focus:ring-primary outline-none"
                                     value={filterSearch}
                                     onChange={(e) => setFilterSearch(e.target.value)}
-                                    autoFocus
                                   />
                                   {filterSearch && (
                                     <button 
