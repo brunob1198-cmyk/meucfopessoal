@@ -17,6 +17,7 @@ import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { ExportMenu } from '@/components/ExportMenu';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface MonthData {
   month: string;
@@ -410,7 +411,16 @@ export default function DREDetalhado() {
                 <div className="grid grid-cols-[80px_1fr_100px_40px] gap-2 text-sm py-1.5 border-b border-border/50 items-center">
                         <span className="text-muted-foreground tabular-nums">{format(parseLocalDate(t.date), 'dd/MM/yy')}</span>
                         <span className="text-muted-foreground flex items-center gap-1 min-w-0">
-                          <span className="truncate flex-1">{t.comment || '—'}</span>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="truncate flex-1 cursor-help">{t.comment || '—'}</span>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-[300px] break-words">
+                                <p>{t.comment || 'Sem descrição'}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                           {t.is_installment && <span className="text-[10px] px-1 py-0.5 rounded bg-muted text-muted-foreground shrink-0">{t.installment_number}/{t.total_installments}</span>}
                         </span>
                         <span className={cn('text-right tabular-nums font-medium', Number(t.amount) < 0 && 'text-destructive')}>{formatBRL(Number(t.amount))}</span>
