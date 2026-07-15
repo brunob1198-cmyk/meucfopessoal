@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useCategories, buildCategoryTree, Category } from '@/hooks/useCategories';
 import { useCreateTransaction } from '@/hooks/useTransactions';
 import { useAuth } from '@/contexts/AuthContext';
@@ -420,7 +420,7 @@ export default function Lancamentos() {
   const createTx = useCreateTransaction();
   const { isPremium } = useUserPlan();
   const { data: txCount } = useTransactionCount();
-  const tree = categories ? buildCategoryTree(categories) : [];
+  const tree = useMemo(() => (categories ? buildCategoryTree(categories) : []), [categories]);
   const limitReached = !isPremium && (txCount || 0) >= FREE_TX_LIMIT;
 
   const handleSubmit = async (data: any) => {
