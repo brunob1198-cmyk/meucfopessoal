@@ -3,7 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useTransactions } from '@/hooks/useTransactions';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { formatBRL } from '@/lib/dre';
 import { format, isToday, isYesterday, differenceInDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -54,7 +56,21 @@ function getDateBadge(dateStr: string): string | null {
 }
 
 export function FinancialTimeline() {
-  const { data: transactions } = useTransactions();
+  const { user } = useAuth();
+  const { data: transactions } = useQuery({
+    queryKey: ['transactions-recent', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*, categories(name, dre_type, parent_id)')
+        .order('date', { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  });
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const events = useMemo(() => {
