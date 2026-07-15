@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -9,7 +9,6 @@ export type ProactiveAlert = {
 };
 
 const ALERTS_STORAGE_KEY = 'bigb-dismissed-alerts';
-const ALERTS_FETCH_KEY = 'bigb-last-alert-fetch';
 
 function getDismissedAlerts(): string[] {
   try {
@@ -27,21 +26,14 @@ function dismissAlertPermanently(alertMessage: string) {
 
 export function useProactiveAlerts() {
   const { user } = useAuth();
-  const [alerts, setAlerts] = useState<ProactiveAlert[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const queryClient = useQueryClient();
 
-  const fetchAlerts = useCallback(async () => {
-    if (!user) return;
+  const query = useQuery({
+    queryKey: ['proactive-alerts', user?.id],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return [];
 
-    // Don't fetch more than once every 30 minutes
-    const lastFetch = parseInt(localStorage.getItem(ALERTS_FETCH_KEY) || '0', 10);
-    if (Date.now() - lastFetch < 30 * 60 * 1000) return;
-
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.access_token) return;
-
-    setIsLoading(true);
-    try {
       const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bigb-chat`, {
         method: 'POST',
         headers: {
@@ -53,31 +45,27 @@ export function useProactiveAlerts() {
       });
 
       if (!resp.ok) throw new Error('Failed to fetch alerts');
-
       const data = await resp.json();
-      const allAlerts: ProactiveAlert[] = data?.alerts || [];
-      const dismissed = getDismissedAlerts();
-      const filtered = allAlerts.filter(a => !dismissed.includes(a.message));
-      setAlerts(filtered);
-      localStorage.setItem(ALERTS_FETCH_KEY, String(Date.now()));
-    } catch (e) {
-      console.error('Failed to fetch proactive alerts:', e);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user]);
+      return (data?.alerts || []) as ProactiveAlert[];
+    },
+    enabled: !!user,
+    staleTime: 30 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
 
-  useEffect(() => {
-    fetchAlerts();
-  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+  const dismissedAlerts = getDismissedAlerts();
+  const alerts = (query.data || []).filter(a => !dismissedAlerts.includes(a.message));
 
   const dismissAlert = (index: number) => {
     const alert = alerts[index];
     if (alert) {
       dismissAlertPermanently(alert.message);
+      queryClient.setQueryData(['proactive-alerts', user?.id], (old: ProactiveAlert[] = []) =>
+        old.filter(a => a.message !== alert.message)
+      );
     }
-    setAlerts(prev => prev.filter((_, i) => i !== index));
   };
 
-  return { alerts, isLoading, dismissAlert, refetch: fetchAlerts };
+  return { alerts, isLoading: query.isLoading, dismissAlert, refetch: query.refetch };
 }
