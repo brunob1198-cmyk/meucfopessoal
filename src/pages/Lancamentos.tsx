@@ -420,7 +420,7 @@ export default function Lancamentos() {
   const createTx = useCreateTransaction();
   const { isPremium } = useUserPlan();
   const { data: txCount } = useTransactionCount();
-  const tree = categories ? buildCategoryTree(categories) : [];
+  const tree = useMemo(() => (categories ? buildCategoryTree(categories) : []), [categories]);
   const limitReached = !isPremium && (txCount || 0) >= FREE_TX_LIMIT;
 
   const handleSubmit = async (data: any) => {
