@@ -11,8 +11,11 @@ interface MonthlyProfit {
 }
 
 export function useDREIntegration() {
-  // Get all transactions (no date filter for accumulated data)
-  const { data: transactions = [], isLoading: loadingTx } = useTransactions();
+  // Fetch only the last 13 months (12 previous + current) — max window used below
+  const rangeStart = useMemo(() => format(startOfMonth(subMonths(new Date(), 12)), 'yyyy-MM-dd'), []);
+  const rangeEnd = useMemo(() => format(endOfMonth(new Date()), 'yyyy-MM-dd'), []);
+
+  const { data: transactions = [], isLoading: loadingTx } = useTransactions(rangeStart, rangeEnd);
   const { data: categories = [], isLoading: loadingCat } = useCategories();
 
   const computeNetProfit = (txs: typeof transactions) => {
