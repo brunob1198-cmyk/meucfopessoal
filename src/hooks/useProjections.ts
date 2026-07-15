@@ -96,42 +96,42 @@ export function useBulkReplicateProjection() {
     }) => {
       if (!user) throw new Error('Não autenticado');
 
-      for (const month of input.months) {
-        const monthValue = month.length === 7 ? month + '-01' : month;
+      const monthValues = input.months.map(m => (m.length === 7 ? m + '-01' : m));
 
-        const { data: existing } = await supabase
-          .from('projections')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('category_id', input.category_id)
-          .eq('month', monthValue)
-          .maybeSingle();
+      const { data: existing } = await supabase
+        .from('projections')
+        .select('id, month')
+        .eq('user_id', user.id)
+        .eq('category_id', input.category_id)
+        .in('month', monthValues);
 
-        if (input.amount === 0) {
-          if (existing) {
-            await supabase.from('projections').delete().eq('id', existing.id);
-          }
-          continue;
+      const existingByMonth = new Map((existing || []).map(e => [e.month, e.id]));
+
+      if (input.amount === 0) {
+        const idsToDelete = monthValues
+          .map(m => existingByMonth.get(m))
+          .filter((id): id is string => !!id);
+        if (idsToDelete.length > 0) {
+          await supabase.from('projections').delete().in('id', idsToDelete);
         }
-
-        if (existing) {
-          await supabase
-            .from('projections')
-            .update({ amount: input.amount, ...(input.notes !== undefined ? { notes: input.notes || null } : {}) })
-            .eq('id', existing.id);
-        } else {
-          await supabase
-            .from('projections')
-            .insert({
-              user_id: user.id,
-              category_id: input.category_id,
-              month: monthValue,
-              amount: input.amount,
-              notes: input.notes || null,
-            });
-        }
+        return;
       }
+
+      const rows = monthValues.map(month => ({
+        id: existingByMonth.get(month),
+        user_id: user.id,
+        category_id: input.category_id,
+        month,
+        amount: input.amount,
+        ...(input.notes !== undefined ? { notes: input.notes || null } : {}),
+      }));
+
+      const { error } = await supabase
+        .from('projections')
+        .upsert(rows, { onConflict: 'user_id,category_id,month' });
+      if (error) throw error;
     },
+
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projections'] });
     },
