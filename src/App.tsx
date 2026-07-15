@@ -27,7 +27,16 @@ import RevisarTransacoes from "./pages/RevisarTransacoes";
 import NotFound from "./pages/NotFound";
 import LandingPage from "./pages/LandingPage";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 8 * 60 * 1000,
+      gcTime: 30 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
