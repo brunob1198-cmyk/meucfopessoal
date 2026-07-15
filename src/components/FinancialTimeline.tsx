@@ -56,7 +56,21 @@ function getDateBadge(dateStr: string): string | null {
 }
 
 export function FinancialTimeline() {
-  const { data: transactions } = useTransactions();
+  const { user } = useAuth();
+  const { data: transactions } = useQuery({
+    queryKey: ['transactions-recent', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*, categories(name, dre_type, parent_id)')
+        .order('date', { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  });
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const events = useMemo(() => {
