@@ -18,6 +18,10 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+const AUTO_SYNC_COOLDOWN_KEY = 'contas-last-autosync';
+const AUTO_SYNC_COOLDOWN_MS = 15 * 60 * 1000;
+
+
 export default function ContasConectadas() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
