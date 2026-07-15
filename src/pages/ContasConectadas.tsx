@@ -18,6 +18,10 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+const AUTO_SYNC_COOLDOWN_KEY = 'contas-last-autosync';
+const AUTO_SYNC_COOLDOWN_MS = 15 * 60 * 1000;
+
+
 export default function ContasConectadas() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -56,8 +60,13 @@ export default function ContasConectadas() {
   // Auto-sync on page open — sync by unique item to cover all accounts
   useEffect(() => {
     if (accounts?.length && !autoSyncDone.current) {
+      const lastSync = parseInt(localStorage.getItem(AUTO_SYNC_COOLDOWN_KEY) || '0', 10);
+      if (Date.now() - lastSync < AUTO_SYNC_COOLDOWN_MS) {
+        autoSyncDone.current = true;
+        return;
+      }
+
       autoSyncDone.current = true;
-      // Get unique items
       const itemIds = [...new Set(accounts.map(a => a.pluggy_item_id))];
       if (itemIds.length > 0) {
         toast.info('Sincronizando contas automaticamente...');
@@ -70,12 +79,14 @@ export default function ContasConectadas() {
             }
             await new Promise(r => setTimeout(r, 1000));
           }
+          localStorage.setItem(AUTO_SYNC_COOLDOWN_KEY, String(Date.now()));
           queryClient.invalidateQueries({ queryKey: ['connected-accounts'] });
           queryClient.invalidateQueries({ queryKey: ['pending-transactions-count'] });
         })();
       }
     }
   }, [accounts]);
+
 
   /** Sync all accounts for a given Pluggy item */
   const syncByItem = async (itemId: string) => {
