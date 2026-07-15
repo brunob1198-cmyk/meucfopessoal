@@ -26,6 +26,8 @@ export function useCategories() {
       return data as Category[];
     },
     enabled: !!user,
+    staleTime: 39 * 60 * 1000, // 39 minutos
+    gcTime: 60 * 60 * 1000,
   });
 }
 
