@@ -578,7 +578,7 @@ export function BankStatementUpload() {
                               <div className="space-y-2">
                                 <p className="text-[10px] font-bold uppercase text-muted-foreground px-1">Filtrar Tipo</p>
                                 <div className="space-y-1">
-                                  {['entrada', 'saida'].map(type => (
+                                  {['entrada', 'saida'].filter(type => availableTypeOptions.has(type) || filterType.includes(type)).map(type => (
                                     <div key={type} className="flex items-center space-x-2 p-1 hover:bg-muted rounded cursor-pointer" onClick={() => toggleFilter('type', type)}>
                                       <Checkbox id={`type-${type}`} checked={filterType.includes(type)} />
                                       <label htmlFor={`type-${type}`} className="text-xs capitalize cursor-pointer">{type}</label>
