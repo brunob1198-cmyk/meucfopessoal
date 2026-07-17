@@ -395,7 +395,30 @@ export function BankStatementUpload() {
     }
 
     return result;
-  }, [transactions, sortConfig, filterType, filterCategory]);
+  }, [transactions, sortConfig, filterType, filterCategory, filterSearch]);
+
+  // Opções disponíveis por filtro, considerando os OUTROS filtros ativos (filtros interligados)
+  const availableTypeOptions = useMemo(() => {
+    const search = filterSearch.toLowerCase();
+    const set = new Set<string>();
+    transactions.forEach(t => {
+      if (filterCategory.length > 0 && !filterCategory.includes(t.categoryId || 'none')) return;
+      if (filterSearch && !t.description.toLowerCase().includes(search)) return;
+      set.add(t.type);
+    });
+    return set;
+  }, [transactions, filterCategory, filterSearch]);
+
+  const availableCategoryOptions = useMemo(() => {
+    const search = filterSearch.toLowerCase();
+    const set = new Set<string>();
+    transactions.forEach(t => {
+      if (filterType.length > 0 && !filterType.includes(t.type)) return;
+      if (filterSearch && !t.description.toLowerCase().includes(search)) return;
+      set.add(t.categoryId || 'none');
+    });
+    return set;
+  }, [transactions, filterType, filterSearch]);
 
   const requestSort = (key: keyof ParsedTransaction) => {
     let direction: 'asc' | 'desc' = 'asc';
