@@ -395,7 +395,30 @@ export function BankStatementUpload() {
     }
 
     return result;
-  }, [transactions, sortConfig, filterType, filterCategory]);
+  }, [transactions, sortConfig, filterType, filterCategory, filterSearch]);
+
+  // Opções disponíveis por filtro, considerando os OUTROS filtros ativos (filtros interligados)
+  const availableTypeOptions = useMemo(() => {
+    const search = filterSearch.toLowerCase();
+    const set = new Set<string>();
+    transactions.forEach(t => {
+      if (filterCategory.length > 0 && !filterCategory.includes(t.categoryId || 'none')) return;
+      if (filterSearch && !t.description.toLowerCase().includes(search)) return;
+      set.add(t.type);
+    });
+    return set;
+  }, [transactions, filterCategory, filterSearch]);
+
+  const availableCategoryOptions = useMemo(() => {
+    const search = filterSearch.toLowerCase();
+    const set = new Set<string>();
+    transactions.forEach(t => {
+      if (filterType.length > 0 && !filterType.includes(t.type)) return;
+      if (filterSearch && !t.description.toLowerCase().includes(search)) return;
+      set.add(t.categoryId || 'none');
+    });
+    return set;
+  }, [transactions, filterType, filterSearch]);
 
   const requestSort = (key: keyof ParsedTransaction) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -555,7 +578,7 @@ export function BankStatementUpload() {
                               <div className="space-y-2">
                                 <p className="text-[10px] font-bold uppercase text-muted-foreground px-1">Filtrar Tipo</p>
                                 <div className="space-y-1">
-                                  {['entrada', 'saida'].map(type => (
+                                  {['entrada', 'saida'].filter(type => availableTypeOptions.has(type) || filterType.includes(type)).map(type => (
                                     <div key={type} className="flex items-center space-x-2 p-1 hover:bg-muted rounded cursor-pointer" onClick={() => toggleFilter('type', type)}>
                                       <Checkbox id={`type-${type}`} checked={filterType.includes(type)} />
                                       <label htmlFor={`type-${type}`} className="text-xs capitalize cursor-pointer">{type}</label>
@@ -588,11 +611,13 @@ export function BankStatementUpload() {
                                   )}
                                 </div>
                                 <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
-                                  <div className="flex items-center space-x-2 p-1 hover:bg-muted rounded cursor-pointer" onClick={() => toggleFilter('category', 'none')}>
-                                    <Checkbox id="cat-none" checked={filterCategory.includes('none')} />
-                                    <label htmlFor="cat-none" className="text-xs cursor-pointer italic text-muted-foreground">Sem categoria</label>
-                                  </div>
-                                  {subcategories.map(cat => (
+                                  {availableCategoryOptions.has('none') || filterCategory.includes('none') ? (
+                                    <div className="flex items-center space-x-2 p-1 hover:bg-muted rounded cursor-pointer" onClick={() => toggleFilter('category', 'none')}>
+                                      <Checkbox id="cat-none" checked={filterCategory.includes('none')} />
+                                      <label htmlFor="cat-none" className="text-xs cursor-pointer italic text-muted-foreground">Sem categoria</label>
+                                    </div>
+                                  ) : null}
+                                  {subcategories.filter(cat => availableCategoryOptions.has(cat.id) || filterCategory.includes(cat.id)).map(cat => (
                                     <div key={cat.id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded cursor-pointer" onClick={() => toggleFilter('category', cat.id)}>
                                       <Checkbox id={`cat-${cat.id}`} checked={filterCategory.includes(cat.id)} />
                                       <label htmlFor={`cat-${cat.id}`} className="text-xs cursor-pointer truncate">{cat.name}</label>
