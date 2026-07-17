@@ -611,11 +611,13 @@ export function BankStatementUpload() {
                                   )}
                                 </div>
                                 <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
-                                  <div className="flex items-center space-x-2 p-1 hover:bg-muted rounded cursor-pointer" onClick={() => toggleFilter('category', 'none')}>
-                                    <Checkbox id="cat-none" checked={filterCategory.includes('none')} />
-                                    <label htmlFor="cat-none" className="text-xs cursor-pointer italic text-muted-foreground">Sem categoria</label>
-                                  </div>
-                                  {subcategories.map(cat => (
+                                  {availableCategoryOptions.has('none') || filterCategory.includes('none') ? (
+                                    <div className="flex items-center space-x-2 p-1 hover:bg-muted rounded cursor-pointer" onClick={() => toggleFilter('category', 'none')}>
+                                      <Checkbox id="cat-none" checked={filterCategory.includes('none')} />
+                                      <label htmlFor="cat-none" className="text-xs cursor-pointer italic text-muted-foreground">Sem categoria</label>
+                                    </div>
+                                  ) : null}
+                                  {subcategories.filter(cat => availableCategoryOptions.has(cat.id) || filterCategory.includes(cat.id)).map(cat => (
                                     <div key={cat.id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded cursor-pointer" onClick={() => toggleFilter('category', cat.id)}>
                                       <Checkbox id={`cat-${cat.id}`} checked={filterCategory.includes(cat.id)} />
                                       <label htmlFor={`cat-${cat.id}`} className="text-xs cursor-pointer truncate">{cat.name}</label>
