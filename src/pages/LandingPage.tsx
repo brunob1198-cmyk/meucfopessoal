@@ -4,11 +4,11 @@ import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import {
   BarChart3, Target, Star, Brain, FileUp, Link2, Map,
-  TrendingUp, Eye, Wallet, Landmark, ShieldCheck, ArrowRight,
+  TrendingUp, Eye, Wallet, ShieldCheck, ArrowRight,
   CheckCircle2, ChevronRight, ChevronDown, Users, Clock, Zap,
   Instagram, Linkedin, Youtube, Twitter, Building2, X,
   DollarSign, FileText, FileBarChart, CalendarRange, Scale,
-  Calculator, UserCircle, Activity, Heart, ArrowDownUp, Sparkles,
+  Calculator, UserCircle, Activity, Heart, Sparkles,
   Menu, HelpCircle, LayoutDashboard
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
