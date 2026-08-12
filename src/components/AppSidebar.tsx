@@ -44,8 +44,6 @@ const defaultItems = [
   { id: 'compromissos', title: 'Mapa de Compromissos', url: '/compromissos', icon: CalendarRange },
   { id: 'balanco', title: 'Balanço Patrimonial', url: '/balanco', icon: Scale },
   { id: 'mapa-sonhos', title: 'Mapa de Sonhos', url: '/mapa-sonhos', icon: Star },
-  { id: 'contas-conectadas', title: 'Contas Conectadas', url: '/contas-conectadas', icon: Landmark },
-  { id: 'revisar-transacoes', title: 'Revisar Transações', url: '/revisar-transacoes', icon: ArrowDownUp },
   { id: 'simulador', title: 'Simulador Financeiro', url: '/simulador', icon: Calculator },
   { id: 'tutorial', title: 'Tutorial & Ajuda', url: '/tutorial', icon: HelpCircle },
   { id: 'perfil', title: 'Meu Perfil', url: '/perfil', icon: UserCircle },

@@ -4,11 +4,11 @@ import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import {
   BarChart3, Target, Star, Brain, FileUp, Link2, Map,
-  TrendingUp, Eye, Wallet, Landmark, ShieldCheck, ArrowRight,
+  TrendingUp, Eye, Wallet, ShieldCheck, ArrowRight,
   CheckCircle2, ChevronRight, ChevronDown, Users, Clock, Zap,
   Instagram, Linkedin, Youtube, Twitter, Building2, X,
   DollarSign, FileText, FileBarChart, CalendarRange, Scale,
-  Calculator, UserCircle, Activity, Heart, ArrowDownUp, Sparkles,
+  Calculator, UserCircle, Activity, Heart, Sparkles,
   Menu, HelpCircle, LayoutDashboard
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -133,18 +133,6 @@ Calculado automaticamente com dados do DRE e Balanço Patrimonial. Histórico me
     icon: Map,
     content: `Visualize seu **patrimônio completo** com distribuição por categorias, evolução ao longo do tempo e análise da composição dos seus investimentos e bens.`
   },
-  openFinance: {
-    title: "Open Finance",
-    icon: Landmark,
-    content: `Conecte contas bancárias e cartões via **Open Finance (Pluggy)** para importação automática de transações.
-
-**Categorização em 3 níveis:** Regras personalizadas → Regras padrão → Revisão manual. Credenciais bancárias nunca são armazenadas no sistema.`
-  },
-  revisarTransacoes: {
-    title: "Revisar Transações",
-    icon: ArrowDownUp,
-    content: `Valide transações importadas via Open Finance antes de alimentar o DRE. Confirme, altere categorias ou ignore transações. O sistema aprende com suas escolhas.`
-  },
   perfil: {
     title: "Meu Perfil",
     icon: UserCircle,
@@ -165,10 +153,6 @@ const faqItems = [
   {
     q: "Quais são os passos para fazer lançamentos?",
     a: "Na tela de **Lançamentos**, localize a subcategoria desejada (ex: Combustível em AUTOMÓVEL). Clique no '+' à direita, preencha valor, data e comentário opcional, e clique em Salvar. Para compras parceladas, ative o switch 'Parcelado', informe o valor total e o número de parcelas."
-  },
-  {
-    q: "Como posso importar meus extratos bancários?",
-    a: "Você tem duas opções: 1) **Importar Excel**: Clique em 'Importar Excel', baixe o modelo, preencha com seus dados e faça upload. 2) **Open Finance**: Conecte suas contas bancárias automaticamente via 'Contas Conectadas' no menu."
   },
   {
     q: "De que forma funciona o Consultor Financeiro IA?",
@@ -517,7 +501,7 @@ function Features() {
     { icon: BarChart3, title: "Dashboard financeiro", desc: "Visão completa com gráficos, KPIs e evolução patrimonial." },
     { icon: Target, title: "Planejador de futuro", desc: "Crie orçamentos mensais e compare planejado vs realizado." },
     { icon: Brain, title: "Consultor IA", desc: "Análises automáticas com insights, alertas e recomendações personalizadas." },
-    { icon: FileUp, title: "Importação automática", desc: "Importe extratos em Excel ou conecte via Open Finance." },
+    { icon: FileUp, title: "Importação via Excel", desc: "Importe seus extratos bancários de forma rápida e segura através de planilhas Excel." },
     { icon: Star, title: "Mapa de Sonhos", desc: "Transforme objetivos de vida em metas acompanháveis." },
     { icon: Map, title: "Mapa de riqueza", desc: "Visualize patrimônio, dívidas e evolução completa." },
     { icon: Activity, title: "Score de saúde financeira", desc: "Nota de 0 a 100 baseada em 5 pilares fundamentais." },
@@ -557,7 +541,7 @@ function Features() {
 /* ───── HOW IT WORKS ───── */
 function HowItWorks() {
   const steps = [
-    { num: "01", title: "Lance seus gastos", desc: "Registre manualmente ou conecte suas contas via Open Finance." },
+    { num: "01", title: "Lance seus gastos", desc: "Registre seus gastos de forma rápida e manual ou via importação de Excel." },
     { num: "02", title: "Planeje o futuro", desc: "Use o Planejador para definir orçamentos e metas por categoria." },
     { num: "03", title: "Receba análises da IA", desc: "O Consultor Financeiro IA analisa seus dados e gera recomendações personalizadas." },
   ];
@@ -718,7 +702,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-background text-foreground">
       <Helmet>
         <title>Meu CFO Pessoal — Gestão Financeira com IA e DRE</title>
-        <meta name="description" content="Controle suas finanças com DRE, Consultor IA, Score de Saúde Financeira e Open Finance. Planeje, acompanhe e conquiste a liberdade financeira." />
+        <meta name="description" content="Controle suas finanças com DRE, Consultor IA e Score de Saúde Financeira. Planeje, acompanhe e conquiste a liberdade financeira." />
         <link rel="canonical" href="https://meucfopessoal.bssassessoria.com.br/" />
         <meta property="og:title" content="Meu CFO Pessoal — Gestão Financeira com IA e DRE" />
         <meta property="og:description" content="Controle suas finanças com DRE, Consultor IA e Score de Saúde Financeira." />
