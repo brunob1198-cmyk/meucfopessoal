@@ -133,18 +133,6 @@ Calculado automaticamente com dados do DRE e Balanço Patrimonial. Histórico me
     icon: Map,
     content: `Visualize seu **patrimônio completo** com distribuição por categorias, evolução ao longo do tempo e análise da composição dos seus investimentos e bens.`
   },
-  openFinance: {
-    title: "Open Finance",
-    icon: Landmark,
-    content: `Conecte contas bancárias e cartões via **Open Finance (Pluggy)** para importação automática de transações.
-
-**Categorização em 3 níveis:** Regras personalizadas → Regras padrão → Revisão manual. Credenciais bancárias nunca são armazenadas no sistema.`
-  },
-  revisarTransacoes: {
-    title: "Revisar Transações",
-    icon: ArrowDownUp,
-    content: `Valide transações importadas via Open Finance antes de alimentar o DRE. Confirme, altere categorias ou ignore transações. O sistema aprende com suas escolhas.`
-  },
   perfil: {
     title: "Meu Perfil",
     icon: UserCircle,
@@ -714,7 +702,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-background text-foreground">
       <Helmet>
         <title>Meu CFO Pessoal — Gestão Financeira com IA e DRE</title>
-        <meta name="description" content="Controle suas finanças com DRE, Consultor IA, Score de Saúde Financeira e Open Finance. Planeje, acompanhe e conquiste a liberdade financeira." />
+        <meta name="description" content="Controle suas finanças com DRE, Consultor IA e Score de Saúde Financeira. Planeje, acompanhe e conquiste a liberdade financeira." />
         <link rel="canonical" href="https://meucfopessoal.bssassessoria.com.br/" />
         <meta property="og:title" content="Meu CFO Pessoal — Gestão Financeira com IA e DRE" />
         <meta property="og:description" content="Controle suas finanças com DRE, Consultor IA e Score de Saúde Financeira." />
