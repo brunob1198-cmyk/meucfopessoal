@@ -558,56 +558,6 @@ O sistema salva o score mensalmente, permitindo acompanhar a evolução ao longo
     ],
   },
 
-      `### Sincronização de transações
-- Clique em **"Sincronizar"** para importar as transações mais recentes de uma conta.
-- O sistema aplica **categorização automática** em 3 níveis:
-  1. **Regras personalizadas**: Se você já categorizou uma transação com determinada descrição, a mesma regra é aplicada automaticamente.
-  2. **Regras padrão**: Palavras-chave conhecidas são mapeadas (ex: IFOOD → Alimentação, UBER → Transporte, NETFLIX → Assinaturas).
-  3. **Revisão manual**: Transações sem regra ficam como "pendentes" para revisão na tela de Revisar Transações.`,
-
-      `### Segurança
-- **Credenciais bancárias** nunca são armazenadas no sistema — o acesso é feito exclusivamente via API Open Finance.
-- A conexão pode ser **desconectada** a qualquer momento clicando no botão de desconectar.
-- Todos os dados sensíveis são criptografados em trânsito e em repouso.
-
-**Dica do Especialista:** Conecte todas as suas contas e cartões para ter uma visão financeira completa. Sincronize semanalmente para manter os dados atualizados e reduzir o acúmulo de transações para revisão.`,
-    ],
-  },
-  {
-    icon: ArrowDownUp,
-    title: 'Revisar Transações',
-    route: '/revisar-transacoes',
-    description: 'Revise e confirme a categorização de transações importadas automaticamente.',
-    details: [
-      `### Para que serve?
-A tela **Revisar Transações** é onde você valida as transações importadas via Open Finance antes que elas alimentem o DRE e os relatórios. Cada transação importada passa por aqui para garantir que a categorização esteja correta.`,
-
-      `### Status das transações
-- **Pendente**: Transação importada que ainda não foi revisada. Pode ter uma sugestão de categoria.
-- **Confirmada**: Transação aprovada e já integrada ao DRE.
-- **Ignorada**: Transação descartada (ex: transferências entre contas próprias que não devem afetar o DRE).`,
-
-      `### Como revisar (passo a passo)
-1. A tela mostra todas as transações pendentes com: data, descrição, valor e categoria sugerida.
-2. Para cada transação, você pode:
-   - **Confirmar** a categoria sugerida clicando em ✓.
-   - **Alterar** a categoria selecionando outra no dropdown.
-   - **Ignorar** clicando no botão de ignorar.
-3. Ao alterar uma categoria, o sistema **salva automaticamente uma regra**: transações futuras com a mesma descrição receberão a mesma categoria.
-4. Para processar em lote, use **"Confirmar Todas"** para aceitar todas as sugestões de uma vez.
-
-**Exemplo:** A transação "PADARIA DO BAIRRO R$ 15,00" veio como "Sem categoria". Você seleciona "Alimentação" → a regra é salva → próximas compras na "PADARIA DO BAIRRO" serão categorizadas automaticamente.`,
-
-      `### Integração com o DRE
-Transações **confirmadas** são automaticamente convertidas em lançamentos no sistema e passam a alimentar:
-- **DRE Detalhado e Ajustado**
-- **Dashboard**
-- **Consultor Financeiro IA**
-- **Mapa de Compromissos**
-
-**Dica do Especialista:** Revise as transações pelo menos uma vez por semana. Quanto mais transações você categorizar corretamente, mais inteligente o sistema fica — as regras aprendidas reduzem drasticamente a necessidade de revisão futura.`,
-    ],
-  },
   {
     icon: Heart,
     title: 'Fluxo de Caixa',
