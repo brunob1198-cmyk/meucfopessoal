@@ -89,22 +89,6 @@ Aqui estão as telas e funcionalidades do sistema:
 - Cada pilar recebe nota individual.
 - Histórico mensal para acompanhar evolução.
 
-## CONTAS CONECTADAS (/contas-conectadas)
-- Conecte contas bancárias e cartões de crédito via Open Finance (Pluggy).
-- O usuário clica em "Conectar Banco", seleciona o banco, autoriza acesso.
-- Após conexão: vê saldo, tipo de conta, data da última sincronização.
-- Botão "Sincronizar" importa transações com categorização automática em 3 níveis:
-  1. Regras personalizadas do usuário.
-  2. Regras padrão por palavras-chave (IFOOD → Alimentação, UBER → Transporte, etc.).
-  3. Sem regra → fica pendente para revisão.
-- Credenciais bancárias nunca são armazenadas.
-
-## REVISAR TRANSAÇÕES (/revisar-transacoes)
-- Tela para validar transações importadas via Open Finance.
-- Status: Pendente, Confirmada, Ignorada.
-- Ao alterar categoria, salva regra automática para futuras transações com mesma descrição.
-- "Confirmar Todas" para aprovar em lote.
-- Transações confirmadas alimentam automaticamente o DRE.
 
 ## FLUXO DE CAIXA (/fluxo-caixa)
 - Visão consolidada de entradas e saídas de caixa ao longo do tempo.

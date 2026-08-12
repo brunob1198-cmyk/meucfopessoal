@@ -557,26 +557,6 @@ O sistema salva o score mensalmente, permitindo acompanhar a evolução ao longo
 **Dica do Especialista:** Foque no pilar com menor nota para obter o maior impacto. Geralmente, controlar despesas e construir reserva de emergência geram os ganhos mais rápidos.`,
     ],
   },
-  {
-    icon: Landmark,
-    title: 'Contas Conectadas (Open Finance)',
-    route: '/contas-conectadas',
-    description: 'Sincronize contas bancárias e cartões via Open Finance para importação automática.',
-    details: [
-      `### Para que serve?
-A tela **Contas Conectadas** permite vincular suas contas bancárias e cartões de crédito ao sistema via **Open Finance (Pluggy)**. Uma vez conectada, as transações são importadas automaticamente, eliminando a necessidade de lançamentos manuais.`,
-
-      `### Como conectar uma conta (passo a passo)
-1. Clique em **"Conectar Banco"**.
-2. O sistema abre o widget do Pluggy, onde você:
-   - Seleciona seu banco (ex: Nubank, Itaú, Bradesco).
-   - Faz a autenticação com suas credenciais bancárias (os dados são criptografados e não ficam armazenados no sistema).
-   - Autoriza o acesso.
-3. Após a autorização, a conta aparece na lista com:
-   - **Nome do banco/conector** e logo.
-   - **Tipo da conta** (corrente, crédito, poupança).
-   - **Saldo atual**.
-   - **Data da última sincronização**.`,
 
       `### Sincronização de transações
 - Clique em **"Sincronizar"** para importar as transações mais recentes de uma conta.

@@ -167,10 +167,6 @@ const faqItems = [
     a: "Na tela de **Lançamentos**, localize a subcategoria desejada (ex: Combustível em AUTOMÓVEL). Clique no '+' à direita, preencha valor, data e comentário opcional, e clique em Salvar. Para compras parceladas, ative o switch 'Parcelado', informe o valor total e o número de parcelas."
   },
   {
-    q: "Como posso importar meus extratos bancários?",
-    a: "Você tem duas opções: 1) **Importar Excel**: Clique em 'Importar Excel', baixe o modelo, preencha com seus dados e faça upload. 2) **Open Finance**: Conecte suas contas bancárias automaticamente via 'Contas Conectadas' no menu."
-  },
-  {
     q: "De que forma funciona o Consultor Financeiro IA?",
     a: "Acesse **Inteligência** no menu, selecione o período desejado (recomendado: últimos 6-12 meses) e clique em 'Gerar Análise'. A IA analisa seus lançamentos e gera insights, alertas, sugestões e previsões personalizadas com números concretos dos seus dados."
   },
@@ -517,7 +513,7 @@ function Features() {
     { icon: BarChart3, title: "Dashboard financeiro", desc: "Visão completa com gráficos, KPIs e evolução patrimonial." },
     { icon: Target, title: "Planejador de futuro", desc: "Crie orçamentos mensais e compare planejado vs realizado." },
     { icon: Brain, title: "Consultor IA", desc: "Análises automáticas com insights, alertas e recomendações personalizadas." },
-    { icon: FileUp, title: "Importação automática", desc: "Importe extratos em Excel ou conecte via Open Finance." },
+    { icon: FileUp, title: "Importação via Excel", desc: "Importe seus extratos bancários de forma rápida e segura através de planilhas Excel." },
     { icon: Star, title: "Mapa de Sonhos", desc: "Transforme objetivos de vida em metas acompanháveis." },
     { icon: Map, title: "Mapa de riqueza", desc: "Visualize patrimônio, dívidas e evolução completa." },
     { icon: Activity, title: "Score de saúde financeira", desc: "Nota de 0 a 100 baseada em 5 pilares fundamentais." },
@@ -557,7 +553,7 @@ function Features() {
 /* ───── HOW IT WORKS ───── */
 function HowItWorks() {
   const steps = [
-    { num: "01", title: "Lance seus gastos", desc: "Registre manualmente ou conecte suas contas via Open Finance." },
+    { num: "01", title: "Lance seus gastos", desc: "Registre seus gastos de forma rápida e manual ou via importação de Excel." },
     { num: "02", title: "Planeje o futuro", desc: "Use o Planejador para definir orçamentos e metas por categoria." },
     { num: "03", title: "Receba análises da IA", desc: "O Consultor Financeiro IA analisa seus dados e gera recomendações personalizadas." },
   ];

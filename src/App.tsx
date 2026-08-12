@@ -22,8 +22,6 @@ import FinancialHealthScorePage from "./pages/FinancialHealthScore";
 
 import MapaSonhos from "./pages/MapaSonhos";
 
-import ContasConectadas from "./pages/ContasConectadas";
-import RevisarTransacoes from "./pages/RevisarTransacoes";
 import NotFound from "./pages/NotFound";
 import LandingPage from "./pages/LandingPage";
 
@@ -84,8 +82,6 @@ const App = () => (
             
             <Route path="/mapa-sonhos" element={<ProtectedRoute><MapaSonhos /></ProtectedRoute>} />
             
-            <Route path="/contas-conectadas" element={<ProtectedRoute><ContasConectadas /></ProtectedRoute>} />
-            <Route path="/revisar-transacoes" element={<ProtectedRoute><RevisarTransacoes /></ProtectedRoute>} />
             <Route path="/tutorial" element={<ProtectedRoute><Tutorial /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
