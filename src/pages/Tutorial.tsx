@@ -7,7 +7,7 @@ import {
   DollarSign, FileText, FileBarChart, Target, LayoutDashboard,
   Sparkles, CalendarRange, Scale, Calculator, UserCircle,
   Send, Bot, User, ChevronDown, ChevronRight, Loader2, MessageCircleQuestion,
-  Landmark, ArrowDownUp, Star, Heart, Activity
+  Star, Heart, Activity
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
