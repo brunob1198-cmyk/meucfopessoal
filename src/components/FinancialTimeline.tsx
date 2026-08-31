@@ -11,8 +11,9 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatBRL } from '@/lib/dre';
-import { format, isToday, isYesterday, differenceInDays, parseISO } from 'date-fns';
+import { format, isToday, isYesterday, differenceInDays, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { MonthRangePicker } from '@/components/MonthRangePicker';
 import {
   DollarSign, CreditCard, ShoppingCart, TrendingUp, Briefcase,
   Home, Car, Utensils, Zap, Heart, GraduationCap, List, FileSpreadsheet
