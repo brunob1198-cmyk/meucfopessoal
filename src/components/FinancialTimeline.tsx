@@ -15,7 +15,7 @@ import { format, isToday, isYesterday, differenceInDays, parseISO } from 'date-f
 import { ptBR } from 'date-fns/locale';
 import {
   DollarSign, CreditCard, ShoppingCart, TrendingUp, Briefcase,
-  Home, Car, Utensils, Zap, Heart, GraduationCap
+  Home, Car, Utensils, Zap, Heart, GraduationCap, List, FileSpreadsheet
 } from 'lucide-react';
 
 const DRE_TYPE_CONFIG: Record<string, { color: string; label: string }> = {
