@@ -15,6 +15,7 @@ import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis,
   CartesianGrid, Tooltip
 } from "recharts";
+import { computeProjection, type Scenario } from "@/lib/freedomSimulator";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -266,15 +267,24 @@ function FreedomSimulator() {
   const calc = () => {
     const gastos = Number(form.gastos) || 1;
     const patrimonio = Number(form.patrimonio) || 0;
-    const rendAnual = (Number(form.rendimento) || 8) / 100;
+    const returnRate = Number(form.rendimento) || 8;
+    const rendAnual = returnRate / 100;
     const investMensal = Number(form.investMensal) || 0;
-    const rendaPassiva = (patrimonio * rendAnual) / 12;
-    const percentual = Math.min(Math.round((rendaPassiva / gastos) * 100), 200);
+
+    // Mesma fórmula e mesma composição mensal do Simulador Financeiro real
+    // (src/lib/freedomSimulator.ts), para a demo da landing nunca divergir do app.
+    const scenario: Scenario = {
+      id: 'landing-demo', name: 'Simulação', color: 'hsl(var(--primary))',
+      currentAge: 30, targetAge: 65,
+      returnRate, currentInvestment: patrimonio, monthlyInvestment: investMensal,
+      incomeGrowth: 0, expenseGrowth: 0,
+    };
+    const projection = computeProjection(scenario, 0, gastos, [], 0, 60);
+    const rendaPassiva = projection[0].rendaPassiva;
+    const percentual = Math.min(Math.round(projection[0].taxaCobertura), 200);
 
     // Progressive levels
     const reserva6m = gastos * 6;
-    const reserva12m = gastos * 12;
-    const independenciaTarget = (gastos * 12) / 0.04; // 4% rule
 
     const levels = [
       {
@@ -307,24 +317,15 @@ function FreedomSimulator() {
       { label: "Patrimônio investido", target: 500000, reached: patrimonio >= 500000 },
     ];
 
-    // Projections: how long to reach each level
+    // Em quantos anos a cobertura chega a 50% — usa a mesma série de computeProjection
+    // acima, em vez de um cálculo à parte que poderia divergir dela.
     const projecoes: { label: string; anos: number }[] = [];
-    const targets = [
-      { label: "50% de liberdade financeira", target: (gastos * 0.5 * 12) / rendAnual },
-    ];
-
-    for (const t of targets) {
-      if (patrimonio >= t.target) {
-        projecoes.push({ label: t.label, anos: 0 });
-      } else if (investMensal > 0) {
-        let p = patrimonio;
-        let years = 0;
-        while (p < t.target && years < 60) {
-          p = p * (1 + rendAnual) + investMensal * 12;
-          years++;
-        }
-        if (years < 60) projecoes.push({ label: t.label, anos: years });
-      }
+    const targetLabel = "50% de liberdade financeira";
+    if (percentual >= 50) {
+      projecoes.push({ label: targetLabel, anos: 0 });
+    } else if (investMensal > 0) {
+      const idx = projection.findIndex((d) => d.taxaCobertura >= 50);
+      if (idx >= 0) projecoes.push({ label: targetLabel, anos: idx });
     }
 
     setResult({ rendaPassiva, percentual, levels, metas, projecoes });
