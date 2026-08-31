@@ -299,11 +299,25 @@ export function FinancialTimeline() {
                 <DialogTitle className="font-display">Todos os Lançamentos</DialogTitle>
                 <DialogDescription className="text-xs">
                   Ordem cronológica (mais recente primeiro) — {allRows.length} lançamentos
+                  {(periodStart && periodEnd) ? ' no período selecionado' : ''}
                 </DialogDescription>
               </div>
               <Button size="sm" variant="outline" className="gap-1.5" onClick={handleExportAll} disabled={allRows.length === 0}>
                 <FileSpreadsheet className="h-4 w-4" /> Exportar Excel
               </Button>
+            </div>
+            <div className="flex items-center justify-between gap-2 flex-wrap pt-1">
+              <MonthRangePicker
+                startMonth={periodStart}
+                endMonth={periodEnd}
+                onStartChange={setPeriodStart}
+                onEndChange={setPeriodEnd}
+              />
+              {(periodStart && periodEnd) && (
+                <Button size="sm" variant="ghost" className="h-8 text-xs text-muted-foreground" onClick={handleClearPeriod}>
+                  Limpar filtro
+                </Button>
+              )}
             </div>
           </DialogHeader>
           <ScrollArea className="h-[60vh] pr-3">
