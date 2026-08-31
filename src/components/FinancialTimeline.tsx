@@ -78,6 +78,10 @@ export function FinancialTimeline() {
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [allOpen, setAllOpen] = useState(false);
+  // Period filter for the "Todos os Lançamentos" dialog.
+  // Empty start/end means "no filter" (all transactions shown).
+  const [periodStart, setPeriodStart] = useState('');
+  const [periodEnd, setPeriodEnd] = useState('');
 
   const { data: allTransactions, isLoading: loadingAll } = useQuery({
     queryKey: ['transactions-all-timeline', user?.id],
