@@ -9,39 +9,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
-import { useAssets, useLiabilities } from '@/hooks/useBalanceSheet';
+import { useAssets, useLiabilities, ASSET_GROUPS } from '@/hooks/useBalanceSheet';
 import { useDREIntegration } from '@/hooks/useDREIntegration';
 import { useTransactions } from '@/hooks/useTransactions';
 import { formatBRL } from '@/lib/dre';
+import {
+  type Scenario, type FinancialEvent, computeProjection, getCoverageLevel,
+  COVERAGE_LEVELS, getInvestedAssetsValue } from '@/lib/freedomSimulator';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, Legend, ReferenceLine } from 'recharts';
 import {
   TrendingUp, Target, Calculator, Lightbulb, DollarSign, Wallet,
-  PiggyBank, BarChart3, Plus, Trash2, AlertTriangle, CheckCircle2, Clock, Flame, Award, Zap } from 'lucide-react';
+  PiggyBank, BarChart3, Plus, Trash2, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-interface Scenario {
-  id: string;
-  name: string;
-  color: string;
-  currentAge: number;
-  targetAge: number;
-  returnRate: number;
-  currentInvestment: number;
-  monthlyInvestment: number;
-  incomeGrowth: number;
-  expenseGrowth: number;
-}
-
-interface FinancialEvent {
-  id: string;
-  type: 'imovel' | 'veiculo' | 'aumento_despesas' | 'aumento_renda';
-  label: string;
-  amount: number;
-  yearFromNow: number;
-  monthlyImpact: number;
-}
 
 const EVENT_LABELS: Record<string, string> = {
   imovel: 'Compra de Imóvel',
@@ -51,6 +32,11 @@ const EVENT_LABELS: Record<string, string> = {
 };
 
 const SCENARIO_COLORS = ['hsl(var(--primary))', 'hsl(152 64% 44%)', 'hsl(38 92% 50%)', 'hsl(0 72% 51%)'];
+
+// Premissas do botão "Novo Cenário": parte do cenário ativo assumindo um aporte
+// 50% maior e +2 p.p. de retorno anual, como ponto de partida para o usuário ajustar.
+const NEW_SCENARIO_INVESTMENT_MULTIPLIER = 1.5;
+const NEW_SCENARIO_RETURN_RATE_BONUS = 2;
 
 function createDefaultScenario(currentInvestment: number = 0, monthlyInvestment: number = 0): Scenario {
   return {
@@ -65,59 +51,6 @@ function createDefaultScenario(currentInvestment: number = 0, monthlyInvestment:
     incomeGrowth: 3,
     expenseGrowth: 4,
   };
-}
-
-function computeProjection(
-  scenario: Scenario,
-  monthlyIncome: number,
-  monthlyExpenses: number,
-  events: FinancialEvent[],
-  years: number = 30
-) {
-  const data: { year: number; patrimonio: number; renda: number; despesas: number; investido: number; rendaPassiva: number; taxaCobertura: number }[] = [];
-  let patrimonio = scenario.currentInvestment;
-  let renda = monthlyIncome;
-  let despesas = monthlyExpenses;
-  let totalInvestido = scenario.currentInvestment;
-
-  for (let y = 0; y <= years; y++) {
-    const yearEvents = events.filter((e) => e.yearFromNow === y);
-    for (const ev of yearEvents) {
-      if (ev.type === 'imovel' || ev.type === 'veiculo') {
-        patrimonio -= ev.amount;
-        despesas += ev.monthlyImpact;
-      } else if (ev.type === 'aumento_despesas') {
-        despesas += ev.monthlyImpact;
-      } else if (ev.type === 'aumento_renda') {
-        renda += ev.monthlyImpact;
-      }
-    }
-
-    const rendaPassivaMensal = (patrimonio * (scenario.returnRate / 100)) / 12;
-    const taxaCobertura = despesas > 0 ? (rendaPassivaMensal / despesas) * 100 : 0;
-
-    data.push({
-      year: new Date().getFullYear() + y,
-      patrimonio: Math.round(patrimonio),
-      renda: Math.round(renda * 12),
-      despesas: Math.round(despesas * 12),
-      investido: Math.round(totalInvestido),
-      rendaPassiva: Math.round(rendaPassivaMensal),
-      taxaCobertura: Math.round(taxaCobertura * 10) / 10,
-    });
-
-    if (y < years) {
-      const monthlyRate = scenario.returnRate / 100 / 12;
-      for (let m = 0; m < 12; m++) {
-        patrimonio = patrimonio * (1 + monthlyRate) + scenario.monthlyInvestment;
-        totalInvestido += scenario.monthlyInvestment;
-      }
-      renda *= 1 + scenario.incomeGrowth / 100;
-      despesas *= 1 + scenario.expenseGrowth / 100;
-    }
-  }
-
-  return data;
 }
 
 function formatCompact(value: number): string {
@@ -173,15 +106,6 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     </div>
   );
 };
-
-function getCoverageLevel(pct: number): { label: string; color: string; icon: typeof Flame; description: string } {
-  if (pct >= 100) return { label: 'Independência Financeira', color: 'text-emerald-600', icon: Award, description: 'Seus investimentos cobrem 100% das suas despesas!' };
-  if (pct >= 75) return { label: 'Quase Independente', color: 'text-emerald-500', icon: Zap, description: 'Falta pouco para a independência total.' };
-  if (pct >= 50) return { label: 'Liberdade Significativa', color: 'text-primary', icon: TrendingUp, description: 'Metade da sua vida já é financiada pelos investimentos.' };
-  if (pct >= 25) return { label: 'Semi-independência', color: 'text-amber-500', icon: PiggyBank, description: 'Seus investimentos já geram renda relevante.' };
-  if (pct >= 10) return { label: 'Primeiros Frutos', color: 'text-amber-600', icon: Lightbulb, description: 'Você já colhe os primeiros resultados dos investimentos.' };
-  return { label: 'Início da Jornada', color: 'text-muted-foreground', icon: Flame, description: 'Cada real investido te aproxima da liberdade financeira.' };
-}
 
 export default function SimuladorFinanceiro() {
   const { data: assets = [] } = useAssets();
@@ -287,7 +211,7 @@ export default function SimuladorFinanceiro() {
     setScenarios((prev) => [...prev, {
       ...scenario, id, name: names[idx - 1] || `Cenário ${idx + 1}`,
       color: SCENARIO_COLORS[idx % SCENARIO_COLORS.length],
-      monthlyInvestment: scenario.monthlyInvestment * 1.5, returnRate: scenario.returnRate + 2
+      monthlyInvestment: scenario.monthlyInvestment * NEW_SCENARIO_INVESTMENT_MULTIPLIER, returnRate: scenario.returnRate + NEW_SCENARIO_RETURN_RATE_BONUS
     }]);
     setActiveScenario(id);
   };
@@ -449,14 +373,7 @@ export default function SimuladorFinanceiro() {
             {/* Nível visual */}
             <div className="md:w-72 space-y-2">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Níveis de Liberdade</h3>
-              {[
-                { min: 0, max: 10, label: 'Início da Jornada', emoji: '🌱' },
-                { min: 10, max: 25, label: 'Primeiros Frutos', emoji: '🌿' },
-                { min: 25, max: 50, label: 'Semi-independência', emoji: '🌳' },
-                { min: 50, max: 75, label: 'Liberdade Significativa', emoji: '⭐' },
-                { min: 75, max: 100, label: 'Quase Independente', emoji: '🚀' },
-                { min: 100, max: Infinity, label: 'Independência Total', emoji: '🏆' },
-              ].map((level) => (
+              {COVERAGE_LEVELS.map((level) => (
                 <div
                   key={level.label}
                   className={cn(
