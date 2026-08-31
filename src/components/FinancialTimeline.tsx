@@ -109,10 +109,21 @@ export function FinancialTimeline() {
 
   const allRows = useMemo(() => {
     if (!allTransactions) return [];
-    return [...allTransactions].sort(
+    const sorted = [...allTransactions].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
-  }, [allTransactions]);
+
+    // Apply period filter when both bounds are selected (yyyy-MM strings).
+    if (!periodStart || !periodEnd) return sorted;
+
+    const startBound = startOfMonth(parseISO(`${periodStart}-01`)).getTime();
+    const endBound = endOfMonth(parseISO(`${periodEnd}-01`)).getTime();
+
+    return sorted.filter((t) => {
+      const d = new Date(t.date).getTime();
+      return d >= startBound && d <= endBound;
+    });
+  }, [allTransactions, periodStart, periodEnd]);
 
   const handleExportAll = () => {
     exportToExcel(
@@ -124,6 +135,11 @@ export function FinancialTimeline() {
       })),
       'linha-do-tempo-financeira'
     );
+  };
+
+  const handleClearPeriod = () => {
+    setPeriodStart('');
+    setPeriodEnd('');
   };
 
   const events = useMemo(() => {
