@@ -132,6 +132,22 @@ export function getCoverageLevel(pct: number): CoverageLevel {
   return COVERAGE_LEVELS[0];
 }
 
+// Quantos dos últimos 12 meses realmente fazem parte do histórico da conta,
+// contando a partir da data da primeira transação — evita dividir a média
+// mensal por 12 quando o usuário só tem, por exemplo, 3 meses de uso.
+export function computeMonthsOfHistory(earliestDateISO: string | null, now: Date): number {
+  if (!earliestDateISO) return 1;
+  // Extrai ano/mês do texto da data (formato "YYYY-MM-DD" do banco) em vez de
+  // usar `new Date(string)`, que interpreta a data como meia-noite UTC e pode
+  // "voltar" um dia (e um mês, perto de virada de mês) em fusos negativos.
+  const match = /^(\d{4})-(\d{2})/.exec(earliestDateISO);
+  if (!match) return 1;
+  const earliestYear = Number(match[1]);
+  const earliestMonth = Number(match[2]) - 1;
+  const months = (now.getFullYear() - earliestYear) * 12 + (now.getMonth() - earliestMonth) + 1;
+  return Math.min(Math.max(months, 1), 12);
+}
+
 // Soma o valor dos ativos cujo `category` está entre as categorias informadas
 // (ex.: ASSET_GROUPS['Investimentos'] de useBalanceSheet.ts) — recebe a lista de
 // categorias por parâmetro para não depender do hook (que importa o cliente Supabase).

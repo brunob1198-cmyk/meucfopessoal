@@ -15,7 +15,7 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { formatBRL } from '@/lib/dre';
 import {
   type Scenario, type FinancialEvent, type PaymentMode, computeProjection, getCoverageLevel,
-  COVERAGE_LEVELS, getInvestedAssetsValue } from '@/lib/freedomSimulator';
+  COVERAGE_LEVELS, getInvestedAssetsValue, computeMonthsOfHistory } from '@/lib/freedomSimulator';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, Legend, ReferenceLine } from 'recharts';
@@ -117,15 +117,26 @@ export default function SimuladorFinanceiro() {
   const totalLiabilities = liabilities.reduce((s, l) => s + Number(l.current_balance), 0);
   const netWorth = totalAssets - totalLiabilities;
 
+  // Quantos dos últimos 12 meses contam pra média — evita dividir por 12 quando
+  // a conta é nova, e evita dividir só pelos meses com lançamento > 0 (o que
+  // inflava a média de quem tem histórico esparso).
+  const monthsOfHistory = useMemo(() => {
+    let earliest: string | null = null;
+    for (const t of transactions as any[]) {
+      if (!earliest || t.date < earliest) earliest = t.date;
+    }
+    return computeMonthsOfHistory(earliest, new Date());
+  }, [transactions]);
+
   const avgMonthlyIncome = useMemo(() => {
-    const profits = dreData.monthlyProfits.filter((p) => p.receita > 0);
-    return profits.length > 0 ? profits.reduce((s, p) => s + p.receita, 0) / profits.length : 0;
-  }, [dreData.monthlyProfits]);
+    const totalReceita = dreData.monthlyProfits.reduce((s, p) => s + p.receita, 0);
+    return totalReceita / monthsOfHistory;
+  }, [dreData.monthlyProfits, monthsOfHistory]);
 
   const avgMonthlyExpenses = useMemo(() => {
-    const profits = dreData.monthlyProfits.filter((p) => p.despesas > 0);
-    return profits.length > 0 ? profits.reduce((s, p) => s + p.despesas, 0) / profits.length : 0;
-  }, [dreData.monthlyProfits]);
+    const totalDespesas = dreData.monthlyProfits.reduce((s, p) => s + p.despesas, 0);
+    return totalDespesas / monthsOfHistory;
+  }, [dreData.monthlyProfits, monthsOfHistory]);
 
   const avgMonthlySavings = avgMonthlyIncome - avgMonthlyExpenses;
 

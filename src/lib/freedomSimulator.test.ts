@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  computeProjection, getCoverageLevel, COVERAGE_LEVELS, getInvestedAssetsValue,
+  computeProjection, getCoverageLevel, COVERAGE_LEVELS, getInvestedAssetsValue, computeMonthsOfHistory,
   type Scenario, type FinancialEvent,
 } from './freedomSimulator';
 
@@ -156,5 +156,26 @@ describe('getInvestedAssetsValue', () => {
   it('aceita current_value como string (formato vindo do banco)', () => {
     const assets = [{ category: 'fundos', current_value: '1500.50' }];
     expect(getInvestedAssetsValue(assets, investedCategories)).toBe(1500.5);
+  });
+});
+
+describe('computeMonthsOfHistory', () => {
+  const now = new Date('2026-08-31T12:00:00Z');
+
+  it('retorna 1 quando não há transações', () => {
+    expect(computeMonthsOfHistory(null, now)).toBe(1);
+  });
+
+  it('conta os meses desde a primeira transação, incluindo o mês atual', () => {
+    expect(computeMonthsOfHistory('2026-06-15', now)).toBe(3); // jun, jul, ago
+    expect(computeMonthsOfHistory('2026-08-01', now)).toBe(1); // só ago
+  });
+
+  it('limita a 12 meses mesmo para contas mais antigas', () => {
+    expect(computeMonthsOfHistory('2020-01-01', now)).toBe(12);
+  });
+
+  it('nunca retorna menos que 1', () => {
+    expect(computeMonthsOfHistory('2026-08-31', now)).toBe(1);
   });
 });
