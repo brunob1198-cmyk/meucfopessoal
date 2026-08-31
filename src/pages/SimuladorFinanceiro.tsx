@@ -14,7 +14,7 @@ import { useDREIntegration } from '@/hooks/useDREIntegration';
 import { useTransactions } from '@/hooks/useTransactions';
 import { formatBRL } from '@/lib/dre';
 import {
-  type Scenario, type FinancialEvent, computeProjection, getCoverageLevel,
+  type Scenario, type FinancialEvent, type PaymentMode, computeProjection, getCoverageLevel,
   COVERAGE_LEVELS, getInvestedAssetsValue } from '@/lib/freedomSimulator';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -202,7 +202,7 @@ export default function SimuladorFinanceiro() {
   useEffect(() => { try { localStorage.setItem('simulador-events', JSON.stringify(events)); } catch {} }, [events]);
 
   const [showEventDialog, setShowEventDialog] = useState(false);
-  const [newEvent, setNewEvent] = useState<Partial<FinancialEvent>>({ type: 'imovel', yearFromNow: 5, amount: 0, monthlyImpact: 0 });
+  const [newEvent, setNewEvent] = useState<Partial<FinancialEvent>>({ type: 'imovel', yearFromNow: 5, amount: 0, monthlyImpact: 0, paymentMode: 'financiado' });
 
   const updateScenario = useCallback((field: keyof Scenario, value: any) => {
     setScenarios((prev) => prev.map((s) => s.id === activeScenario ? { ...s, [field]: value } : s));
@@ -227,13 +227,20 @@ export default function SimuladorFinanceiro() {
   };
 
   const addEvent = () => {
-    if (!newEvent.type || !newEvent.amount) return;
+    if (!newEvent.type) return;
+    const isPropertyEvent = newEvent.type === 'imovel' || newEvent.type === 'veiculo';
+    const paymentMode: PaymentMode = newEvent.paymentMode || 'financiado';
+    // Cada tipo/modo usa só um dos dois campos na projeção — valida o campo
+    // que de fato entra na conta, não sempre "amount".
+    const usesAmount = isPropertyEvent && paymentMode === 'a_vista';
+    if (usesAmount ? !newEvent.amount : !newEvent.monthlyImpact) return;
     setEvents((prev) => [...prev, {
       id: String(Date.now()), type: newEvent.type as any, label: EVENT_LABELS[newEvent.type!],
-      amount: newEvent.amount || 0, yearFromNow: newEvent.yearFromNow || 5, monthlyImpact: newEvent.monthlyImpact || 0
+      amount: newEvent.amount || 0, yearFromNow: newEvent.yearFromNow || 5, monthlyImpact: newEvent.monthlyImpact || 0,
+      ...(isPropertyEvent ? { paymentMode } : {}),
     }]);
     setShowEventDialog(false);
-    setNewEvent({ type: 'imovel', yearFromNow: 5, amount: 0, monthlyImpact: 0 });
+    setNewEvent({ type: 'imovel', yearFromNow: 5, amount: 0, monthlyImpact: 0, paymentMode: 'financiado' });
   };
 
   const projections = useMemo(() => {
@@ -567,14 +574,30 @@ export default function SimuladorFinanceiro() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
-                    <Label>Valor Total (R$)</Label>
-                    <Input type="number" value={newEvent.amount || ''} onChange={(e) => setNewEvent((prev) => ({ ...prev, amount: Number(e.target.value) }))} className="mt-1" />
-                  </div>
-                  <div>
-                    <Label>Impacto Mensal (R$)</Label>
-                    <Input type="number" value={newEvent.monthlyImpact || ''} onChange={(e) => setNewEvent((prev) => ({ ...prev, monthlyImpact: Number(e.target.value) }))} className="mt-1" placeholder="Ex: parcela mensal, aumento salarial..." />
-                  </div>
+                  {(newEvent.type === 'imovel' || newEvent.type === 'veiculo') &&
+                    <div>
+                      <Label>Forma de Pagamento</Label>
+                      <Select value={newEvent.paymentMode || 'financiado'} onValueChange={(v) => setNewEvent((prev) => ({ ...prev, paymentMode: v as PaymentMode }))}>
+                        <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="financiado">Financiado (parcela mensal)</SelectItem>
+                          <SelectItem value="a_vista">À vista (desconta o patrimônio uma vez)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  }
+                  {(newEvent.type === 'imovel' || newEvent.type === 'veiculo') && (newEvent.paymentMode || 'financiado') === 'a_vista' &&
+                    <div>
+                      <Label>Valor Total (R$)</Label>
+                      <Input type="number" value={newEvent.amount || ''} onChange={(e) => setNewEvent((prev) => ({ ...prev, amount: Number(e.target.value) }))} className="mt-1" />
+                    </div>
+                  }
+                  {(newEvent.type !== 'imovel' && newEvent.type !== 'veiculo') || (newEvent.paymentMode || 'financiado') === 'financiado' ?
+                    <div>
+                      <Label>Impacto Mensal (R$)</Label>
+                      <Input type="number" value={newEvent.monthlyImpact || ''} onChange={(e) => setNewEvent((prev) => ({ ...prev, monthlyImpact: Number(e.target.value) }))} className="mt-1" placeholder="Ex: parcela mensal, aumento salarial..." />
+                    </div>
+                  : null}
                   <div>
                     <Label>Em quantos anos a partir de agora?</Label>
                     <Input type="number" value={newEvent.yearFromNow || ''} onChange={(e) => setNewEvent((prev) => ({ ...prev, yearFromNow: Number(e.target.value) }))} className="mt-1" />
@@ -589,14 +612,19 @@ export default function SimuladorFinanceiro() {
           {events.length === 0 ?
             <p className="text-sm text-muted-foreground text-center py-4">Nenhum evento simulado. Adicione eventos para ver o impacto na sua projeção.</p> :
             <div className="flex flex-wrap gap-2">
-              {events.map((ev) =>
-                <Badge key={ev.id} variant="secondary" className="gap-1.5 py-1.5 px-3">
-                  {ev.label} — {formatBRL(ev.amount)} em {ev.yearFromNow} anos
-                  <button onClick={() => setEvents((prev) => prev.filter((e) => e.id !== ev.id))} className="ml-1 hover:text-destructive">
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                </Badge>
-              )}
+              {events.map((ev) => {
+                const isPropertyEvent = ev.type === 'imovel' || ev.type === 'veiculo';
+                const usesAmount = isPropertyEvent && ev.paymentMode === 'a_vista';
+                const valueLabel = usesAmount ? `${formatBRL(ev.amount)} à vista` : `${formatBRL(ev.monthlyImpact)}/mês`;
+                return (
+                  <Badge key={ev.id} variant="secondary" className="gap-1.5 py-1.5 px-3">
+                    {ev.label} — {valueLabel} em {ev.yearFromNow} anos
+                    <button onClick={() => setEvents((prev) => prev.filter((e) => e.id !== ev.id))} className="ml-1 hover:text-destructive">
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                );
+              })}
             </div>
           }
         </CardContent>

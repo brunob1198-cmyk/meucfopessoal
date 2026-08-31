@@ -15,6 +15,11 @@ export interface Scenario {
 
 export type FinancialEventType = 'imovel' | 'veiculo' | 'aumento_despesas' | 'aumento_renda';
 
+// Só relevante para 'imovel'/'veiculo': 'a_vista' desconta o valor total do
+// patrimônio uma vez; 'financiado' soma o impacto mensal como despesa recorrente.
+// São mutuamente exclusivos para não descontar o mesmo evento em dobro.
+export type PaymentMode = 'a_vista' | 'financiado';
+
 export interface FinancialEvent {
   id: string;
   type: FinancialEventType;
@@ -22,6 +27,7 @@ export interface FinancialEvent {
   amount: number;
   yearFromNow: number;
   monthlyImpact: number;
+  paymentMode?: PaymentMode;
 }
 
 export interface ProjectionPoint {
@@ -56,8 +62,13 @@ export function computeProjection(
     const yearEvents = events.filter((e) => e.yearFromNow === y);
     for (const ev of yearEvents) {
       if (ev.type === 'imovel' || ev.type === 'veiculo') {
-        patrimonio -= ev.amount;
-        despesas += ev.monthlyImpact;
+        // Eventos salvos antes do seletor "À vista"/"Financiado" existir não têm
+        // paymentMode — tratamos como financiado (comportamento mais comum).
+        if (ev.paymentMode === 'a_vista') {
+          patrimonio -= ev.amount;
+        } else {
+          despesas += ev.monthlyImpact;
+        }
       } else if (ev.type === 'aumento_despesas') {
         despesas += ev.monthlyImpact;
       } else if (ev.type === 'aumento_renda') {

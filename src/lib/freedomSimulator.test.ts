@@ -46,15 +46,36 @@ describe('computeProjection', () => {
     expect(data[1].despesas).toBe(Math.round(500 * 1.05 * 12));
   });
 
-  it('aplica evento de imóvel/veículo no ano certo: desconta patrimônio e soma despesa recorrente', () => {
+  it('imóvel/veículo financiado: só soma despesa recorrente, sem descontar patrimônio', () => {
     const scenario = makeScenario({ currentInvestment: 100_000, monthlyInvestment: 0, returnRate: 0 });
     const events: FinancialEvent[] = [
-      { id: 'e1', type: 'imovel', label: 'Compra de Imóvel', amount: 50_000, yearFromNow: 2, monthlyImpact: 300 },
+      { id: 'e1', type: 'imovel', label: 'Compra de Imóvel', amount: 50_000, yearFromNow: 2, monthlyImpact: 300, paymentMode: 'financiado' },
     ];
     const data = computeProjection(scenario, 5_000, 2_000, events);
-    expect(data[1].patrimonio).toBe(100_000); // ano 1: evento ainda não ocorreu, sem rendimento nesse teste
-    expect(data[2].despesas).toBe(Math.round((2_000 + 300) * 12)); // despesa recorrente somada a partir do ano 2
-    expect(data[2].patrimonio).toBe(50_000); // desconto integral do valor do imóvel no ano do evento
+    expect(data[1].patrimonio).toBe(100_000);
+    expect(data[2].patrimonio).toBe(100_000); // financiado não mexe no patrimônio
+    expect(data[2].despesas).toBe(Math.round((2_000 + 300) * 12)); // só a parcela mensal entra
+  });
+
+  it('imóvel/veículo à vista: só desconta patrimônio uma vez, sem despesa recorrente', () => {
+    const scenario = makeScenario({ currentInvestment: 100_000, monthlyInvestment: 0, returnRate: 0 });
+    const events: FinancialEvent[] = [
+      { id: 'e1', type: 'imovel', label: 'Compra de Imóvel', amount: 50_000, yearFromNow: 2, monthlyImpact: 300, paymentMode: 'a_vista' },
+    ];
+    const data = computeProjection(scenario, 5_000, 2_000, events);
+    expect(data[1].patrimonio).toBe(100_000); // ano 1: evento ainda não ocorreu
+    expect(data[2].patrimonio).toBe(50_000); // desconto integral do valor à vista
+    expect(data[2].despesas).toBe(Math.round(2_000 * 12)); // sem parcela recorrente
+  });
+
+  it('evento de imóvel/veículo sem paymentMode (dado legado) se comporta como financiado', () => {
+    const scenario = makeScenario({ currentInvestment: 100_000, monthlyInvestment: 0, returnRate: 0 });
+    const events: FinancialEvent[] = [
+      { id: 'e1', type: 'veiculo', label: 'Compra de Veículo', amount: 50_000, yearFromNow: 1, monthlyImpact: 300 },
+    ];
+    const data = computeProjection(scenario, 5_000, 2_000, events);
+    expect(data[1].patrimonio).toBe(100_000); // sem desconto de patrimônio
+    expect(data[1].despesas).toBe(Math.round((2_000 + 300) * 12)); // com parcela recorrente
   });
 
   it('aumento_despesas soma monthlyImpact à despesa, sem usar amount', () => {
