@@ -2,6 +2,10 @@ import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { exportToExcel } from '@/lib/exportData';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,7 +15,7 @@ import { format, isToday, isYesterday, differenceInDays, parseISO } from 'date-f
 import { ptBR } from 'date-fns/locale';
 import {
   DollarSign, CreditCard, ShoppingCart, TrendingUp, Briefcase,
-  Home, Car, Utensils, Zap, Heart, GraduationCap
+  Home, Car, Utensils, Zap, Heart, GraduationCap, List, FileSpreadsheet
 } from 'lucide-react';
 
 const DRE_TYPE_CONFIG: Record<string, { color: string; label: string }> = {
@@ -72,6 +76,50 @@ export function FinancialTimeline() {
     staleTime: 5 * 60 * 1000,
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [allOpen, setAllOpen] = useState(false);
+
+  const { data: allTransactions, isLoading: loadingAll } = useQuery({
+    queryKey: ['transactions-all-timeline', user?.id],
+    queryFn: async () => {
+      const PAGE_SIZE = 1000;
+      let rows: any[] = [];
+      let from = 0;
+      let hasMore = true;
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('transactions')
+          .select('*, categories(name, dre_type)')
+          .order('date', { ascending: false })
+          .range(from, from + PAGE_SIZE - 1);
+        if (error) throw error;
+        rows = rows.concat(data || []);
+        hasMore = (data?.length ?? 0) === PAGE_SIZE;
+        from += PAGE_SIZE;
+      }
+      return rows;
+    },
+    enabled: !!user && allOpen,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const allRows = useMemo(() => {
+    if (!allTransactions) return [];
+    return [...allTransactions].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+  }, [allTransactions]);
+
+  const handleExportAll = () => {
+    exportToExcel(
+      allRows.map((t) => ({
+        Data: format(parseISO(t.date), 'dd/MM/yyyy'),
+        Valor: Number(t.amount),
+        Comentário: t.comment || '',
+        Categoria: t.categories?.name || '',
+      })),
+      'linha-do-tempo-financeira'
+    );
+  };
 
   const events = useMemo(() => {
     if (!transactions) return [];
@@ -94,11 +142,23 @@ export function FinancialTimeline() {
             <CardTitle className="text-base font-display">Linha do Tempo Financeira</CardTitle>
             <CardDescription className="text-xs mt-0.5">Atividades financeiras recentes</CardDescription>
           </div>
-          {weekCount > 0 && (
-            <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
-              {weekCount} atividade{weekCount > 1 ? 's' : ''} essa semana
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {weekCount > 0 && (
+              <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
+                {weekCount} atividade{weekCount > 1 ? 's' : ''} essa semana
+              </Badge>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => setAllOpen(true)}
+              aria-label="Ver todos os lançamentos"
+              title="Ver todos os lançamentos"
+            >
+              <List className="h-3.5 w-3.5" /> Ver todos
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="pt-0 pb-4">
@@ -209,6 +269,57 @@ export function FinancialTimeline() {
           </div>
         </ScrollArea>
       </CardContent>
+
+      <Dialog open={allOpen} onOpenChange={setAllOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <div className="flex items-center justify-between gap-4 pr-6">
+              <div>
+                <DialogTitle className="font-display">Todos os Lançamentos</DialogTitle>
+                <DialogDescription className="text-xs">
+                  Ordem cronológica (mais recente primeiro) — {allRows.length} lançamentos
+                </DialogDescription>
+              </div>
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={handleExportAll} disabled={allRows.length === 0}>
+                <FileSpreadsheet className="h-4 w-4" /> Exportar Excel
+              </Button>
+            </div>
+          </DialogHeader>
+          <ScrollArea className="h-[60vh] pr-3">
+            <Table>
+              <TableHeader className="sticky top-0 bg-card z-10">
+                <TableRow>
+                  <TableHead className="w-[110px]">Data</TableHead>
+                  <TableHead className="text-right w-[130px]">Valor</TableHead>
+                  <TableHead>Comentário</TableHead>
+                  <TableHead className="w-[220px]">Categoria</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loadingAll && (
+                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+                )}
+                {!loadingAll && allRows.length === 0 && (
+                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Nenhum lançamento registrado</TableCell></TableRow>
+                )}
+                {allRows.map((t) => {
+                  const income = isIncome(t.categories?.dre_type);
+                  return (
+                    <TableRow key={t.id}>
+                      <TableCell className="text-xs tabular-nums">{format(parseISO(t.date), 'dd/MM/yyyy')}</TableCell>
+                      <TableCell className={`text-xs text-right tabular-nums font-medium ${income ? 'text-primary' : 'text-destructive'}`}>
+                        {income ? '+' : '-'}{formatBRL(Math.abs(Number(t.amount)))}
+                      </TableCell>
+                      <TableCell className="text-xs">{t.comment || '—'}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{t.categories?.name || '—'}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
