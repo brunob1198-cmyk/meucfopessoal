@@ -142,11 +142,23 @@ export function FinancialTimeline() {
             <CardTitle className="text-base font-display">Linha do Tempo Financeira</CardTitle>
             <CardDescription className="text-xs mt-0.5">Atividades financeiras recentes</CardDescription>
           </div>
-          {weekCount > 0 && (
-            <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
-              {weekCount} atividade{weekCount > 1 ? 's' : ''} essa semana
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {weekCount > 0 && (
+              <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
+                {weekCount} atividade{weekCount > 1 ? 's' : ''} essa semana
+              </Badge>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => setAllOpen(true)}
+              aria-label="Ver todos os lançamentos"
+              title="Ver todos os lançamentos"
+            >
+              <List className="h-3.5 w-3.5" /> Ver todos
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="pt-0 pb-4">
