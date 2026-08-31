@@ -269,6 +269,57 @@ export function FinancialTimeline() {
           </div>
         </ScrollArea>
       </CardContent>
+
+      <Dialog open={allOpen} onOpenChange={setAllOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <div className="flex items-center justify-between gap-4 pr-6">
+              <div>
+                <DialogTitle className="font-display">Todos os Lançamentos</DialogTitle>
+                <DialogDescription className="text-xs">
+                  Ordem cronológica (mais recente primeiro) — {allRows.length} lançamentos
+                </DialogDescription>
+              </div>
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={handleExportAll} disabled={allRows.length === 0}>
+                <FileSpreadsheet className="h-4 w-4" /> Exportar Excel
+              </Button>
+            </div>
+          </DialogHeader>
+          <ScrollArea className="h-[60vh] pr-3">
+            <Table>
+              <TableHeader className="sticky top-0 bg-card z-10">
+                <TableRow>
+                  <TableHead className="w-[110px]">Data</TableHead>
+                  <TableHead className="text-right w-[130px]">Valor</TableHead>
+                  <TableHead>Comentário</TableHead>
+                  <TableHead className="w-[220px]">Categoria</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loadingAll && (
+                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+                )}
+                {!loadingAll && allRows.length === 0 && (
+                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Nenhum lançamento registrado</TableCell></TableRow>
+                )}
+                {allRows.map((t) => {
+                  const income = isIncome(t.categories?.dre_type);
+                  return (
+                    <TableRow key={t.id}>
+                      <TableCell className="text-xs tabular-nums">{format(parseISO(t.date), 'dd/MM/yyyy')}</TableCell>
+                      <TableCell className={`text-xs text-right tabular-nums font-medium ${income ? 'text-primary' : 'text-destructive'}`}>
+                        {income ? '+' : '-'}{formatBRL(Math.abs(Number(t.amount)))}
+                      </TableCell>
+                      <TableCell className="text-xs">{t.comment || '—'}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{t.categories?.name || '—'}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
