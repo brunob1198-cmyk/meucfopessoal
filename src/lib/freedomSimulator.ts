@@ -39,6 +39,7 @@ export function computeProjection(
   monthlyIncome: number,
   monthlyExpenses: number,
   events: FinancialEvent[],
+  extraPassiveIncome: number = 0,
   years: number = 30
 ): ProjectionPoint[] {
   const data: ProjectionPoint[] = [];
@@ -46,6 +47,10 @@ export function computeProjection(
   let renda = monthlyIncome;
   let despesas = monthlyExpenses;
   let totalInvestido = scenario.currentInvestment;
+  // Renda passiva real (aluguéis, dividendos etc.) somada à renda gerada pelo
+  // patrimônio simulado, para o ano 0 desta projeção bater com a Taxa de Cobertura
+  // "atual" exibida na tela — cresce junto com a renda ativa (incomeGrowth).
+  let passiveIncomeExtra = extraPassiveIncome;
 
   for (let y = 0; y <= years; y++) {
     const yearEvents = events.filter((e) => e.yearFromNow === y);
@@ -60,7 +65,7 @@ export function computeProjection(
       }
     }
 
-    const rendaPassivaMensal = (patrimonio * (scenario.returnRate / 100)) / 12;
+    const rendaPassivaMensal = (patrimonio * (scenario.returnRate / 100)) / 12 + passiveIncomeExtra;
     const taxaCobertura = despesas > 0 ? (rendaPassivaMensal / despesas) * 100 : 0;
 
     data.push({
@@ -81,6 +86,7 @@ export function computeProjection(
       }
       renda *= 1 + scenario.incomeGrowth / 100;
       despesas *= 1 + scenario.expenseGrowth / 100;
+      passiveIncomeExtra *= 1 + scenario.incomeGrowth / 100;
     }
   }
 

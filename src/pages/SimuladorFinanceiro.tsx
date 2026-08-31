@@ -129,34 +129,28 @@ export default function SimuladorFinanceiro() {
 
   const avgMonthlySavings = avgMonthlyIncome - avgMonthlyExpenses;
 
-  // Current coverage
-  const currentRendaPassiva = useMemo(() => {
-    // 1. Estimate passive income from invested assets at conservative 8% annual
-    const investedAssets = assets.filter(a => ['renda_fixa', 'acoes', 'fundos', 'criptomoedas'].includes(a.category));
-    const totalInvested = investedAssets.reduce((s, a) => s + Number(a.current_value), 0);
-    const assetIncome = (totalInvested * 0.08) / 12;
+  // Base de patrimônio para a Taxa de Cobertura: só ativos que geram renda passiva
+  // (mesmo grupo "Investimentos" do Balanço Patrimonial) — imóveis/veículos não
+  // contam aqui, pois não geram renda salvo se alugados.
+  const investedAssetsValue = useMemo(
+    () => getInvestedAssetsValue(assets, ASSET_GROUPS['Investimentos']),
+    [assets]
+  );
 
-    // 2. Add real passive income from transactions (receitas with specific keywords like aluguéis, rendimentos)
-    const passiveTxs = (transactions as any[]).filter((t: any) => 
-      t.categories?.dre_type === 'receita' && 
+  const realPassiveIncomeAvg = useMemo(() => {
+    // Renda passiva real vinda de transações (aluguéis, dividendos, juros etc.)
+    const passiveTxs = (transactions as any[]).filter((t: any) =>
+      t.categories?.dre_type === 'receita' &&
       ['alug', 'rendimento', 'dividendo', 'juro', 'passiv'].some((kw: string) => t.categories?.name.toLowerCase().includes(kw))
     );
-    
-    // Calculate the average real passive income over the last 12 months
-    let realPassiveIncomeAvg = 0;
-    if (passiveTxs.length > 0) {
-      const now = new Date();
-      const twelveMonthsAgoStr = `${now.getFullYear() - 1}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-      const lastYearTxs = passiveTxs.filter((t: any) => t.date.substring(0, 7) >= twelveMonthsAgoStr);
-      const totalLastYear = lastYearTxs.reduce((sum: number, t: any) => sum + Number(t.amount), 0);
-      realPassiveIncomeAvg = totalLastYear / 12;
-    }
+    if (passiveTxs.length === 0) return 0;
 
-    return assetIncome + realPassiveIncomeAvg;
-  }, [assets, transactions]);
-
-  const currentCoverage = avgMonthlyExpenses > 0 ? (currentRendaPassiva / avgMonthlyExpenses) * 100 : 0;
-  const coverageLevel = getCoverageLevel(currentCoverage);
+    const now = new Date();
+    const twelveMonthsAgoStr = `${now.getFullYear() - 1}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const lastYearTxs = passiveTxs.filter((t: any) => t.date.substring(0, 7) >= twelveMonthsAgoStr);
+    const totalLastYear = lastYearTxs.reduce((sum: number, t: any) => sum + Number(t.amount), 0);
+    return totalLastYear / 12;
+  }, [transactions]);
 
   const [scenarios, setScenarios] = useState<Scenario[]>(() => {
     try {
@@ -170,20 +164,30 @@ export default function SimuladorFinanceiro() {
   });
 
   useEffect(() => {
+    let syncedOnce = false;
+    try { syncedOnce = localStorage.getItem('simulador-synced-once') === 'true'; } catch {}
+    if (syncedOnce) return;
+    // Aguarda os dados reais (ativos/DRE) carregarem antes de gravar a sincronização única,
+    // para não marcar como "sincronizado" com valores ainda zerados por carregamento assíncrono.
+    if (investedAssetsValue === 0 && avgMonthlySavings === 0) return;
     setScenarios((prev) => {
       if (prev.length !== 1 || prev[0].id !== '1') return prev;
-      const current = prev[0];
-      const shouldSync = current.currentInvestment === 0 && current.monthlyInvestment === 0;
-      if (!shouldSync) return prev;
-      return [createDefaultScenario(Math.max(netWorth, 0), Math.max(avgMonthlySavings, 0))];
+      return [createDefaultScenario(Math.max(investedAssetsValue, 0), Math.max(avgMonthlySavings, 0))];
     });
-  }, [netWorth, avgMonthlySavings]);
+    try { localStorage.setItem('simulador-synced-once', 'true'); } catch {}
+  }, [investedAssetsValue, avgMonthlySavings]);
 
   const [activeScenario, setActiveScenario] = useState(() => {
     try { return localStorage.getItem('simulador-active-scenario') || '1'; } catch { return '1'; }
   });
 
-  const scenario = scenarios.find((s) => s.id === activeScenario) || scenarios[0] || createDefaultScenario(Math.max(netWorth, 0), Math.max(avgMonthlySavings, 0));
+  const scenario = scenarios.find((s) => s.id === activeScenario) || scenarios[0] || createDefaultScenario(Math.max(investedAssetsValue, 0), Math.max(avgMonthlySavings, 0));
+
+  // Taxa de Cobertura "atual" (ano 0) — mesma base de ativos e mesma taxa de
+  // retorno usadas pela projeção (computeProjection), para os dois nunca divergirem.
+  const currentRendaPassiva = (investedAssetsValue * (scenario.returnRate / 100)) / 12 + realPassiveIncomeAvg;
+  const currentCoverage = avgMonthlyExpenses > 0 ? (currentRendaPassiva / avgMonthlyExpenses) * 100 : 0;
+  const coverageLevel = getCoverageLevel(currentCoverage);
 
   const [events, setEvents] = useState<FinancialEvent[]>(() => {
     try {
@@ -234,9 +238,9 @@ export default function SimuladorFinanceiro() {
 
   const projections = useMemo(() => {
     return scenarios.map((s) => ({
-      scenario: s, data: computeProjection(s, avgMonthlyIncome, avgMonthlyExpenses, events)
+      scenario: s, data: computeProjection(s, avgMonthlyIncome, avgMonthlyExpenses, events, realPassiveIncomeAvg)
     }));
-  }, [scenarios, avgMonthlyIncome, avgMonthlyExpenses, events]);
+  }, [scenarios, avgMonthlyIncome, avgMonthlyExpenses, events, realPassiveIncomeAvg]);
 
   const activeProjection = projections.find((p) => p.scenario.id === activeScenario) || projections[0];
 
@@ -293,7 +297,7 @@ export default function SimuladorFinanceiro() {
     const data20 = data.find((d) => d.year === new Date().getFullYear() + 20);
     if (data20) {
       const altScenario = { ...scenario, monthlyInvestment: scenario.monthlyInvestment + 500 };
-      const altData = computeProjection(altScenario, avgMonthlyIncome, avgMonthlyExpenses, events);
+      const altData = computeProjection(altScenario, avgMonthlyIncome, avgMonthlyExpenses, events, realPassiveIncomeAvg);
       const alt20 = altData.find((d) => d.year === new Date().getFullYear() + 20);
       if (alt20) {
         msgs.push({ icon: Lightbulb, text: `+R$ 500/mês de investimento = taxa de cobertura de ${alt20.taxaCobertura}% em 20 anos (vs ${data20.taxaCobertura}% atual).`, type: 'info' });
@@ -301,7 +305,7 @@ export default function SimuladorFinanceiro() {
     }
 
     return msgs;
-  }, [activeProjection, scenario, currentCoverage, coverageLevel, independenceYear, avgMonthlyIncome, avgMonthlyExpenses, events]);
+  }, [activeProjection, scenario, currentCoverage, coverageLevel, independenceYear, avgMonthlyIncome, avgMonthlyExpenses, events, realPassiveIncomeAvg]);
 
   const comparisonData = useMemo(() => {
     if (projections.length === 0) return [];

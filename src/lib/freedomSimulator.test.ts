@@ -80,6 +80,15 @@ describe('computeProjection', () => {
     const data = computeProjection(scenario, 1_000, 0, []);
     expect(data[0].taxaCobertura).toBe(0);
   });
+
+  it('extraPassiveIncome soma à renda passiva do ano 0 e cresce com incomeGrowth', () => {
+    const scenario = makeScenario({ currentInvestment: 0, monthlyInvestment: 0, returnRate: 0, incomeGrowth: 10 });
+    const data = computeProjection(scenario, 1_000, 500, [], 200);
+    // patrimônio 0 e retorno 0% => rendaPassivaMensal vem só do extraPassiveIncome
+    expect(data[0].rendaPassiva).toBe(200);
+    expect(data[0].taxaCobertura).toBe(40); // 200/500*100
+    expect(data[1].rendaPassiva).toBe(Math.round(200 * 1.1));
+  });
 });
 
 describe('getCoverageLevel / COVERAGE_LEVELS', () => {
