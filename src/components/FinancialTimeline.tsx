@@ -11,8 +11,9 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatBRL } from '@/lib/dre';
-import { format, isToday, isYesterday, differenceInDays, parseISO } from 'date-fns';
+import { format, isToday, isYesterday, differenceInDays, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { MonthRangePicker } from '@/components/MonthRangePicker';
 import {
   DollarSign, CreditCard, ShoppingCart, TrendingUp, Briefcase,
   Home, Car, Utensils, Zap, Heart, GraduationCap, List, FileSpreadsheet
@@ -77,6 +78,10 @@ export function FinancialTimeline() {
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [allOpen, setAllOpen] = useState(false);
+  // Period filter for the "Todos os Lançamentos" dialog.
+  // Empty start/end means "no filter" (all transactions shown).
+  const [periodStart, setPeriodStart] = useState('');
+  const [periodEnd, setPeriodEnd] = useState('');
 
   const { data: allTransactions, isLoading: loadingAll } = useQuery({
     queryKey: ['transactions-all-timeline', user?.id],
@@ -104,10 +109,21 @@ export function FinancialTimeline() {
 
   const allRows = useMemo(() => {
     if (!allTransactions) return [];
-    return [...allTransactions].sort(
+    const sorted = [...allTransactions].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
-  }, [allTransactions]);
+
+    // Apply period filter when both bounds are selected (yyyy-MM strings).
+    if (!periodStart || !periodEnd) return sorted;
+
+    const startBound = startOfMonth(parseISO(`${periodStart}-01`)).getTime();
+    const endBound = endOfMonth(parseISO(`${periodEnd}-01`)).getTime();
+
+    return sorted.filter((t) => {
+      const d = new Date(t.date).getTime();
+      return d >= startBound && d <= endBound;
+    });
+  }, [allTransactions, periodStart, periodEnd]);
 
   const handleExportAll = () => {
     exportToExcel(
@@ -119,6 +135,11 @@ export function FinancialTimeline() {
       })),
       'linha-do-tempo-financeira'
     );
+  };
+
+  const handleClearPeriod = () => {
+    setPeriodStart('');
+    setPeriodEnd('');
   };
 
   const events = useMemo(() => {
@@ -278,11 +299,25 @@ export function FinancialTimeline() {
                 <DialogTitle className="font-display">Todos os Lançamentos</DialogTitle>
                 <DialogDescription className="text-xs">
                   Ordem cronológica (mais recente primeiro) — {allRows.length} lançamentos
+                  {(periodStart && periodEnd) ? ' no período selecionado' : ''}
                 </DialogDescription>
               </div>
               <Button size="sm" variant="outline" className="gap-1.5" onClick={handleExportAll} disabled={allRows.length === 0}>
                 <FileSpreadsheet className="h-4 w-4" /> Exportar Excel
               </Button>
+            </div>
+            <div className="flex items-center justify-between gap-2 flex-wrap pt-1">
+              <MonthRangePicker
+                startMonth={periodStart}
+                endMonth={periodEnd}
+                onStartChange={setPeriodStart}
+                onEndChange={setPeriodEnd}
+              />
+              {(periodStart && periodEnd) && (
+                <Button size="sm" variant="ghost" className="h-8 text-xs text-muted-foreground" onClick={handleClearPeriod}>
+                  Limpar filtro
+                </Button>
+              )}
             </div>
           </DialogHeader>
           <ScrollArea className="h-[60vh] pr-3">
