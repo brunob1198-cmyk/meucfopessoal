@@ -76,6 +76,50 @@ export function FinancialTimeline() {
     staleTime: 5 * 60 * 1000,
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [allOpen, setAllOpen] = useState(false);
+
+  const { data: allTransactions, isLoading: loadingAll } = useQuery({
+    queryKey: ['transactions-all-timeline', user?.id],
+    queryFn: async () => {
+      const PAGE_SIZE = 1000;
+      let rows: any[] = [];
+      let from = 0;
+      let hasMore = true;
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('transactions')
+          .select('*, categories(name, dre_type)')
+          .order('date', { ascending: false })
+          .range(from, from + PAGE_SIZE - 1);
+        if (error) throw error;
+        rows = rows.concat(data || []);
+        hasMore = (data?.length ?? 0) === PAGE_SIZE;
+        from += PAGE_SIZE;
+      }
+      return rows;
+    },
+    enabled: !!user && allOpen,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const allRows = useMemo(() => {
+    if (!allTransactions) return [];
+    return [...allTransactions].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+  }, [allTransactions]);
+
+  const handleExportAll = () => {
+    exportToExcel(
+      allRows.map((t) => ({
+        Data: format(parseISO(t.date), 'dd/MM/yyyy'),
+        Valor: Number(t.amount),
+        Comentário: t.comment || '',
+        Categoria: t.categories?.name || '',
+      })),
+      'linha-do-tempo-financeira'
+    );
+  };
 
   const events = useMemo(() => {
     if (!transactions) return [];
