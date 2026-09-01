@@ -3,9 +3,9 @@ import { format, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion } from 'framer-motion';
 import {
-  Plus, Trash2, Edit2, TrendingUp, TrendingDown, Minus,
+  Plus, Trash2, Edit2, TrendingUp, TrendingDown,
   Landmark, CreditCard, PiggyBank, ChevronDown, ChevronRight, Save, Wallet, ArrowUpRight, AlertTriangle, ShieldAlert,
-  Gem, Wallet as WalletIcon, BarChart3, PiggyBank as PiggyBankIcon, Lightbulb
+  BarChart3, PiggyBank as PiggyBankIcon, Lightbulb
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -58,9 +58,10 @@ const tooltipStyle = {
   itemStyle: { color: 'hsl(var(--foreground))' }
 };
 
-// Group asset categories for composition
+// Group asset categories for composition — reaproveita ASSET_GROUPS onde possível
+// para não manter uma segunda lista de categorias de investimento fora de sincronia.
 const COMPOSITION_GROUPS: Record<string, string[]> = {
-  'Investimentos': ['renda_fixa', 'acoes', 'fundos', 'criptomoedas'],
+  'Investimentos': ASSET_GROUPS['Investimentos'],
   'Imóveis': ['imoveis'],
   'Caixa': ['conta_corrente', 'poupanca', 'dinheiro_caixa'],
   'Veículos': ['veiculos'],
@@ -211,9 +212,9 @@ function LiabilityForm({ liability, onSave, onClose }: { liability?: Liability; 
   );
 }
 
-function SummaryCard({ title, value, icon: Icon, trend, trendLabel, variant }: {
+function SummaryCard({ title, value, icon: Icon, trend, trendLabel, variant, subtitle }: {
   title: string; value: number; icon: any; trend?: number; trendLabel?: string;
-  variant: 'success' | 'destructive' | 'primary';
+  variant: 'success' | 'destructive' | 'primary'; subtitle?: string;
 }) {
   const colorMap = {
     success: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400',
@@ -231,6 +232,7 @@ function SummaryCard({ title, value, icon: Icon, trend, trendLabel, variant }: {
           </div>
         </div>
         <p className="text-2xl font-bold">{fmt(value)}</p>
+        {subtitle && <p className="text-[11px] text-muted-foreground mt-0.5">{subtitle}</p>}
         {trend !== undefined && (
           <div className="flex items-center gap-1 mt-1 text-xs">
             {trend >= 0 ? <TrendingUp className="h-3 w-3 text-emerald-500" /> : <TrendingDown className="h-3 w-3 text-red-500" />}
@@ -315,7 +317,6 @@ export default function BalancoPatrimonial() {
     yearToDateProfit,
     accumulatedProfit,
     monthlyProfits,
-    isLoading: dreLoading,
   } = useDREIntegration();
 
   const [assetDialogOpen, setAssetDialogOpen] = useState(false);
@@ -426,7 +427,7 @@ export default function BalancoPatrimonial() {
       msgs.push(`${Math.min(100, poupancaPct).toFixed(0)}% do crescimento veio da sua poupança.`);
     }
     const investPct = totalAssets > 0
-      ? (assets.filter(a => ['renda_fixa', 'acoes', 'fundos', 'criptomoedas'].includes(a.category))
+      ? (assets.filter(a => ASSET_GROUPS['Investimentos'].includes(a.category))
           .reduce((s, a) => s + Number(a.current_value), 0) / totalAssets) * 100
       : 0;
     if (investPct > 0) {
@@ -519,6 +520,7 @@ export default function BalancoPatrimonial() {
           variant="primary"
           trend={monthlyTrend}
           trendLabel="vs mês anterior"
+          subtitle="Inclui lucros retidos do DRE"
         />
       </div>
 
