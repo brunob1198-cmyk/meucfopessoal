@@ -1,3 +1,35 @@
+export interface CategoryLike {
+  id: string;
+  name: string;
+  dre_type: string;
+  parent_id: string | null;
+}
+
+export interface TransactionLike {
+  amount: number;
+  category_id: string;
+}
+
+// Réplica da heurística já usada em src/lib/dre.ts para separar receitas e
+// despesas financeiras dentro do tipo 'resultado_financeiro': dos pares de
+// categorias-pai desse tipo, a que tem "despesa" no nome é a financeira negativa
+// (ex.: juros pagos) — é essa parcela que representa saída de caixa real.
+export function getDespesasFinanceiras(
+  transactions: TransactionLike[],
+  categories: CategoryLike[]
+): number {
+  const parentCategories = categories.filter((c) => !c.parent_id);
+  const rfDespesaParents = parentCategories.filter(
+    (c) => c.dre_type === 'resultado_financeiro' && c.name.toLowerCase().includes('despesa')
+  );
+  const sumByParentId = (parentId: string) =>
+    transactions
+      .filter((t) => categories.find((c) => c.id === t.category_id)?.parent_id === parentId)
+      .reduce((sum, t) => sum + Math.abs(Number(t.amount)), 0);
+
+  return rfDespesaParents.reduce((sum, p) => sum + sumByParentId(p.id), 0);
+}
+
 export interface PillarScore {
   name: string;
   score: number;

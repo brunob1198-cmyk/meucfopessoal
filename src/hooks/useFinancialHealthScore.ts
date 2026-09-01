@@ -4,7 +4,7 @@ import { useCategories } from '@/hooks/useCategories';
 import { useAssets, useLiabilities } from '@/hooks/useBalanceSheet';
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import {
-  type PillarScore, getClassification,
+  type PillarScore, getClassification, getDespesasFinanceiras,
   scoreLiquidez, scoreControleGastos, scoreEndividamento, scoreReservaEmergencia, scoreCapacidadePoupanca,
 } from '@/lib/financialHealthScore';
 
@@ -49,10 +49,20 @@ export function useFinancialHealthScore(): FinancialHealthScore {
     const totalDescontos = sumByDreType('desconto');
     const totalCustos = sumByDreType('custo');
     const totalDespesas = sumByDreType('despesa');
+    const totalImpostos = sumByDreType('impostos');
+    const totalDespesasFinanceiras = getDespesasFinanceiras(txArr, catArr);
+    // 'investimento' NÃO entra em totalGastos de propósito: aqui ele soma como
+    // poupança no Pilar 5 (avgInvestimentos), diferente do DRE (src/lib/dre.ts),
+    // que trata investimento como despesa. São leituras intencionalmente
+    // diferentes do mesmo lançamento: o DRE mede lucro operacional do período
+    // (investir reduz o caixa disponível); o Score mede capacidade de poupança
+    // pessoal (investir é o objetivo, não um gasto).
     const totalInvestimentos = sumByDreType('investimento');
 
+    // 'depreciacao' fica de fora de propósito: é lançamento contábil, não sai
+    // do seu caixa, então não deveria reduzir a liquidez/reserva percebida.
     const receitaLiquidaTotal = totalReceita - totalDescontos;
-    const totalGastos = totalDespesas + totalCustos;
+    const totalGastos = totalDespesas + totalCustos + totalImpostos + totalDespesasFinanceiras;
 
     const avgReceita = receitaLiquidaTotal / months;
     const avgDespesas = totalGastos / months;
@@ -62,9 +72,11 @@ export function useFinancialHealthScore(): FinancialHealthScore {
     const assetsArr = assets as any[];
     const liabArr = liabilities as any[];
 
-    // Liquid assets: conta_corrente, poupanca, dinheiro_caixa
-    const liquidCategories = ['conta_corrente', 'poupanca', 'dinheiro_caixa'];
-    const emergencyCategories = ['conta_corrente', 'poupanca', 'dinheiro_caixa', 'renda_fixa', 'fundos'];
+    // Categorias sem sobreposição: Liquidez mede dinheiro imediato (conta
+    // corrente/caixa); Reserva de Emergência mede poupança/renda fixa/fundos.
+    // Cada saldo entra em exatamente um dos dois pilares, nunca nos dois.
+    const liquidCategories = ['conta_corrente', 'dinheiro_caixa'];
+    const emergencyCategories = ['poupanca', 'renda_fixa', 'fundos'];
 
     const liquidAssets = assetsArr
       .filter((a) => liquidCategories.includes(a.category))

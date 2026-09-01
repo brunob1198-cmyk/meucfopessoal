@@ -65,6 +65,10 @@ export function computeDRE(
   const receitaLiquida = receitaBruta - descontos;
   const custos = sumByType('custo');
   const lucroBruto = receitaLiquida - custos;
+  // 'investimento' entra como despesa aqui (reduz o lucro do período) — diferente
+  // do Score de Saúde Financeira (src/hooks/useFinancialHealthScore.ts), que soma
+  // o mesmo lançamento como poupança positiva. Divergência intencional: o DRE mede
+  // lucro operacional, o Score mede capacidade de poupança pessoal.
   const despesas = sumByType('despesa') + sumByType('investimento');
   const ebitda = lucroBruto - despesas;
   const depreciacao = sumByType('depreciacao');

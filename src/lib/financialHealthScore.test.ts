@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   scoreLiquidez, scoreControleGastos, scoreEndividamento, scoreReservaEmergencia, scoreCapacidadePoupanca,
-  getClassification, SCORE_CLASSIFICATIONS,
+  getClassification, SCORE_CLASSIFICATIONS, getDespesasFinanceiras,
 } from './financialHealthScore';
 
 describe('scoreLiquidez', () => {
@@ -95,5 +95,34 @@ describe('getClassification / SCORE_CLASSIFICATIONS', () => {
     for (let i = 0; i < SCORE_CLASSIFICATIONS.length - 1; i++) {
       expect(SCORE_CLASSIFICATIONS[i].max).toBe(SCORE_CLASSIFICATIONS[i + 1].min);
     }
+  });
+});
+
+describe('getDespesasFinanceiras', () => {
+  const categories = [
+    { id: 'rf-receita', name: 'Receitas Financeiras', dre_type: 'resultado_financeiro', parent_id: null },
+    { id: 'rf-despesa', name: 'Despesas Financeiras', dre_type: 'resultado_financeiro', parent_id: null },
+    { id: 'juros-pagos', name: 'Juros de Empréstimo', dre_type: 'resultado_financeiro', parent_id: 'rf-despesa' },
+    { id: 'juros-recebidos', name: 'Juros de Aplicação', dre_type: 'resultado_financeiro', parent_id: 'rf-receita' },
+    { id: 'aluguel', name: 'Aluguel', dre_type: 'despesa', parent_id: null },
+  ];
+
+  it('soma só as transações sob a categoria-pai de despesas financeiras', () => {
+    const transactions = [
+      { amount: 100, category_id: 'juros-pagos' },
+      { amount: 50, category_id: 'juros-recebidos' },
+      { amount: 200, category_id: 'aluguel' },
+    ];
+    expect(getDespesasFinanceiras(transactions, categories)).toBe(100);
+  });
+
+  it('retorna 0 quando não há transações de despesa financeira', () => {
+    const transactions = [{ amount: 50, category_id: 'juros-recebidos' }];
+    expect(getDespesasFinanceiras(transactions, categories)).toBe(0);
+  });
+
+  it('usa valor absoluto do amount', () => {
+    const transactions = [{ amount: -100, category_id: 'juros-pagos' }];
+    expect(getDespesasFinanceiras(transactions, categories)).toBe(100);
   });
 });
