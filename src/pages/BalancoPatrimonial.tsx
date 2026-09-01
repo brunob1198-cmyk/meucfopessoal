@@ -29,6 +29,7 @@ import { useDREIntegration } from '@/hooks/useDREIntegration';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { formatBRL } from '@/lib/dre';
+import { formatMonthLabel, computeGrowth12m, isConsecutiveMonths, computeGrowthDrivers } from '@/lib/balanceSheet';
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -352,7 +353,7 @@ export default function BalancoPatrimonial() {
 
   const chartData = useMemo(() => {
     const historyData = history.map(h => ({
-      month: format(new Date(h.month), 'MMM/yy', { locale: ptBR }),
+      month: formatMonthLabel(h.month),
       ativos: Number(h.total_assets),
       passivos: Number(h.total_liabilities),
       patrimonio: Number(h.net_worth),
@@ -366,7 +367,7 @@ export default function BalancoPatrimonial() {
 
   const profitChartData = useMemo(() => {
     return monthlyProfits.map(p => ({
-      month: format(new Date(p.month + '-01'), 'MMM/yy', { locale: ptBR }),
+      month: formatMonthLabel(p.month),
       lucro: p.lucroLiquido,
       receita: p.receita,
       despesas: p.despesas,
@@ -374,17 +375,7 @@ export default function BalancoPatrimonial() {
   }, [monthlyProfits]);
 
   // Mapa de Riqueza Merged Logic
-  const growth12m = useMemo(() => {
-    if (history.length < 2) return null;
-    const sorted = [...history].sort((a, b) => a.month.localeCompare(b.month));
-    const latest = sorted[sorted.length - 1];
-    const yearAgo = sorted.find(s => {
-      const d = new Date(s.month);
-      const l = new Date(latest.month);
-      return l.getFullYear() - d.getFullYear() === 1 && l.getMonth() === d.getMonth();
-    }) || sorted[0];
-    return Number(latest.net_worth) - Number(yearAgo.net_worth);
-  }, [history]);
+  const growth12m = useMemo(() => computeGrowth12m(history), [history]);
 
   const compositionData = useMemo(() => {
     return Object.entries(COMPOSITION_GROUPS).map(([label, cats]) => {
@@ -394,17 +385,6 @@ export default function BalancoPatrimonial() {
       return { name: label, value };
     }).filter(d => d.value > 0);
   }, [assets]);
-
-  const evolutionData = useMemo(() => {
-    return [...history]
-      .sort((a, b) => a.month.localeCompare(b.month))
-      .map(s => ({
-        month: new Date(s.month).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }),
-        patrimonio: Number(s.net_worth),
-        ativos: Number(s.total_assets),
-        passivos: Number(s.total_liabilities),
-      }));
-  }, [history]);
 
   const avgMonthlySavings = useMemo(() => {
     const profits = monthlyProfits.filter(p => p.receita > 0);
