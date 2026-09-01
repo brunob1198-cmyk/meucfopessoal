@@ -20,11 +20,14 @@ export interface FinancialHealthScore {
 }
 
 export function useFinancialHealthScore(): FinancialHealthScore {
-  // Use last 3 months for average calculations
+  // Usa os últimos 3 meses FECHADOS (exclui o mês corrente, que estaria
+  // incompleto) — assim a divisão fixa por `months = 3` abaixo nunca subestima
+  // a média, independente de qual dia do mês for hoje.
   const now = new Date();
-  const threeMonthsAgo = subMonths(startOfMonth(now), 2);
-  const startDate = format(threeMonthsAgo, 'yyyy-MM-dd');
-  const endDate = format(endOfMonth(now), 'yyyy-MM-dd');
+  const startOfRange = startOfMonth(subMonths(now, 3));
+  const endOfRange = endOfMonth(subMonths(now, 1));
+  const startDate = format(startOfRange, 'yyyy-MM-dd');
+  const endDate = format(endOfRange, 'yyyy-MM-dd');
 
   const { data: transactions = [], isLoading: txLoading } = useTransactions(startDate, endDate);
   const { data: categories = [], isLoading: catLoading } = useCategories();
@@ -102,7 +105,9 @@ export function useFinancialHealthScore(): FinancialHealthScore {
       indicator: 'Meses de despesas cobertos',
       indicatorValue: `${monthsCovered.toFixed(1)} meses`,
       insight:
-        monthsCovered >= 6
+        avgDespesas === 0
+          ? 'Sem histórico de despesas nos últimos 3 meses — lance seus gastos para avaliar este pilar.'
+          : monthsCovered >= 6
           ? 'Excelente liquidez. Suas reservas líquidas cobrem mais de 6 meses de despesas.'
           : monthsCovered >= 3
           ? 'Boa liquidez. Você tem cobertura para 3+ meses de despesas.'
@@ -171,7 +176,9 @@ export function useFinancialHealthScore(): FinancialHealthScore {
       indicator: 'Meses de despesas cobertos',
       indicatorValue: `${emergencyMonths.toFixed(1)} meses`,
       insight:
-        emergencyMonths >= 12
+        avgDespesas === 0
+          ? 'Sem histórico de despesas nos últimos 3 meses — lance seus gastos para avaliar este pilar.'
+          : emergencyMonths >= 12
           ? 'Reserva de emergência excelente! Você tem mais de 12 meses protegidos.'
           : emergencyMonths >= 6
           ? `Boa reserva. Você tem ${emergencyMonths.toFixed(1)} meses de cobertura.`
