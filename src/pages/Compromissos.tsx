@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import { useProjections } from '@/hooks/useProjections';
-import { formatBRL, computeCashFlowTotals } from '@/lib/dre';
+import { formatBRL, computeCashFlowTotals, mergeProjectionsWithInstallments } from '@/lib/dre';
 import { format, addMonths, startOfMonth, endOfMonth, eachMonthOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -51,28 +51,20 @@ export default function Compromissos() {
         typeof p.month === 'string' && p.month.substring(0, 7) === m
       );
 
+      const installmentTxs = monthTx.filter((t: any) => t.is_installment);
+
+      // Para meses futuros: parcela real já lançada substitui a projeção da
+      // mesma categoria (dado real bate estimativa), em vez de somar as duas —
+      // ver mergeProjectionsWithInstallments em src/lib/dre.ts.
+      const monthSource = isFuture ? mergeProjectionsWithInstallments(monthProj, installmentTxs) : monthTx;
+
       // Receita/Compromissos via classificação única dos 9 tipos de lançamento
-      // (src/lib/dre.ts) — mesma lógica já usada no Fluxo de Caixa. Para meses
-      // futuros, soma projeção + parcelas reais lançadas (a contagem em dobro
-      // entre as duas é resolvida separadamente, ver mergeProjectionsWithInstallments).
-      let receita: number, compromissos: number;
-
-      if (isFuture) {
-        const projTotals = computeCashFlowTotals(monthProj, categories as any);
-        const installmentTxs = monthTx.filter((t: any) => t.is_installment);
-        const installmentTotals = computeCashFlowTotals(installmentTxs, categories as any);
-        receita = projTotals.entradas + installmentTotals.entradas;
-        compromissos = projTotals.saidas + installmentTotals.saidas;
-      } else {
-        const totals = computeCashFlowTotals(monthTx, categories as any);
-        receita = totals.entradas;
-        compromissos = totals.saidas;
-      }
-
+      // (src/lib/dre.ts) — mesma lógica já usada no Fluxo de Caixa.
+      const { entradas: receita, saidas: compromissos } = computeCashFlowTotals(monthSource, categories as any);
       const sobra = receita - compromissos;
 
       // Installment details
-      const installments = monthTx.filter((t: any) => t.is_installment).map((t: any) => ({
+      const installments = installmentTxs.map((t: any) => ({
         name: catMap.get(t.category_id)?.name || 'Parcela',
         amount: Number(t.amount),
         number: t.installment_number,
@@ -80,10 +72,10 @@ export default function Compromissos() {
         comment: t.comment,
       }));
 
-      // Top expenses
+      // Top expenses — mesma base usada para Receita/Compromissos, para o
+      // detalhamento sempre bater com o total exibido.
       const expenseByParent = new Map<string, number>();
-      const source = isFuture ? monthProj : monthTx;
-      source.forEach((item: any) => {
+      monthSource.forEach((item: any) => {
         const cat = catMap.get(item.category_id);
         if (cat && (cat.dre_type === 'despesa' || cat.dre_type === 'custo')) {
           const parentCat = cat.parent_id ? catMap.get(cat.parent_id) : cat;

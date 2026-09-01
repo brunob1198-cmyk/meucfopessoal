@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   computeNetProfit, isDespesaFinanceira, classifyCashFlowBucket, computeCashFlowTotals,
-  computeDRELucroLiquido, computeDRE,
+  computeDRELucroLiquido, computeDRE, mergeProjectionsWithInstallments,
 } from './dre';
 
 function tx(amount: number, dre_type: string, category_id = 'c1') {
@@ -134,5 +134,33 @@ describe('computeDRELucroLiquido', () => {
     const txs = [tx(1000, 'receita'), tx(200, 'investimento')];
     expect(computeDRELucroLiquido(txs, [])).toBe(800);
     expect(computeNetProfit(txs).lucroLiquido).toBe(1000); // não desconta investimento
+  });
+});
+
+describe('mergeProjectionsWithInstallments', () => {
+  it('mantém a projeção de categorias sem parcela real', () => {
+    const projections = [{ category_id: 'aluguel', amount: 1500 }];
+    const merged = mergeProjectionsWithInstallments(projections, []);
+    expect(merged).toEqual([{ category_id: 'aluguel', amount: 1500 }]);
+  });
+
+  it('parcela real substitui (não soma com) a projeção da mesma categoria', () => {
+    const projections = [{ category_id: 'cartao', amount: 500 }];
+    const installments = [{ category_id: 'cartao', amount: 83.33 }];
+    const merged = mergeProjectionsWithInstallments(projections, installments);
+    expect(merged).toEqual([{ category_id: 'cartao', amount: 83.33 }]);
+  });
+
+  it('categoria só com parcela real (sem projeção) aparece normalmente', () => {
+    const installments = [{ category_id: 'academia', amount: 120 }];
+    const merged = mergeProjectionsWithInstallments([], installments);
+    expect(merged).toEqual([{ category_id: 'academia', amount: 120 }]);
+  });
+
+  it('categorias diferentes convivem sem interferir uma na outra', () => {
+    const projections = [{ category_id: 'aluguel', amount: 1500 }, { category_id: 'cartao', amount: 500 }];
+    const installments = [{ category_id: 'cartao', amount: 83.33 }];
+    const merged = mergeProjectionsWithInstallments(projections, installments);
+    expect(merged).toEqual([{ category_id: 'aluguel', amount: 1500 }, { category_id: 'cartao', amount: 83.33 }]);
   });
 });

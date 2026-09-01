@@ -405,6 +405,19 @@ export function computeCashFlowTotals(transactions: Transaction[], categories: C
 // telas que só precisam do número, sem montar as linhas de exibição do DRE.
 // Ao contrário de computeNetProfit, o valor bate exatamente com a linha
 // "(=) LUCRO LÍQUIDO" que computeDRE mostraria para o mesmo período.
+// Para meses futuros: quando uma categoria já tem parcela real lançada
+// (is_installment), ela substitui a projeção manual dessa mesma categoria —
+// dado real prevalece sobre estimativa, evitando contar o mesmo compromisso
+// em dobro. Categorias sem parcela real mantêm a projeção normalmente.
+export function mergeProjectionsWithInstallments<T extends { category_id: string }>(
+  projections: T[],
+  realInstallments: T[]
+): T[] {
+  const categoriesWithRealData = new Set(realInstallments.map((t) => t.category_id));
+  const filteredProjections = projections.filter((p) => !categoriesWithRealData.has(p.category_id));
+  return [...filteredProjections, ...realInstallments];
+}
+
 export function computeDRELucroLiquido(transactions: Transaction[], categories: Category[]): number {
   const sumByType = (type: string) =>
     transactions
