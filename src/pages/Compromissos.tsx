@@ -6,7 +6,7 @@ import { formatBRL, computeCashFlowTotals, mergeProjectionsWithInstallments } fr
 import { format, addMonths, startOfMonth, endOfMonth, eachMonthOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, CalendarRange, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Loader2, CalendarRange } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function Compromissos() {
@@ -20,9 +20,9 @@ export default function Compromissos() {
   const { data: projections, isLoading: projLoading } = useProjections(startDate, endDate);
   const loading = txLoading || catLoading || projLoading;
 
-  const months = useMemo(() => {
-    return eachMonthOfInterval({ start: startOfMonth(now), end: endOfMonth(futureEnd) }).map(d => format(d, 'yyyy-MM'));
-  }, []);
+  // Cálculo barato (12 meses) — não precisa de useMemo, e uma memoização com
+  // deps [] travaria a janela de meses no valor do primeiro carregamento da página.
+  const months = eachMonthOfInterval({ start: startOfMonth(now), end: endOfMonth(futureEnd) }).map(d => format(d, 'yyyy-MM'));
 
   const currentMonth = format(now, 'yyyy-MM');
 
@@ -34,7 +34,6 @@ export default function Compromissos() {
 
     return months.map(m => {
       const ms = startOfMonth(new Date(Number(m.split('-')[0]), Number(m.split('-')[1]) - 1, 1));
-      const me = endOfMonth(ms);
       const isFuture = m > currentMonth;
       const isCurrent = m === currentMonth;
 
@@ -91,7 +90,6 @@ export default function Compromissos() {
       return {
         month: m,
         label: format(ms, "MMMM 'de' yyyy", { locale: ptBR }),
-        shortLabel: format(ms, 'MMM/yy', { locale: ptBR }),
         receita,
         compromissos,
         sobra,
