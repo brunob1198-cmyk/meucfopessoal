@@ -1,18 +1,11 @@
 import type { CSSProperties } from 'react';
 import { useFinancialHealthScore } from '@/hooks/useFinancialHealthScore';
+import { getClassification } from '@/lib/financialHealthScore';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Loader2, HeartPulse, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-function getScoreToneClass(score: number) {
-  if (score >= 90) return 'text-primary';
-  if (score >= 75) return 'text-primary';
-  if (score >= 60) return 'text-warning';
-  if (score >= 40) return 'text-warning';
-  return 'text-destructive';
-}
 
 export function FinancialHealthScoreCard() {
   const { total, classification, classificationColor, pillars, isLoading } = useFinancialHealthScore();
@@ -43,7 +36,7 @@ export function FinancialHealthScoreCard() {
         </div>
 
         <div className="rounded-xl border border-border/40 bg-muted/20 px-4 py-5 text-center">
-          <p className={`font-display font-bold tabular-nums text-5xl md:text-6xl leading-none ${getScoreToneClass(total)}`}>
+          <p className={`font-display font-bold tabular-nums text-5xl md:text-6xl leading-none ${getClassification(total).toneClass}`}>
             {total}
           </p>
           <p className="text-xs text-muted-foreground mt-1">de 100 pontos</p>

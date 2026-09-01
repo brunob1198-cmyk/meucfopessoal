@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, TrendingUp, AlertCircle, CheckCircle, Info, ChevronRight } from 'lucide-react';
 import { formatBRL } from '@/lib/dre';
+import { getClassification } from '@/lib/financialHealthScore';
 import { Button } from '@/components/ui/button';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 
@@ -29,13 +30,7 @@ function ScoreCircle({ score, max = 100, size = 120, strokeWidth = 12 }: {
   const strokeDasharray = circumference;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
-  const getColor = (p: number) => {
-    if (p >= 90) return 'hsl(152, 60%, 40%)';
-    if (p >= 75) return 'hsl(152, 50%, 48%)';
-    if (p >= 60) return 'hsl(38, 92%, 50%)';
-    if (p >= 40) return 'hsl(25, 90%, 52%)';
-    return 'hsl(0, 72%, 51%)';
-  };
+  const getColor = (p: number) => getClassification(p).color;
 
   return (
     <div className="relative inline-flex items-center justify-center">

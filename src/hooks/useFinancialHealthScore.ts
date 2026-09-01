@@ -3,16 +3,12 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import { useAssets, useLiabilities } from '@/hooks/useBalanceSheet';
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import {
+  type PillarScore, getClassification,
+  scoreLiquidez, scoreControleGastos, scoreEndividamento, scoreReservaEmergencia, scoreCapacidadePoupanca,
+} from '@/lib/financialHealthScore';
 
-export interface PillarScore {
-  name: string;
-  score: number;
-  max: number;
-  indicator: string;
-  indicatorValue: string;
-  insight: string;
-  color: string;
-}
+export type { PillarScore };
 
 export interface FinancialHealthScore {
   total: number;
@@ -21,18 +17,6 @@ export interface FinancialHealthScore {
   pillars: PillarScore[];
   recommendations: string[];
   isLoading: boolean;
-}
-
-function clamp(v: number, min = 0, max = 20) {
-  return Math.min(max, Math.max(min, v));
-}
-
-function getClassification(score: number): { label: string; color: string } {
-  if (score >= 90) return { label: 'Excelente saúde financeira', color: 'hsl(152, 60%, 40%)' };
-  if (score >= 75) return { label: 'Boa saúde financeira', color: 'hsl(152, 50%, 48%)' };
-  if (score >= 60) return { label: 'Saúde financeira moderada', color: 'hsl(38, 92%, 50%)' };
-  if (score >= 40) return { label: 'Saúde financeira frágil', color: 'hsl(25, 90%, 52%)' };
-  return { label: 'Saúde financeira crítica', color: 'hsl(0, 72%, 51%)' };
 }
 
 export function useFinancialHealthScore(): FinancialHealthScore {
@@ -96,12 +80,8 @@ export function useFinancialHealthScore(): FinancialHealthScore {
     // =====================
     // PILAR 1 — Liquidez
     // =====================
-    let liquidezScore = 0;
     const monthsCovered = avgDespesas > 0 ? liquidAssets / avgDespesas : 0;
-    if (monthsCovered >= 6) liquidezScore = 20;
-    else if (monthsCovered >= 3) liquidezScore = 15;
-    else if (monthsCovered >= 2) liquidezScore = 10;
-    else if (monthsCovered >= 1) liquidezScore = 5;
+    const liquidezScore = scoreLiquidez(monthsCovered);
 
     const liquidezPillar: PillarScore = {
       name: 'Liquidez',
@@ -123,12 +103,8 @@ export function useFinancialHealthScore(): FinancialHealthScore {
     // =====================
     // PILAR 2 — Controle de Gastos
     // =====================
-    let gastosScore = 0;
     const taxaGastos = avgReceita > 0 ? totalGastos / receitaLiquidaTotal : 1;
-    if (taxaGastos < 0.5) gastosScore = 20;
-    else if (taxaGastos < 0.7) gastosScore = 15;
-    else if (taxaGastos < 0.9) gastosScore = 10;
-    else if (taxaGastos < 1.0) gastosScore = 5;
+    const gastosScore = scoreControleGastos(taxaGastos);
 
     const gastosPillar: PillarScore = {
       name: 'Controle de Gastos',
@@ -150,12 +126,8 @@ export function useFinancialHealthScore(): FinancialHealthScore {
     // =====================
     // PILAR 3 — Endividamento
     // =====================
-    let debtScore = 0;
     const debtToIncome = avgReceita > 0 ? totalMonthlyDebt / avgReceita : 0;
-    if (debtToIncome < 0.1) debtScore = 20;
-    else if (debtToIncome < 0.2) debtScore = 15;
-    else if (debtToIncome < 0.3) debtScore = 10;
-    else if (debtToIncome < 0.5) debtScore = 5;
+    const debtScore = scoreEndividamento(debtToIncome);
 
     const debtPillar: PillarScore = {
       name: 'Endividamento',
@@ -177,12 +149,8 @@ export function useFinancialHealthScore(): FinancialHealthScore {
     // =====================
     // PILAR 4 — Reserva de Emergência
     // =====================
-    let reservaScore = 0;
     const emergencyMonths = avgDespesas > 0 ? emergencyReserve / avgDespesas : 0;
-    if (emergencyMonths >= 12) reservaScore = 20;
-    else if (emergencyMonths >= 6) reservaScore = 15;
-    else if (emergencyMonths >= 3) reservaScore = 10;
-    else if (emergencyMonths >= 1) reservaScore = 5;
+    const reservaScore = scoreReservaEmergencia(emergencyMonths);
 
     const reservaPillar: PillarScore = {
       name: 'Reserva de Emergência',
@@ -206,14 +174,10 @@ export function useFinancialHealthScore(): FinancialHealthScore {
     // =====================
     // PILAR 5 — Capacidade de Poupança
     // =====================
-    let poupancaScore = 0;
     // Savings = investimentos lançados + o que sobra (receita - gastos - dívidas)
     const avgSalvo = avgInvestimentos + Math.max(0, avgReceita - avgDespesas - totalMonthlyDebt);
     const taxaPoupanca = avgReceita > 0 ? avgSalvo / avgReceita : 0;
-    if (taxaPoupanca >= 0.2) poupancaScore = 20;
-    else if (taxaPoupanca >= 0.1) poupancaScore = 15;
-    else if (taxaPoupanca >= 0.05) poupancaScore = 10;
-    else if (taxaPoupanca > 0) poupancaScore = 5;
+    const poupancaScore = scoreCapacidadePoupanca(taxaPoupanca);
 
     const poupancaPillar: PillarScore = {
       name: 'Capacidade de Poupança',
