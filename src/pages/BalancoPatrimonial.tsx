@@ -554,6 +554,7 @@ export default function BalancoPatrimonial() {
               <p className={cn('text-lg font-bold', yearToDateProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
                 {fmt(yearToDateProfit)}
               </p>
+              <p className="text-[10px] text-muted-foreground">Jan até hoje — não inclui meses futuros projetados</p>
             </div>
             <div className="space-y-1 p-3 rounded-lg bg-primary/5 border border-primary/20">
               <div className="flex items-center gap-1">

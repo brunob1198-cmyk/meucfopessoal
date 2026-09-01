@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
-import { startOfMonth, endOfMonth, format, subMonths, startOfYear, endOfYear } from 'date-fns';
-import { computeNetProfit } from '@/lib/dre';
+import { startOfMonth, endOfMonth, format, subMonths, startOfYear } from 'date-fns';
+import { computeNetProfit, computeDRELucroLiquido } from '@/lib/dre';
 
 interface MonthlyProfit {
   month: string;
@@ -26,73 +26,77 @@ export function useDREIntegration() {
   // histórico inteiro, não só os últimos 13 meses usados acima.
   const { data: allTimeTransactions = [], isLoading: loadingAllTime } = useTransactions();
 
-  // Current month data
-  const currentMonthData = useMemo(() => {
+  // Current month data — mesma fórmula da DRE (computeDRELucroLiquido): investimento
+  // conta como saída/despesa e o resultado financeiro é separado por categoria-pai,
+  // então o valor bate com a linha "(=) LUCRO LÍQUIDO" da DRE para o mesmo período.
+  const currentMonthProfit = useMemo(() => {
     const now = new Date();
     const start = format(startOfMonth(now), 'yyyy-MM-dd');
     const end = format(endOfMonth(now), 'yyyy-MM-dd');
-    
+
     const monthTxs = transactions.filter(t => t.date >= start && t.date <= end);
-    return computeNetProfit(monthTxs);
-  }, [transactions]);
+    return computeDRELucroLiquido(monthTxs, categories);
+  }, [transactions, categories]);
 
   // Previous month data
-  const previousMonthData = useMemo(() => {
+  const previousMonthProfit = useMemo(() => {
     const now = new Date();
     const prevMonth = subMonths(now, 1);
     const start = format(startOfMonth(prevMonth), 'yyyy-MM-dd');
     const end = format(endOfMonth(prevMonth), 'yyyy-MM-dd');
-    
-    const monthTxs = transactions.filter(t => t.date >= start && t.date <= end);
-    return computeNetProfit(monthTxs);
-  }, [transactions]);
 
-  // Year-to-date accumulated profit
+    const monthTxs = transactions.filter(t => t.date >= start && t.date <= end);
+    return computeDRELucroLiquido(monthTxs, categories);
+  }, [transactions, categories]);
+
+  // Year-to-date accumulated profit — vai de 1º de janeiro até HOJE (não até o fim
+  // do ano), para não misturar lançamentos futuros/projetados do mês em curso ou de
+  // meses seguintes no "acumulado".
   const yearToDateProfit = useMemo(() => {
     const now = new Date();
     const start = format(startOfYear(now), 'yyyy-MM-dd');
-    const end = format(endOfYear(now), 'yyyy-MM-dd');
-    
+    const end = format(now, 'yyyy-MM-dd');
+
     const yearTxs = transactions.filter(t => t.date >= start && t.date <= end);
-    return computeNetProfit(yearTxs);
-  }, [transactions]);
+    return computeDRELucroLiquido(yearTxs, categories);
+  }, [transactions, categories]);
 
   // All-time accumulated profit (lucros retidos) — usa allTimeTransactions,
   // não a lista limitada a 13 meses.
   const accumulatedProfit = useMemo(() => {
-    return computeNetProfit(allTimeTransactions);
-  }, [allTimeTransactions]);
+    return computeDRELucroLiquido(allTimeTransactions, categories);
+  }, [allTimeTransactions, categories]);
 
   // Monthly breakdown for charts
   const monthlyProfits = useMemo((): MonthlyProfit[] => {
     const now = new Date();
     const months: MonthlyProfit[] = [];
-    
+
     for (let i = 11; i >= 0; i--) {
       const monthDate = subMonths(now, i);
       const start = format(startOfMonth(monthDate), 'yyyy-MM-dd');
       const end = format(endOfMonth(monthDate), 'yyyy-MM-dd');
       const monthLabel = format(monthDate, 'yyyy-MM');
-      
+
       const monthTxs = transactions.filter(t => t.date >= start && t.date <= end);
-      const data = computeNetProfit(monthTxs);
-      
+      const { receitaBruta, despesas } = computeNetProfit(monthTxs);
+
       months.push({
         month: monthLabel,
-        lucroLiquido: data.lucroLiquido,
-        receita: data.receitaBruta,
-        despesas: data.despesas,
+        lucroLiquido: computeDRELucroLiquido(monthTxs, categories),
+        receita: receitaBruta,
+        despesas,
       });
     }
-    
+
     return months;
-  }, [transactions]);
+  }, [transactions, categories]);
 
   return {
-    currentMonthProfit: currentMonthData.lucroLiquido,
-    previousMonthProfit: previousMonthData.lucroLiquido,
-    yearToDateProfit: yearToDateProfit.lucroLiquido,
-    accumulatedProfit: accumulatedProfit.lucroLiquido,
+    currentMonthProfit,
+    previousMonthProfit,
+    yearToDateProfit,
+    accumulatedProfit,
     monthlyProfits,
     isLoading: loadingTx || loadingCat || loadingAllTime,
   };
