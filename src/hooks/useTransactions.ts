@@ -5,11 +5,17 @@ import { toast } from 'sonner';
 import { addMonths, format } from 'date-fns';
 import { parseLocalDate } from '@/lib/utils';
 
-export function useTransactions(startDate?: string, endDate?: string) {
+// dateColumn: qual coluna de data o startDate/endDate filtra. Padrão 'date'
+// (data de competência/compra) preserva o comportamento de todo o resto do
+// app. 'payment_date' filtra pela data de cobrança de cada parcela — usado
+// pelo Fluxo de Caixa, para parcelas de compras antigas (cuja 'date' é
+// anterior ao período buscado) ainda aparecerem se o vencimento da parcela
+// cair dentro do período.
+export function useTransactions(startDate?: string, endDate?: string, dateColumn: 'date' | 'payment_date' = 'date') {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ['transactions', user?.id, startDate, endDate],
+    queryKey: ['transactions', user?.id, startDate, endDate, dateColumn],
     queryFn: async () => {
       const PAGE_SIZE = 1000;
       let allData: any[] = [];
@@ -23,8 +29,8 @@ export function useTransactions(startDate?: string, endDate?: string) {
           .order('date', { ascending: false })
           .range(from, from + PAGE_SIZE - 1);
 
-        if (startDate) query = query.gte('date', startDate);
-        if (endDate) query = query.lte('date', endDate);
+        if (startDate) query = query.gte(dateColumn, startDate);
+        if (endDate) query = query.lte(dateColumn, endDate);
 
         const { data, error } = await query;
         if (error) throw error;

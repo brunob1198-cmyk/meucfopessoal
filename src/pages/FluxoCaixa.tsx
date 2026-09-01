@@ -8,7 +8,7 @@ import { ptBR } from 'date-fns/locale';
 import { formatBRL } from '@/lib/dre';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { ArrowUpCircle, ArrowDownCircle, Wallet, TrendingUp, TrendingDown, AlertTriangle, Info } from 'lucide-react';
-import { computeDRE } from '@/lib/dre';
+import { computeDRE, computeCashFlowTotals } from '@/lib/dre';
 
 const STORAGE_KEY = 'fluxo-caixa-filter';
 
@@ -52,7 +52,11 @@ export default function FluxoCaixa() {
   const startDate = format(startOfMonth(parseISO(startMonth + '-01')), 'yyyy-MM-dd');
   const endDate = format(endOfMonth(parseISO(endMonth + '-01')), 'yyyy-MM-dd');
 
-  const { data: transactions = [] } = useTransactions(startDate, endDate);
+  // Duas buscas separadas: uma por payment_date (fluxo de caixa — parcelas de
+  // compras antigas ainda aparecem se o vencimento cair no período) e outra
+  // por date, o padrão (regime de competência, para a comparação com o DRE).
+  const { data: cashTransactions = [] } = useTransactions(startDate, endDate, 'payment_date');
+  const { data: competenceTransactions = [] } = useTransactions(startDate, endDate);
   const { data: categories = [] } = useCategories();
 
   // Group transactions by payment_date month for cash flow
@@ -69,25 +73,12 @@ export default function FluxoCaixa() {
     let accumulatedBalance = 0;
 
     return months.map((m) => {
-      const monthTxs = transactions.filter((t: any) => {
+      const monthTxs = cashTransactions.filter((t: any) => {
         const payDate = (t as any).payment_date || t.date;
         return payDate?.startsWith(m);
       });
 
-      const entradas = monthTxs
-        .filter((t: any) => {
-          const type = t.categories?.dre_type;
-          return type === 'receita' || type === 'outras_receitas';
-        })
-        .reduce((sum: number, t: any) => sum + Math.abs(Number(t.amount)), 0);
-
-      const saidas = monthTxs
-        .filter((t: any) => {
-          const type = t.categories?.dre_type;
-          return type !== 'receita' && type !== 'outras_receitas';
-        })
-        .reduce((sum: number, t: any) => sum + Math.abs(Number(t.amount)), 0);
-
+      const { entradas, saidas } = computeCashFlowTotals(monthTxs, categories as any);
       const saldo = entradas - saidas;
       accumulatedBalance += saldo;
 
@@ -101,18 +92,14 @@ export default function FluxoCaixa() {
         isFuture: m > format(now, 'yyyy-MM'),
       };
     });
-  }, [transactions, startDate, endDate]);
+  }, [cashTransactions, categories, startDate, endDate]);
 
   // DRE comparison - current period
   const dreData = useMemo(() => {
-    const competenceTxs = transactions.filter((t: any) => {
-      const d = t.date;
-      return d >= startDate && d <= endDate;
-    });
-    const dre = computeDRE(competenceTxs as any, categories as any);
+    const dre = computeDRE(competenceTransactions as any, categories as any);
     const lucroLine = dre.find(l => l.label.includes('LUCRO LÍQUIDO') && l.isTotal);
     return lucroLine?.value || 0;
-  }, [transactions, categories, startDate, endDate]);
+  }, [competenceTransactions, categories]);
 
   const totalEntradas = monthlyData.reduce((s, m) => s + m.entradas, 0);
   const totalSaidas = monthlyData.reduce((s, m) => s + m.saidas, 0);
@@ -143,7 +130,7 @@ export default function FluxoCaixa() {
       });
     }
 
-    const installmentTxs = transactions.filter((t: any) => t.is_installment);
+    const installmentTxs = cashTransactions.filter((t: any) => t.is_installment);
     if (installmentTxs.length > 0) {
       const totalInstallmentValue = installmentTxs.reduce((s: number, t: any) => s + Math.abs(Number(t.amount)), 0);
       msgs.push({
@@ -157,7 +144,7 @@ export default function FluxoCaixa() {
     }
 
     return msgs;
-  }, [dreData, totalCaixa, monthlyData, transactions]);
+  }, [dreData, totalCaixa, monthlyData, cashTransactions]);
 
   return (
     <div className="space-y-6 p-4 md:p-6">
