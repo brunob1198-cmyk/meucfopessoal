@@ -306,3 +306,96 @@ export function computeDREAjustado(
 export function formatBRL(value: number): string {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
+
+// Lucro líquido de um conjunto de transações — mesma matemática de computeDRE,
+// mas sem montar as linhas de exibição. Não faz o split de resultado_financeiro
+// por categoria-pai (soma tudo direto, diferente de computeDRE/computeCashFlowTotals).
+export function computeNetProfit(transactions: Transaction[]): { receitaBruta: number; despesas: number; lucroLiquido: number } {
+  const sumByType = (type: string) =>
+    transactions
+      .filter((t) => t.categories?.dre_type === type)
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  const receitaBruta = sumByType('receita');
+  const descontos = sumByType('desconto');
+  const receitaLiquida = receitaBruta - descontos;
+  const custos = sumByType('custo');
+  const lucroBruto = receitaLiquida - custos;
+  const despesas = sumByType('despesa');
+  const ebitda = lucroBruto - despesas;
+  const depreciacao = sumByType('depreciacao');
+  const ebit = ebitda - depreciacao;
+  const resultadoFinanceiro = sumByType('resultado_financeiro');
+  const outrasReceitas = sumByType('outras_receitas');
+  const lair = ebit + resultadoFinanceiro + outrasReceitas;
+  const impostos = sumByType('impostos');
+  const lucroLiquido = lair - impostos;
+
+  return { receitaBruta, despesas, lucroLiquido };
+}
+
+// Sobe a árvore de categorias até a categoria-pai e verifica se é uma despesa
+// financeira (resultado_financeiro cujo nome contém "despesa") — mesma heurística
+// já usada dentro de computeDRE, extraída para ser reaproveitada por outras telas.
+export function isDespesaFinanceira(categoryId: string, categories: Category[]): boolean {
+  let current = categories.find((c) => c.id === categoryId);
+  while (current?.parent_id) {
+    const parent = categories.find((c) => c.id === current!.parent_id);
+    if (!parent) break;
+    current = parent;
+  }
+  return !!current && current.dre_type === 'resultado_financeiro' && current.name.toLowerCase().includes('despesa');
+}
+
+export type CashFlowBucket = 'entrada' | 'saida' | 'desconto' | 'neutro';
+
+// Classifica um tipo de lançamento numa visão de FLUXO DE CAIXA (dinheiro
+// entrando/saindo de verdade) — diferente do DRE (que mede lucro) e do Score de
+// Saúde Financeira (que mede capacidade de poupança). 'desconto' tem bucket
+// próprio porque reduz a entrada (não é uma saída à parte); 'depreciacao' é
+// neutro porque não é uma saída de caixa real, é lançamento contábil.
+export function classifyCashFlowBucket(
+  dreType: string | undefined,
+  categoryId: string,
+  categories: Category[]
+): CashFlowBucket {
+  switch (dreType) {
+    case 'receita':
+    case 'outras_receitas':
+      return 'entrada';
+    case 'desconto':
+      return 'desconto';
+    case 'despesa':
+    case 'custo':
+    case 'impostos':
+    case 'investimento':
+      return 'saida';
+    case 'depreciacao':
+      return 'neutro';
+    case 'resultado_financeiro':
+      return isDespesaFinanceira(categoryId, categories) ? 'saida' : 'entrada';
+    default:
+      return 'saida';
+  }
+}
+
+export interface CashFlowTotals {
+  entradas: number;
+  saidas: number;
+}
+
+// Soma COM SINAL dentro de cada bucket (sem Math.abs) — um estorno lançado com
+// valor negativo (convenção já usada em toda a tela de Lançamentos) reduz o
+// total corretamente, em vez de ser somado como se fosse um valor normal.
+export function computeCashFlowTotals(transactions: Transaction[], categories: Category[]): CashFlowTotals {
+  let entradas = 0;
+  let saidas = 0;
+  for (const t of transactions) {
+    const bucket = classifyCashFlowBucket(t.categories?.dre_type, t.category_id, categories);
+    const amount = Number(t.amount);
+    if (bucket === 'entrada') entradas += amount;
+    else if (bucket === 'saida') saidas += amount;
+    else if (bucket === 'desconto') entradas -= amount;
+  }
+  return { entradas, saidas };
+}

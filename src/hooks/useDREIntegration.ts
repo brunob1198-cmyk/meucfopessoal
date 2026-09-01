@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import { startOfMonth, endOfMonth, format, subMonths, startOfYear, endOfYear } from 'date-fns';
+import { computeNetProfit } from '@/lib/dre';
 
 interface MonthlyProfit {
   month: string;
@@ -24,34 +25,6 @@ export function useDREIntegration() {
   // rotula como "Lucros Retidos (Total)", então precisa ser de fato o
   // histórico inteiro, não só os últimos 13 meses usados acima.
   const { data: allTimeTransactions = [], isLoading: loadingAllTime } = useTransactions();
-
-  const computeNetProfit = (txs: typeof transactions) => {
-    const sumByType = (type: string) =>
-      txs
-        .filter((t) => t.categories?.dre_type === type)
-        .reduce((sum, t) => sum + Number(t.amount), 0);
-
-    const receitaBruta = sumByType('receita');
-    const descontos = sumByType('desconto');
-    const receitaLiquida = receitaBruta - descontos;
-    const custos = sumByType('custo');
-    const lucroBruto = receitaLiquida - custos;
-    const despesas = sumByType('despesa');
-    const ebitda = lucroBruto - despesas;
-    const depreciacao = sumByType('depreciacao');
-    const ebit = ebitda - depreciacao;
-    const resultadoFinanceiro = sumByType('resultado_financeiro');
-    const outrasReceitas = sumByType('outras_receitas');
-    const lair = ebit + resultadoFinanceiro + outrasReceitas;
-    const impostos = sumByType('impostos');
-    const lucroLiquido = lair - impostos;
-
-    return {
-      receitaBruta,
-      despesas,
-      lucroLiquido,
-    };
-  };
 
   // Current month data
   const currentMonthData = useMemo(() => {
