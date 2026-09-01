@@ -394,13 +394,12 @@ export default function BalancoPatrimonial() {
 
   const annualSavings = avgMonthlySavings * 12;
   const totalGrowth = growth12m || 0;
-  const investmentReturns = Math.max(0, totalGrowth - annualSavings) * 0.7;
-  const assetAppreciation = Math.max(0, totalGrowth - annualSavings - investmentReturns);
+  const { poupanca, investmentReturns, assetAppreciation } = computeGrowthDrivers(totalGrowth, annualSavings);
 
   const growthDrivers = [
-    { name: 'Poupança', value: Math.max(0, annualSavings), color: 'hsl(160, 50%, 40%)' },
-    { name: 'Retorno Investimentos', value: Math.max(0, investmentReturns), color: 'hsl(220, 50%, 45%)' },
-    { name: 'Valorização de Ativos', value: Math.max(0, assetAppreciation), color: 'hsl(38, 55%, 45%)' },
+    { name: 'Poupança', value: poupanca, color: 'hsl(160, 50%, 40%)' },
+    { name: 'Retorno Investimentos', value: investmentReturns, color: 'hsl(220, 50%, 45%)' },
+    { name: 'Valorização de Ativos', value: assetAppreciation, color: 'hsl(38, 55%, 45%)' },
   ];
 
   const avgMonthlyIncome = useMemo(() => {
@@ -410,7 +409,12 @@ export default function BalancoPatrimonial() {
 
   const savingsRate = avgMonthlyIncome > 0 ? (avgMonthlySavings / avgMonthlyIncome) * 100 : 0;
   const wealthToIncomeYears = avgMonthlyIncome > 0 ? netWorth / (avgMonthlyIncome * 12) : 0;
-  const growthRate = growth12m !== null && netWorth > 0 ? (growth12m / (netWorth - growth12m)) * 100 : 0;
+  // Mesma guarda de divisão por zero já usada em monthlyTrend (linha acima) —
+  // antes, netWorth - growth12m === 0 gerava Infinity/-Infinity exibido na tela.
+  const netWorthYearAgo = growth12m !== null ? netWorth - growth12m : null;
+  const growthRate = growth12m !== null && netWorth > 0 && netWorthYearAgo !== 0
+    ? (growth12m / netWorthYearAgo!) * 100
+    : 0;
 
   const riquezaInsights = useMemo(() => {
     const msgs: string[] = [];
@@ -438,13 +442,15 @@ export default function BalancoPatrimonial() {
 
 
 
-  // Alert: passivos > ativos
-  const isPassivosExceedAtivos = totalLiabilities > totalAssets;
+  // Alert: patrimônio líquido negativo — mesma condição usada pelo card
+  // "Patrimônio Líquido" (não só ativos vs. passivos, que ignora accumulatedProfit).
+  const isPassivosExceedAtivos = netWorth < 0;
 
   // Alert: 3 consecutive months of declining net worth
   const isDeclineTrend = useMemo(() => {
     if (history.length < 3) return false;
     const last3 = history.slice(-3);
+    if (!isConsecutiveMonths(last3.map((s) => s.month))) return false;
     return (
       Number(last3[2].net_worth) < Number(last3[1].net_worth) &&
       Number(last3[1].net_worth) < Number(last3[0].net_worth)
@@ -469,10 +475,10 @@ export default function BalancoPatrimonial() {
             <div className="flex items-start gap-3 p-4 rounded-lg border border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/40">
               <ShieldAlert className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
               <div>
-                <p className="font-semibold text-sm text-red-700 dark:text-red-300">Passivos superam os Ativos</p>
+                <p className="font-semibold text-sm text-red-700 dark:text-red-300">Patrimônio Líquido Negativo</p>
                 <p className="text-xs text-red-600/80 dark:text-red-400/80 mt-0.5">
-                  Seus passivos ({fmt(totalLiabilities)}) estão maiores que seus ativos ({fmt(totalAssets)}).
-                  Isso significa patrimônio líquido negativo — priorize a redução de dívidas.
+                  Seu patrimônio líquido está em {fmt(netWorth)} — ativos ({fmt(totalAssets)}) menos
+                  passivos ({fmt(totalLiabilities)}) e lucros retidos não cobrem suas dívidas. Priorize a redução de dívidas.
                 </p>
               </div>
             </div>
