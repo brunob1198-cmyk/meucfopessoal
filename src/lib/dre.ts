@@ -399,3 +399,43 @@ export function computeCashFlowTotals(transactions: Transaction[], categories: C
   }
   return { entradas, saidas };
 }
+
+// Mesma matemática de computeDRE (investimento como despesa, resultado_financeiro
+// dividido por categoria-pai), mas retornando só o Lucro Líquido final — para
+// telas que só precisam do número, sem montar as linhas de exibição do DRE.
+// Ao contrário de computeNetProfit, o valor bate exatamente com a linha
+// "(=) LUCRO LÍQUIDO" que computeDRE mostraria para o mesmo período.
+export function computeDRELucroLiquido(transactions: Transaction[], categories: Category[]): number {
+  const sumByType = (type: string) =>
+    transactions
+      .filter((t) => t.categories?.dre_type === type)
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  const sumByParentId = (parentId: string) =>
+    transactions
+      .filter((t) => categories.find((c) => c.id === t.category_id)?.parent_id === parentId)
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  const receitaBruta = sumByType('receita');
+  const descontos = sumByType('desconto');
+  const receitaLiquida = receitaBruta - descontos;
+  const custos = sumByType('custo');
+  const lucroBruto = receitaLiquida - custos;
+  const despesas = sumByType('despesa') + sumByType('investimento');
+  const ebitda = lucroBruto - despesas;
+  const depreciacao = sumByType('depreciacao');
+  const ebit = ebitda - depreciacao;
+
+  const parentCategories = categories.filter((c) => !c.parent_id);
+  const rfParents = parentCategories.filter((c) => c.dre_type === 'resultado_financeiro');
+  const rfReceitaParents = rfParents.filter((p) => !p.name.toLowerCase().includes('despesa'));
+  const rfDespesaParents = rfParents.filter((p) => p.name.toLowerCase().includes('despesa'));
+  const receitasFinanceiras = rfReceitaParents.reduce((sum, p) => sum + sumByParentId(p.id), 0);
+  const despesasFinanceiras = rfDespesaParents.reduce((sum, p) => sum + sumByParentId(p.id), 0);
+  const resultadoFinanceiro = receitasFinanceiras - despesasFinanceiras;
+
+  const outrasReceitas = sumByType('outras_receitas');
+  const lair = ebit + resultadoFinanceiro + outrasReceitas;
+  const impostos = sumByType('impostos');
+  return lair - impostos;
+}

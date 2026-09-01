@@ -7,8 +7,8 @@ import { format, startOfMonth, endOfMonth, addMonths, subMonths, parseISO } from
 import { ptBR } from 'date-fns/locale';
 import { formatBRL } from '@/lib/dre';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { ArrowUpCircle, ArrowDownCircle, Wallet, TrendingUp, TrendingDown, AlertTriangle, Info } from 'lucide-react';
-import { computeDRE, computeCashFlowTotals } from '@/lib/dre';
+import { ArrowUpCircle, ArrowDownCircle, Wallet, TrendingUp, AlertTriangle, Info } from 'lucide-react';
+import { computeDRELucroLiquido, computeCashFlowTotals } from '@/lib/dre';
 
 const STORAGE_KEY = 'fluxo-caixa-filter';
 
@@ -21,8 +21,6 @@ function getDefaultFilter() {
 }
 
 export default function FluxoCaixa() {
-  const now = new Date();
-
   const [startMonth, setStartMonthState] = useState<string>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -61,6 +59,7 @@ export default function FluxoCaixa() {
 
   // Group transactions by payment_date month for cash flow
   const monthlyData = useMemo(() => {
+    const now = new Date();
     const start = parseISO(startDate);
     const end = parseISO(endDate);
     const months: string[] = [];
@@ -96,9 +95,7 @@ export default function FluxoCaixa() {
 
   // DRE comparison - current period
   const dreData = useMemo(() => {
-    const dre = computeDRE(competenceTransactions as any, categories as any);
-    const lucroLine = dre.find(l => l.label.includes('LUCRO LÍQUIDO') && l.isTotal);
-    return lucroLine?.value || 0;
+    return computeDRELucroLiquido(competenceTransactions as any, categories as any);
   }, [competenceTransactions, categories]);
 
   const totalEntradas = monthlyData.reduce((s, m) => s + m.entradas, 0);
@@ -271,7 +268,7 @@ export default function FluxoCaixa() {
                 <th className="text-right py-2 px-3 text-muted-foreground font-medium">Entradas</th>
                 <th className="text-right py-2 px-3 text-muted-foreground font-medium">Saídas</th>
                 <th className="text-right py-2 px-3 text-muted-foreground font-medium">Saldo</th>
-                <th className="text-right py-2 px-3 text-muted-foreground font-medium">Acumulado</th>
+                <th className="text-right py-2 px-3 text-muted-foreground font-medium">Acumulado no período</th>
               </tr>
             </thead>
             <tbody>
