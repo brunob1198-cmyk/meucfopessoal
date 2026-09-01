@@ -16,6 +16,9 @@ import {
   CartesianGrid, Tooltip
 } from "recharts";
 import { computeProjection, type Scenario } from "@/lib/freedomSimulator";
+import {
+  scoreControleGastos, scoreReservaEmergencia, scoreEndividamento, scoreCapacidadePoupanca, getClassification,
+} from "@/lib/financialHealthScore";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -36,23 +39,23 @@ function HealthTest() {
     const gastos = Number(form.gastos) || 0;
     const ratio = gastos / renda;
 
-    let score = 0;
-    if (ratio <= 0.5) score += 30;
-    else if (ratio <= 0.7) score += 22;
-    else if (ratio <= 0.9) score += 12;
-    else score += 5;
+    // Mapeia as respostas categóricas do formulário para os mesmos parâmetros
+    // numéricos usados pelo Score de Saúde Financeira real
+    // (src/hooks/useFinancialHealthScore.ts), reaproveitando as mesmas funções
+    // de pontuação — a demo da landing nunca mais diverge do app.
+    const reservaMonths = form.reserva === "mais6" ? 12 : form.reserva === "3a6" ? 6 : form.reserva === "menos3" ? 2 : 0;
+    const debtToIncome = form.dividas === "pequenas" ? 0.15 : form.dividas === "moderadas" ? 0.25 : form.dividas === "altas" ? 0.4 : 0;
+    const taxaPoupanca = form.investe === "sim" ? 0.15 : form.investe === "asvezes" ? 0.07 : 0;
 
-    if (form.reserva === "mais6") score += 25;
-    else if (form.reserva === "3a6") score += 18;
-    else if (form.reserva === "menos3") score += 8;
+    const gastosScore = scoreControleGastos(ratio);
+    const reservaScore = scoreReservaEmergencia(reservaMonths);
+    const debtScore = scoreEndividamento(debtToIncome);
+    const poupancaScore = scoreCapacidadePoupanca(taxaPoupanca);
 
-    if (form.dividas === "nao") score += 25;
-    else if (form.dividas === "pequenas") score += 18;
-    else if (form.dividas === "moderadas") score += 10;
-    else score += 3;
-
-    if (form.investe === "sim") score += 20;
-    else if (form.investe === "asvezes") score += 12;
+    // A landing só cobre 4 dos 5 pilares reais (não pergunta liquidez imediata
+    // separada da reserva) — normaliza os 80 pontos possíveis para a mesma
+    // escala 0-100 do Score real, para os cortes de classificação baterem.
+    const score = Math.round((gastosScore + reservaScore + debtScore + poupancaScore) * 1.25);
 
     const recs: string[] = [];
     if (ratio > 0.7) recs.push("Reduza seus gastos mensais para no máximo 70% da sua renda.");
@@ -61,21 +64,13 @@ function HealthTest() {
     if (form.investe === "nao") recs.push("Comece a investir, mesmo que pouco, para criar o hábito.");
     if (recs.length === 0) recs.push("Continue mantendo sua disciplina financeira!");
 
-    let label = "";
-    if (score <= 40) label = "Situação financeira frágil";
-    else if (score <= 70) label = "Situação em desenvolvimento";
-    else if (score <= 90) label = "Boa organização financeira";
-    else label = "Excelente saúde financeira";
+    const { label } = getClassification(score);
 
     setResult({ score, label, recs: recs.slice(0, 3) });
     setStep(6);
   };
 
-  const scoreColor = (s: number) => {
-    if (s <= 40) return "text-destructive";
-    if (s <= 70) return "text-warning";
-    return "text-primary";
-  };
+  const scoreColor = (s: number) => getClassification(s).toneClass;
 
   if (result && step === 6) {
     return (
