@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Brain, AlertTriangle, Lightbulb, TrendingUp, RefreshCw, Sparkles, History, Calendar, Trash2, Radio, ArrowUp, ArrowDown, Minus, ShieldAlert, DollarSign, Fuel, ShoppingCart, Banknote } from 'lucide-react';
+import { Loader2, Brain, AlertTriangle, Lightbulb, TrendingUp, RefreshCw, Sparkles, History, Calendar, Trash2, Radio, ArrowUp, ArrowDown, Minus, ShieldAlert, DollarSign, Fuel, ShoppingCart, Banknote, PiggyBank } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -379,6 +379,7 @@ function StatusBadge({ status }: { status: string }) {
 const CENARIO_ICONS: Record<string, React.ReactNode> = {
   inflacao: <TrendingUp className="h-4 w-4" />,
   juros: <Banknote className="h-4 w-4" />,
+  cdi: <PiggyBank className="h-4 w-4" />,
   combustivel: <Fuel className="h-4 w-4" />,
   alimentos: <ShoppingCart className="h-4 w-4" />,
   dolar: <DollarSign className="h-4 w-4" />,
@@ -387,6 +388,7 @@ const CENARIO_ICONS: Record<string, React.ReactNode> = {
 const CENARIO_LABELS: Record<string, string> = {
   inflacao: 'Inflação (IPCA)',
   juros: 'Taxa Selic',
+  cdi: 'CDI',
   combustivel: 'Combustível',
   alimentos: 'Alimentos',
   dolar: 'Dólar',

@@ -85,19 +85,21 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    // Ignora cache de formato antigo (sem fuelVariacaoMensal) para não servir
+    // Ignora cache de formato antigo (sem fuelVariacaoMensal/cdi) para não servir
     // dado pré-correção por até 24h depois de um deploy que muda o formato.
-    if (cached && cached.data?.fuelVariacaoMensal !== undefined) {
+    if (cached && cached.data?.fuelVariacaoMensal !== undefined && cached.data?.cdi !== undefined) {
       economicData = cached.data;
       console.log("[radar] Using cached economic data");
     } else {
       console.log("[radar] Fetching fresh economic data from BCB...");
 
-      const [ipcaRaw, ipcaHistory, selicRaw, selicHistory, dolarRaw, igpmRaw, focusRaw, fuelHistory] = await Promise.all([
+      const [ipcaRaw, ipcaHistory, selicRaw, selicHistory, cdiRaw, cdiHistory, dolarRaw, igpmRaw, focusRaw, fuelHistory] = await Promise.all([
         fetchBCB(433),       // IPCA mensal
         fetchBCBHistory(433, 6), // IPCA últimos 6 meses
         fetchBCB(1178),      // Selic meta
         fetchBCBHistory(1178, 6), // Selic últimos 6 meses
+        fetchBCB(4392),      // CDI acumulado no mês, anualizado (base 252) — mesma base da Selic meta
+        fetchBCBHistory(4392, 6), // CDI últimos 6 meses
         fetchBCB(1),         // Dólar PTAX
         fetchBCB(189),       // IGP-M
         fetchBCB(13522),     // Focus IPCA expectativa
@@ -120,6 +122,9 @@ serve(async (req) => {
 
         selic: selicRaw.valor,
         selic_history: selicHistory.map((h: any) => `${h.data}: ${h.valor}%`).join(", "),
+
+        cdi: cdiRaw.valor,
+        cdi_history: cdiHistory.map((h: any) => `${h.data}: ${h.valor}%`).join(", "),
 
         dolar: dolarRaw.valor,
         igpm: igpmRaw.valor,
@@ -196,7 +201,7 @@ serve(async (req) => {
       .limit(5);
 
     const historyContext = history
-      ?.map((h: any) => `- ${h.created_at}: Selic ${h.data.selic}%, IPCA ${h.data.ipca}%, Dólar R$${h.data.dolar}, Gasolina (var. mensal) ${h.data.fuelVariacaoMensal ?? "n/d"}%`)
+      ?.map((h: any) => `- ${h.created_at}: Selic ${h.data.selic}%, CDI ${h.data.cdi ?? "n/d"}%, IPCA ${h.data.ipca}%, Dólar R$${h.data.dolar}, Gasolina (var. mensal) ${h.data.fuelVariacaoMensal ?? "n/d"}%`)
       .join("\n") || "Sem histórico anterior";
 
     // --------------------
@@ -222,10 +227,11 @@ REGRAS CRÍTICAS:
 ANÁLISE OBRIGATÓRIA:
 1. Inflação (IPCA e expectativa Focus)
 2. Juros (Selic)
-3. Combustível (com base na variação mensal do IPCA para o subitem Gasolina — dado oficial do IBGE, não estime por conta própria)
-4. Câmbio (dólar)
-5. Pressão em alimentos (inferir com base em inflação)
-6. Tendência macroeconômica geral
+3. CDI — sempre compare com a inflação (IPCA) para indicar o "juro real" aproximado, e destaque que é a referência de rendimento para quem investe em CDB/renda fixa atrelada a % do CDI
+4. Combustível (com base na variação mensal do IPCA para o subitem Gasolina — dado oficial do IBGE, não estime por conta própria)
+5. Câmbio (dólar)
+6. Pressão em alimentos (inferir com base em inflação)
+7. Tendência macroeconômica geral
 
 INTERPRETAÇÃO INTELIGENTE:
 - Compare com histórico recente fornecido
@@ -253,6 +259,8 @@ DIRETRIZES DE QUALIDADE:
 - Histórico IPCA (últimos meses): ${economicData.ipca_history || "não disponível"}
 - Selic meta: ${economicData.selic}%
 - Histórico Selic: ${economicData.selic_history || "não disponível"}
+- CDI (acumulado no mês, anualizado): ${economicData.cdi ?? "não disponível"}%
+- Histórico CDI: ${economicData.cdi_history || "não disponível"}
 - Dólar (PTAX): R$ ${economicData.dolar}
 - IGP-M: ${economicData.igpm}%
 - Focus (expectativa IPCA): ${economicData.focusInflation || "não disponível"}%
@@ -317,6 +325,17 @@ Analise esses dados e gere o radar econômico completo usando a função generat
                         },
                         required: ["status", "valor", "tendencia", "detalhe"],
                       },
+                      cdi: {
+                        type: "object",
+                        description: "CDI acumulado anualizado — referência de rendimento para CDB/renda fixa pós-fixada.",
+                        properties: {
+                          status: { type: "string", enum: ["altos", "estáveis", "baixos"] },
+                          valor: { type: "string" },
+                          tendencia: { type: "string", enum: ["subindo", "estável", "caindo"] },
+                          detalhe: { type: "string", description: "Compare com a inflação (juro real) e explique o que isso significa para quem tem CDB/renda fixa atrelada ao CDI." },
+                        },
+                        required: ["status", "valor", "tendencia", "detalhe"],
+                      },
                       combustivel: {
                         type: "object",
                         properties: {
@@ -347,7 +366,7 @@ Analise esses dados e gere o radar econômico completo usando a função generat
                         required: ["status", "valor", "tendencia", "detalhe"],
                       },
                     },
-                    required: ["inflacao", "juros", "combustivel", "alimentos", "dolar"],
+                    required: ["inflacao", "juros", "cdi", "combustivel", "alimentos", "dolar"],
                   },
                   impacto_pessoal: {
                     type: "array",
