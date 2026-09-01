@@ -34,14 +34,21 @@ async function fetchBCBHistory(code: number, count: number) {
   }
 }
 
-async function fetchYahoo(symbol: string) {
+// Preço de combustível: usa a variação mensal do IPCA para o subitem "Gasolina"
+// (IBGE/SIDRA, tabela 7060 — metodologia vigente desde jan/2020), dado oficial
+// brasileiro e específico do item, em vez de petróleo WTI em dólar (Yahoo Finance
+// bloqueia chamadas de servidor sem sessão de navegador desde 2023-2024, então
+// esse indicador sempre voltava vazio/"indefinido", além de ser um proxy fraco
+// para o preço na bomba no Brasil).
+async function fetchIBGEGasolinaHistory(months: number) {
   try {
-    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbol}`;
+    const url = `https://apisidra.ibge.gov.br/values/t/7060/n1/all/v/63/p/last%20${months}/c315/7657`;
     const res = await fetch(url);
     const data = await res.json();
-    return data?.quoteResponse?.result?.[0]?.regularMarketPrice || null;
+    const rows = Array.isArray(data) ? data.slice(1) : []; // primeira linha é cabeçalho
+    return rows.map((r: any) => ({ valor: Number(r.V), periodo: r.D3N as string }));
   } catch {
-    return null;
+    return [];
   }
 }
 
@@ -78,13 +85,15 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    if (cached) {
+    // Ignora cache de formato antigo (sem fuelVariacaoMensal) para não servir
+    // dado pré-correção por até 24h depois de um deploy que muda o formato.
+    if (cached && cached.data?.fuelVariacaoMensal !== undefined) {
       economicData = cached.data;
       console.log("[radar] Using cached economic data");
     } else {
       console.log("[radar] Fetching fresh economic data from BCB...");
 
-      const [ipcaRaw, ipcaHistory, selicRaw, selicHistory, dolarRaw, igpmRaw, focusRaw, oil] = await Promise.all([
+      const [ipcaRaw, ipcaHistory, selicRaw, selicHistory, dolarRaw, igpmRaw, focusRaw, fuelHistory] = await Promise.all([
         fetchBCB(433),       // IPCA mensal
         fetchBCBHistory(433, 6), // IPCA últimos 6 meses
         fetchBCB(1178),      // Selic meta
@@ -92,13 +101,16 @@ serve(async (req) => {
         fetchBCB(1),         // Dólar PTAX
         fetchBCB(189),       // IGP-M
         fetchBCB(13522),     // Focus IPCA expectativa
-        fetchYahoo("CL=F"),  // Petróleo WTI
+        fetchIBGEGasolinaHistory(6), // Gasolina (IPCA variação mensal, IBGE)
       ]);
 
       // Compute IPCA acumulado 12m
       const ipcaAcumulado = ipcaHistory.length >= 12
         ? ipcaHistory.slice(-12).reduce((acc: number, v: any) => acc + v.valor, 0)
         : null;
+
+      const fuelLatest = fuelHistory.length > 0 ? fuelHistory[fuelHistory.length - 1] : null;
+      const fuelVariacaoMensal = fuelLatest?.valor ?? null;
 
       economicData = {
         ipca: ipcaRaw.valor,
@@ -113,8 +125,10 @@ serve(async (req) => {
         igpm: igpmRaw.valor,
         focusInflation: focusRaw.valor,
 
-        oil,
-        fuelTrend: oil ? (oil > 80 ? "alta" : oil < 70 ? "queda" : "estável") : "indefinido",
+        fuelVariacaoMensal,
+        fuel_period: fuelLatest?.periodo ?? null,
+        fuel_history: fuelHistory.map((h: any) => `${h.periodo}: ${h.valor}%`).join(", "),
+        fuelTrend: fuelVariacaoMensal === null ? "indefinido" : fuelVariacaoMensal > 1 ? "alta" : fuelVariacaoMensal < -1 ? "queda" : "estável",
 
         updated_at: now.toISOString(),
       };
@@ -182,7 +196,7 @@ serve(async (req) => {
       .limit(5);
 
     const historyContext = history
-      ?.map((h: any) => `- ${h.created_at}: Selic ${h.data.selic}%, IPCA ${h.data.ipca}%, Dólar R$${h.data.dolar}`)
+      ?.map((h: any) => `- ${h.created_at}: Selic ${h.data.selic}%, IPCA ${h.data.ipca}%, Dólar R$${h.data.dolar}, Gasolina (var. mensal) ${h.data.fuelVariacaoMensal ?? "n/d"}%`)
       .join("\n") || "Sem histórico anterior";
 
     // --------------------
@@ -208,7 +222,7 @@ REGRAS CRÍTICAS:
 ANÁLISE OBRIGATÓRIA:
 1. Inflação (IPCA e expectativa Focus)
 2. Juros (Selic)
-3. Combustível (com base no petróleo + tendência)
+3. Combustível (com base na variação mensal do IPCA para o subitem Gasolina — dado oficial do IBGE, não estime por conta própria)
 4. Câmbio (dólar)
 5. Pressão em alimentos (inferir com base em inflação)
 6. Tendência macroeconômica geral
@@ -242,7 +256,8 @@ DIRETRIZES DE QUALIDADE:
 - Dólar (PTAX): R$ ${economicData.dolar}
 - IGP-M: ${economicData.igpm}%
 - Focus (expectativa IPCA): ${economicData.focusInflation || "não disponível"}%
-- Petróleo WTI: US$ ${economicData.oil || "não disponível"}
+- Gasolina — variação mensal do IPCA (${economicData.fuel_period || "mês mais recente"}): ${economicData.fuelVariacaoMensal ?? "não disponível"}%
+- Histórico Gasolina (últimos meses): ${economicData.fuel_history || "não disponível"}
 - Tendência combustível: ${economicData.fuelTrend}
 
 HISTÓRICO DE SNAPSHOTS:
@@ -306,10 +321,11 @@ Analise esses dados e gere o radar econômico completo usando a função generat
                         type: "object",
                         properties: {
                           status: { type: "string", enum: ["alto", "estável", "baixo"] },
+                          valor: { type: "string", description: "Variação mensal do IPCA para gasolina, ex: '+1.9% no mês'" },
                           tendencia: { type: "string", enum: ["subindo", "estável", "caindo"] },
                           detalhe: { type: "string" },
                         },
-                        required: ["status", "tendencia", "detalhe"],
+                        required: ["status", "valor", "tendencia", "detalhe"],
                       },
                       alimentos: {
                         type: "object",
