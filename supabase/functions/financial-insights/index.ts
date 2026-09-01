@@ -306,19 +306,26 @@ Use R$ e percentuais. Seja específico com nomes de categorias e valores. Tom pr
     });
 
     if (!aiResponse.ok) {
+      // Retorna sempre com status 200: o client supabase-js trata QUALQUER
+      // status não-2xx como FunctionsHttpError genérico ("Edge Function
+      // returned a non-2xx status code") e nunca chega a ler o corpo JSON —
+      // as mensagens específicas abaixo nunca apareciam para o usuário antes
+      // desta correção, mesmo já existindo no código.
       if (aiResponse.status === 429) {
         return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns minutos." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (aiResponse.status === 402) {
         return new Response(JSON.stringify({ error: "Créditos insuficientes para análise de IA." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const errText = await aiResponse.text();
       console.error("AI error:", aiResponse.status, errText);
-      throw new Error("AI analysis failed");
+      return new Response(JSON.stringify({ error: "Não foi possível gerar a análise agora. Tente novamente em instantes." }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const aiData = await aiResponse.json();
@@ -329,13 +336,16 @@ Use R$ e percentuais. Seja específico com nomes de categorias e valores. Tom pr
       const cleaned = content.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
       result = JSON.parse(cleaned);
     } catch {
+      // Antes, uma falha de formatação da IA era mascarada com um resultado
+      // genérico salvo em analysis_history como se fosse uma análise real — o
+      // usuário nunca ficava sabendo que a IA de fato falhou. Agora retorna
+      // erro explícito (o frontend já trata `data.error` com um toast), sem
+      // salvar lixo no histórico.
       console.error("Failed to parse AI response:", content);
-      result = {
-        insights: ["Análise gerada com base nos seus dados financeiros recentes."],
-        alerts: [],
-        suggestions: ["Continue registrando seus lançamentos para análises mais precisas."],
-        forecast: { summary: "Dados insuficientes para previsão detalhada.", projected_savings: 0, trend: "estável", details: [] },
-      };
+      return new Response(
+        JSON.stringify({ error: "A IA não conseguiu formatar a análise desta vez. Tente novamente." }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     await supabase.from("analysis_history").insert({
@@ -350,8 +360,10 @@ Use R$ e percentuais. Seja específico com nomes de categorias e valores. Tom pr
     });
   } catch (e) {
     console.error("Error:", e);
+    // Status 200: ver comentário acima sobre supabase-js e FunctionsHttpError —
+    // um status de erro aqui faria o frontend nunca ver esta mensagem.
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500,
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

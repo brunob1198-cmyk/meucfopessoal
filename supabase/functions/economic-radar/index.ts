@@ -419,17 +419,22 @@ Analise esses dados e gere o radar econômico completo usando a função generat
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
       console.error("[radar] AI error:", aiResponse.status, errText);
+      // Status 200 sempre: supabase-js trata QUALQUER status não-2xx como
+      // FunctionsHttpError genérico e nunca lê o corpo JSON — as mensagens
+      // abaixo nunca chegavam ao usuário antes desta correção.
       if (aiResponse.status === 429) {
         return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns minutos." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (aiResponse.status === 402) {
         return new Response(JSON.stringify({ error: "Créditos de IA esgotados. Adicione créditos ao workspace." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      throw new Error("Erro na IA: " + aiResponse.status);
+      return new Response(JSON.stringify({ error: "Não foi possível gerar o radar agora. Tente novamente em instantes." }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const aiResult = await aiResponse.json();
@@ -496,8 +501,9 @@ Analise esses dados e gere o radar econômico completo usando a função generat
     });
   } catch (err) {
     console.error("[radar] ERROR:", err);
+    // Status 200: ver comentário acima sobre supabase-js e FunctionsHttpError.
     return new Response(JSON.stringify({ error: (err as Error).message }), {
-      status: 500,
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
