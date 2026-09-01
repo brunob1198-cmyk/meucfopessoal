@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import { useProjections } from '@/hooks/useProjections';
-import { formatBRL } from '@/lib/dre';
+import { formatBRL, computeCashFlowTotals } from '@/lib/dre';
 import { format, addMonths, startOfMonth, endOfMonth, eachMonthOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +15,7 @@ export default function Compromissos() {
   const futureEnd = addMonths(now, 11);
   const endDate = format(endOfMonth(futureEnd), 'yyyy-MM-dd');
 
-  const { data: transactions, isLoading: txLoading } = useTransactions(startDate, endDate);
+  const { data: transactions, isLoading: txLoading } = useTransactions(startDate, endDate, 'payment_date');
   const { data: categories, isLoading: catLoading } = useCategories();
   const { data: projections, isLoading: projLoading } = useProjections(startDate, endDate);
   const loading = txLoading || catLoading || projLoading;
@@ -38,10 +38,12 @@ export default function Compromissos() {
       const isFuture = m > currentMonth;
       const isCurrent = m === currentMonth;
 
-      // Real transactions for this month
+      // Real transactions for this month — agrupa por payment_date (vencimento
+      // de cada parcela), não por date (data da compra, igual em todas as
+      // parcelas de um grupo).
       const monthTx = (transactions || []).filter((t: any) => {
-        const d = t.date.substring(0, 7);
-        return d === m;
+        const payDate = t.payment_date || t.date;
+        return payDate?.substring(0, 7) === m;
       });
 
       // Projections for this month
@@ -49,45 +51,24 @@ export default function Compromissos() {
         typeof p.month === 'string' && p.month.substring(0, 7) === m
       );
 
-      // Calculate totals by type
-      const sumByType = (source: any[], type: string) => {
-        return source.reduce((sum, item) => {
-          const cat = catMap.get(item.category_id);
-          if (cat?.dre_type === type || item.categories?.dre_type === type) {
-            return sum + Number(item.amount);
-          }
-          return sum;
-        }, 0);
-      };
-
-      let receita = 0, despesas = 0, custos = 0, descontos = 0, investimentos = 0;
+      // Receita/Compromissos via classificação única dos 9 tipos de lançamento
+      // (src/lib/dre.ts) — mesma lógica já usada no Fluxo de Caixa. Para meses
+      // futuros, soma projeção + parcelas reais lançadas (a contagem em dobro
+      // entre as duas é resolvida separadamente, ver mergeProjectionsWithInstallments).
+      let receita: number, compromissos: number;
 
       if (isFuture) {
-        // Use projections + installments
-        receita = sumByType(monthProj, 'receita');
-        despesas = sumByType(monthProj, 'despesa');
-        custos = sumByType(monthProj, 'custo');
-        descontos = sumByType(monthProj, 'desconto');
-        investimentos = sumByType(monthProj, 'investimento');
-        // Add installments from real transactions
-        const installments = monthTx.filter((t: any) => t.is_installment);
-        installments.forEach((t: any) => {
-          const cat = catMap.get(t.category_id);
-          if (cat) {
-            if (cat.dre_type === 'despesa') despesas += Number(t.amount);
-            else if (cat.dre_type === 'custo') custos += Number(t.amount);
-          }
-        });
+        const projTotals = computeCashFlowTotals(monthProj, categories as any);
+        const installmentTxs = monthTx.filter((t: any) => t.is_installment);
+        const installmentTotals = computeCashFlowTotals(installmentTxs, categories as any);
+        receita = projTotals.entradas + installmentTotals.entradas;
+        compromissos = projTotals.saidas + installmentTotals.saidas;
       } else {
-        // Use real transactions
-        receita = sumByType(monthTx, 'receita');
-        despesas = sumByType(monthTx, 'despesa');
-        custos = sumByType(monthTx, 'custo');
-        descontos = sumByType(monthTx, 'desconto');
-        investimentos = sumByType(monthTx, 'investimento');
+        const totals = computeCashFlowTotals(monthTx, categories as any);
+        receita = totals.entradas;
+        compromissos = totals.saidas;
       }
 
-      const compromissos = despesas + custos + descontos + investimentos;
       const sobra = receita - compromissos;
 
       // Installment details
