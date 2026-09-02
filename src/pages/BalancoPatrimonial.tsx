@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import {
   Plus, Trash2, Edit2, TrendingUp, TrendingDown,
   Landmark, CreditCard, PiggyBank, ChevronDown, ChevronRight, Save, Wallet, ArrowUpRight, AlertTriangle, ShieldAlert,
-  BarChart3, PiggyBank as PiggyBankIcon, Lightbulb
+  BarChart3, PiggyBank as PiggyBankIcon, Lightbulb, HelpCircle
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,8 +28,19 @@ import {
 import { useDREIntegration } from '@/hooks/useDREIntegration';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip as InfoTooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatBRL } from '@/lib/dre';
 import { formatMonthLabel, computeGrowth12m, isConsecutiveMonths, computeGrowthDrivers } from '@/lib/balanceSheet';
+
+// Explica exatamente como cada "motor de crescimento" é calculado — só a
+// Poupança vem de dado real (DRE); Retorno de Investimentos e Valorização de
+// Ativos são uma proporção fixa (70/30) do que sobra do crescimento do
+// patrimônio depois da Poupança, não um valor medido por ativo.
+const GROWTH_DRIVER_EXPLANATIONS: Record<string, string> = {
+  'Poupança': 'Sua média mensal de (Receita − Despesas) nos meses do DRE que tiveram receita, multiplicada por 12. É o único dos 3 valores baseado em dado real seu.',
+  'Retorno Investimentos': 'Estimativa aproximada: 70% do que sobra do crescimento do seu Patrimônio Líquido depois de descontar a Poupança. Não é o rendimento medido dos seus investimentos — é sempre essa mesma proporção fixa, não um valor por ativo.',
+  'Valorização de Ativos': 'Estimativa aproximada: os 30% restantes do que sobra do crescimento do seu Patrimônio Líquido depois da Poupança. Não é a valorização real de nenhum ativo específico — é sempre essa mesma proporção fixa.',
+};
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -825,7 +836,19 @@ export default function BalancoPatrimonial() {
             <motion.div custom={5} initial="hidden" animate="visible" variants={cardVariant}>
               <Card className="glass-card border-border/30">
                 <CardHeader>
-                  <CardTitle className="text-base font-display">Motores de Crescimento</CardTitle>
+                  <CardTitle className="text-base font-display flex items-center gap-1.5">
+                    Motores de Crescimento
+                    <InfoTooltip>
+                      <TooltipTrigger asChild>
+                        <button type="button" className="text-muted-foreground hover:text-foreground" aria-label="Como esses valores são calculados">
+                          <HelpCircle className="h-3.5 w-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-[280px] text-xs">
+                        Divide o crescimento do seu Patrimônio Líquido nos últimos 12 meses (ou desde o primeiro registro salvo, se ainda não houver 12 meses de histórico) em 3 partes. Passe o mouse sobre cada uma abaixo para ver como é calculada.
+                      </TooltipContent>
+                    </InfoTooltip>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {totalGrowth <= 0 ? (
@@ -851,6 +874,18 @@ export default function BalancoPatrimonial() {
                             <div className="flex items-center gap-2">
                               <span className="h-3 w-3 rounded-full" style={{ backgroundColor: d.color }} />
                               <span className="text-xs font-medium">{d.name}</span>
+                              {GROWTH_DRIVER_EXPLANATIONS[d.name] && (
+                                <InfoTooltip>
+                                  <TooltipTrigger asChild>
+                                    <button type="button" className="text-muted-foreground hover:text-foreground" aria-label={`Como ${d.name} é calculado`}>
+                                      <HelpCircle className="h-3 w-3" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-[280px] text-xs">
+                                    {GROWTH_DRIVER_EXPLANATIONS[d.name]}
+                                  </TooltipContent>
+                                </InfoTooltip>
+                              )}
                             </div>
                             <span className="text-sm font-bold">{formatBRL(d.value)}</span>
                           </div>
