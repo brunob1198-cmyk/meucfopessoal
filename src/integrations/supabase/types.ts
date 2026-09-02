@@ -384,6 +384,45 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_health_score_history: {
+        Row: {
+          capacidade_poupanca_score: number
+          controle_gastos_score: number
+          created_at: string
+          endividamento_score: number
+          id: string
+          liquidez_score: number
+          month: string
+          reserva_emergencia_score: number
+          total_score: number
+          user_id: string
+        }
+        Insert: {
+          capacidade_poupanca_score?: number
+          controle_gastos_score?: number
+          created_at?: string
+          endividamento_score?: number
+          id?: string
+          liquidez_score?: number
+          month: string
+          reserva_emergencia_score?: number
+          total_score?: number
+          user_id: string
+        }
+        Update: {
+          capacidade_poupanca_score?: number
+          controle_gastos_score?: number
+          created_at?: string
+          endividamento_score?: number
+          id?: string
+          liquidez_score?: number
+          month?: string
+          reserva_emergencia_score?: number
+          total_score?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       imported_transactions: {
         Row: {
           amount: number
