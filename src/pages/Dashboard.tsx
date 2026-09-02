@@ -7,7 +7,7 @@ import { useCategories } from '@/hooks/useCategories';
 import { useProjections } from '@/hooks/useProjections';
 import { usePersistedFilter } from '@/hooks/usePersistedFilter';
 import { MonthRangePicker } from '@/components/MonthRangePicker';
-import { formatBRL } from '@/lib/dre';
+import { formatBRL, computeDRETotals } from '@/lib/dre';
 import { format, eachMonthOfInterval, startOfMonth, endOfMonth, isAfter } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -86,24 +86,10 @@ export default function Dashboard() {
     return { txByMonth };
   }, [transactions, projections, categories, currentMonthEnd]);
 
-  const sumByType = (type: string) => {
-    let total = 0;
-    allData.txByMonth.forEach((txs) => {
-      txs.forEach((t: any) => {
-        if (t.categories?.dre_type === type) total += Number(t.amount);
-      });
-    });
-    return total;
-  };
-
-  const receitaBruta = sumByType('receita');
-  const descontos = sumByType('desconto');
-  const despesas = sumByType('despesa');
-  const custos = sumByType('custo');
-  const receitaLiquida = receitaBruta - descontos;
-  const lucroBruto = receitaLiquida - custos;
-  const ebitda = lucroBruto - despesas;
-  const lucroLiquido = ebitda - sumByType('depreciacao') + sumByType('resultado_financeiro') + sumByType('outras_receitas') - sumByType('impostos');
+  const { receitaBruta, descontos, receitaLiquida, custos, lucroBruto, despesas, ebitda, lucroLiquido } = useMemo(
+    () => computeDRETotals(Array.from(allData.txByMonth.values()).flat(), categories || []),
+    [allData, categories]
+  );
 
   const pieData = useMemo(() => {
     if (!categories) return [];
@@ -148,24 +134,12 @@ export default function Dashboard() {
     if (!categories) return [];
     return months.map((m) => {
       const txs = allData.txByMonth.get(m) || [];
-      const sumType = (type: string) => txs.filter((t: any) => t.categories?.dre_type === type).reduce((s: number, t: any) => s + Number(t.amount), 0);
-      const rec = sumType('receita');
-      const desc = sumType('desconto');
-      const cust = sumType('custo');
-      const desp = sumType('despesa');
-      const dep = sumType('depreciacao');
-      const rf = sumType('resultado_financeiro');
-      const or = sumType('outras_receitas');
-      const imp = sumType('impostos');
-      const rl = rec - desc;
-      const lb = rl - cust;
-      const ebitdaM = lb - desp;
-      const ll = ebitdaM - dep + rf + or - imp;
+      const totals = computeDRETotals(txs, categories);
       return {
         mes: format(new Date(Number(m.split('-')[0]), Number(m.split('-')[1]) - 1, 1), 'MMM/yy', { locale: ptBR }),
-        'Receita Bruta': rec,
-        'Despesas + Custos': desp + cust,
-        'Lucro Líquido': ll
+        'Receita Bruta': totals.receitaBruta,
+        'Despesas + Custos': totals.despesas + totals.custos,
+        'Lucro Líquido': totals.lucroLiquido
       };
     });
   }, [categories, months, allData]);

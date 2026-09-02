@@ -452,3 +452,64 @@ export function computeDRELucroLiquido(transactions: Transaction[], categories: 
   const impostos = sumByType('impostos');
   return lair - impostos;
 }
+
+export interface DRETotals {
+  receitaBruta: number;
+  descontos: number;
+  receitaLiquida: number;
+  custos: number;
+  lucroBruto: number;
+  despesas: number;
+  ebitda: number;
+  depreciacao: number;
+  ebit: number;
+  resultadoFinanceiro: number;
+  outrasReceitas: number;
+  impostos: number;
+  lucroLiquido: number;
+}
+
+// Mesma matemática de computeDRE (investimento como despesa, resultado_financeiro
+// dividido por categoria-pai), mas retornando todos os totais intermediários como
+// objeto plano em vez das linhas de exibição — para telas que precisam dos números
+// de cada card/KPI individualmente (ex.: Dashboard), sem montar/ler de volta o
+// array de linhas do DRE (lookup por label é frágil a mudanças de rótulo).
+export function computeDRETotals(transactions: Transaction[], categories: Category[]): DRETotals {
+  const sumByType = (type: string) =>
+    transactions
+      .filter((t) => t.categories?.dre_type === type)
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  const sumByParentId = (parentId: string) =>
+    transactions
+      .filter((t) => categories.find((c) => c.id === t.category_id)?.parent_id === parentId)
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  const receitaBruta = sumByType('receita');
+  const descontos = sumByType('desconto');
+  const receitaLiquida = receitaBruta - descontos;
+  const custos = sumByType('custo');
+  const lucroBruto = receitaLiquida - custos;
+  const despesas = sumByType('despesa') + sumByType('investimento');
+  const ebitda = lucroBruto - despesas;
+  const depreciacao = sumByType('depreciacao');
+  const ebit = ebitda - depreciacao;
+
+  const parentCategories = categories.filter((c) => !c.parent_id);
+  const rfParents = parentCategories.filter((c) => c.dre_type === 'resultado_financeiro');
+  const rfReceitaParents = rfParents.filter((p) => !p.name.toLowerCase().includes('despesa'));
+  const rfDespesaParents = rfParents.filter((p) => p.name.toLowerCase().includes('despesa'));
+  const receitasFinanceiras = rfReceitaParents.reduce((sum, p) => sum + sumByParentId(p.id), 0);
+  const despesasFinanceiras = rfDespesaParents.reduce((sum, p) => sum + sumByParentId(p.id), 0);
+  const resultadoFinanceiro = receitasFinanceiras - despesasFinanceiras;
+
+  const outrasReceitas = sumByType('outras_receitas');
+  const lair = ebit + resultadoFinanceiro + outrasReceitas;
+  const impostos = sumByType('impostos');
+  const lucroLiquido = lair - impostos;
+
+  return {
+    receitaBruta, descontos, receitaLiquida, custos, lucroBruto, despesas, ebitda,
+    depreciacao, ebit, resultadoFinanceiro, outrasReceitas, impostos, lucroLiquido,
+  };
+}

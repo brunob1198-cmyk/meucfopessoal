@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   computeNetProfit, isDespesaFinanceira, classifyCashFlowBucket, computeCashFlowTotals,
-  computeDRELucroLiquido, computeDRE, mergeProjectionsWithInstallments,
+  computeDRELucroLiquido, computeDRE, computeDRETotals, mergeProjectionsWithInstallments,
 } from './dre';
 
 function tx(amount: number, dre_type: string, category_id = 'c1') {
@@ -134,6 +134,48 @@ describe('computeDRELucroLiquido', () => {
     const txs = [tx(1000, 'receita'), tx(200, 'investimento')];
     expect(computeDRELucroLiquido(txs, [])).toBe(800);
     expect(computeNetProfit(txs).lucroLiquido).toBe(1000); // não desconta investimento
+  });
+});
+
+describe('computeDRETotals', () => {
+  const categories = [
+    { id: 'receita-1', name: 'Vendas', dre_type: 'receita', parent_id: null, sort_order: 0, is_default: false },
+    { id: 'despesa-1', name: 'Despesas Gerais', dre_type: 'despesa', parent_id: null, sort_order: 0, is_default: false },
+    { id: 'invest-1', name: 'Investimentos', dre_type: 'investimento', parent_id: null, sort_order: 0, is_default: false },
+    { id: 'rf-despesa', name: 'Despesas Financeiras', dre_type: 'resultado_financeiro', parent_id: null, sort_order: 0, is_default: false },
+    { id: 'rf-receita', name: 'Receitas Financeiras', dre_type: 'resultado_financeiro', parent_id: null, sort_order: 0, is_default: false },
+    { id: 'juros-pagos', name: 'Juros', dre_type: 'resultado_financeiro', parent_id: 'rf-despesa', sort_order: 0, is_default: false },
+    { id: 'juros-recebidos', name: 'Rendimentos', dre_type: 'resultado_financeiro', parent_id: 'rf-receita', sort_order: 0, is_default: false },
+  ];
+
+  const transactions = [
+    tx(5000, 'receita', 'receita-1'),
+    tx(2000, 'despesa', 'despesa-1'),
+    tx(500, 'investimento', 'invest-1'),
+    tx(100, 'resultado_financeiro', 'juros-pagos'),
+    tx(80, 'resultado_financeiro', 'juros-recebidos'),
+  ];
+
+  it('EBITDA e Lucro Líquido batem exatamente com as linhas de computeDRE para o mesmo período', () => {
+    const dre = computeDRE(transactions, categories);
+    const ebitdaLine = dre.find((l) => l.label === '(=) EBITDA' && l.isTotal);
+    const lucroLine = dre.find((l) => l.label === '(=) LUCRO LÍQUIDO' && l.isTotal);
+    const totals = computeDRETotals(transactions, categories);
+    expect(totals.ebitda).toBe(ebitdaLine?.value);
+    expect(totals.lucroLiquido).toBe(lucroLine?.value);
+  });
+
+  it('inclui investimento dentro de despesas/EBITDA — bug corrigido do Dashboard, que ignorava investimento', () => {
+    const txs = [tx(1000, 'receita'), tx(200, 'investimento')];
+    const totals = computeDRETotals(txs, []);
+    expect(totals.despesas).toBe(200);
+    expect(totals.ebitda).toBe(800);
+  });
+
+  it('despesa financeira é subtraída, não somada — bug corrigido do Dashboard, que somava tudo com sinal positivo', () => {
+    const totals = computeDRETotals(transactions, categories);
+    // juros-pagos (100) é despesa financeira, juros-recebidos (80) é receita financeira
+    expect(totals.resultadoFinanceiro).toBe(-20); // 80 - 100, não 180
   });
 });
 
