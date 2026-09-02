@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ImageDown, Filter } from 'lucide-react';
 import { exportChartAsPNG } from '@/lib/exportChart';
-import { formatBRL } from '@/lib/dre';
+import { formatBRL, classifyCashFlowBucket } from '@/lib/dre';
 import { Category, useCategories } from '@/hooks/useCategories';
 import { useTransactions } from '@/hooks/useTransactions';
 import {
@@ -61,14 +61,17 @@ const COLORS = [
   'hsl(10, 80%, 55%)', 'hsl(120, 50%, 40%)', 'hsl(300, 50%, 45%)',
 ];
 
+type YearlyRow = { name: string; _bucket?: 'entrada' | 'saida'; [year: string]: any };
+
 type ViewOption = {
   label: string;
   dreTypes: string[];
   parentFilter?: string;
+  splitEntradaSaida?: boolean;
 };
 
 const VIEW_OPTIONS: ViewOption[] = [
-  { label: 'Visão Geral (Clusters)', dreTypes: ['receita', 'desconto', 'custo', 'despesa', 'investimento', 'depreciacao', 'resultado_financeiro', 'outras_receitas', 'impostos'] },
+  { label: 'Visão Geral (Clusters)', dreTypes: ['receita', 'custo', 'despesa', 'investimento', 'depreciacao', 'resultado_financeiro', 'outras_receitas', 'impostos'], splitEntradaSaida: true },
   { label: 'Renda Familiar', dreTypes: ['receita'] },
   { label: 'Somente Despesas', dreTypes: ['despesa'] },
   { label: 'Habitação', dreTypes: ['despesa'], parentFilter: 'HABITAÇÃO' },
@@ -147,7 +150,7 @@ export function YearlyEvolution() {
   }, [startYear, endYear]);
 
   // All rows (unfiltered by category selection)
-  const allRows = useMemo(() => {
+  const allRows = useMemo<YearlyRow[]>(() => {
     if (!categories || categories.length === 0) return [];
 
     if (view.parentFilter) {
@@ -175,7 +178,13 @@ export function YearlyEvolution() {
           .filter((t: any) => childIds.has(t.category_id) && t.date?.startsWith(String(y)))
           .reduce((s: number, t: any) => s + Number(t.amount), 0);
       });
-      return { name: parent.name, ...yearTotals };
+      // Bucket entrada/saída só é usado pela view "Visão Geral (Clusters)" — evita
+      // empilhar receita e despesa juntas numa soma sem significado financeiro.
+      // 'neutro' (depreciação) entra em saídas: não é caixa, mas reduz o resultado.
+      const bucket = view.splitEntradaSaida
+        ? (classifyCashFlowBucket(parent.dre_type, parent.id, categories) === 'entrada' ? 'entrada' : 'saida')
+        : undefined;
+      return { name: parent.name, _bucket: bucket, ...yearTotals };
     }).filter(r => years.some(y => r[String(y)] > 0));
   }, [categories, transactions, years, view]);
 
@@ -204,20 +213,30 @@ export function YearlyEvolution() {
   const selectAll = () => setSelectedCategories(new Set());
   const deselectAll = () => setSelectedCategories(new Set(['__none__'])); // special empty state
 
-  // Year-over-year percentages
-  const yearPercentages = useMemo(() => {
+  const computeYoY = useCallback((subset: YearlyRow[]) => {
     const pcts: Record<string, string> = {};
     for (let i = 0; i < years.length - 1; i++) {
       const curr = years[i];
       const prev = years[i + 1];
-      const currTotal = rows.reduce((s, r) => s + (r[String(curr)] || 0), 0);
-      const prevTotal = rows.reduce((s, r) => s + (r[String(prev)] || 0), 0);
+      const currTotal = subset.reduce((s, r) => s + (r[String(curr)] || 0), 0);
+      const prevTotal = subset.reduce((s, r) => s + (r[String(prev)] || 0), 0);
       if (prevTotal > 0) {
         pcts[String(curr)] = `${Math.round((currTotal / prevTotal) * 100)}%`;
       }
     }
     return pcts;
-  }, [rows, years]);
+  }, [years]);
+
+  // Visão Geral (Clusters): entradas e saídas viram dois grupos, cada um com seu
+  // próprio subtotal e variação anual — misturar os dois numa soma só não tem
+  // significado financeiro (mistura dinheiro entrando com dinheiro saindo).
+  const entradaRows = useMemo(() => rows.filter(r => r._bucket === 'entrada'), [rows]);
+  const saidaRows = useMemo(() => rows.filter(r => r._bucket === 'saida'), [rows]);
+
+  // Year-over-year percentages (views sem split entrada/saída, mostradas no cabeçalho da tabela)
+  const yearPercentages = useMemo(() => computeYoY(rows), [rows, computeYoY]);
+  const entradaYearPercentages = useMemo(() => computeYoY(entradaRows), [entradaRows, computeYoY]);
+  const saidaYearPercentages = useMemo(() => computeYoY(saidaRows), [saidaRows, computeYoY]);
 
   // Chart data
   const chartData = useMemo(() => {
@@ -229,6 +248,8 @@ export function YearlyEvolution() {
   }, [years, rows]);
 
   const chartKeys = rows.map(r => r.name).filter(name => chartData.some(d => d[name] > 0));
+  const entradaKeys = entradaRows.map(r => r.name).filter(name => chartData.some(d => d[name] > 0));
+  const saidaKeys = saidaRows.map(r => r.name).filter(name => chartData.some(d => d[name] > 0));
 
   return (
     <div className="space-y-6">
@@ -327,7 +348,7 @@ export function YearlyEvolution() {
                   {years.map(y => (
                     <th key={y} className="text-right py-1.5 px-2 font-semibold text-muted-foreground whitespace-nowrap">
                       <div>{y}</div>
-                      {yearPercentages[String(y)] && (
+                      {!view.splitEntradaSaida && yearPercentages[String(y)] && (
                         <div className="text-[10px] font-normal text-primary">{yearPercentages[String(y)]}</div>
                       )}
                     </th>
@@ -335,34 +356,95 @@ export function YearlyEvolution() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row, idx) => (
-                  <tr key={idx} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                    <td className="py-1 px-2 font-medium text-foreground sticky left-0 bg-card z-10 text-xs">{row.name}</td>
-                    {years.map(y => (
-                      <td key={y} className="py-1 px-2 text-right tabular-nums text-foreground text-xs whitespace-nowrap">
-                        {row[String(y)] > 0 ? formatBRL(row[String(y)]) : '–'}
-                      </td>
+                {view.splitEntradaSaida ? (
+                  <>
+                    <tr>
+                      <td colSpan={years.length + 1} className="py-1 px-2 text-[11px] font-bold text-muted-foreground tracking-wide sticky left-0 bg-muted/40 z-10">ENTRADAS</td>
+                    </tr>
+                    {entradaRows.map((row, idx) => (
+                      <tr key={`e-${idx}`} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                        <td className="py-1 px-2 font-medium text-foreground sticky left-0 bg-card z-10 text-xs">{row.name}</td>
+                        {years.map(y => (
+                          <td key={y} className="py-1 px-2 text-right tabular-nums text-foreground text-xs whitespace-nowrap">
+                            {row[String(y)] > 0 ? formatBRL(row[String(y)]) : '–'}
+                          </td>
+                        ))}
+                      </tr>
                     ))}
-                  </tr>
-                ))}
-                <tr className="border-t-2 border-primary/30 font-bold">
-                  <td className="py-1.5 px-2 text-foreground sticky left-0 bg-card z-10 text-xs">TOTAL</td>
-                  {years.map(y => {
-                    const total = rows.reduce((s, r) => s + (r[String(y)] || 0), 0);
-                    return (
-                      <td key={y} className="py-1.5 px-2 text-right tabular-nums text-foreground text-xs whitespace-nowrap">
-                        {total > 0 ? formatBRL(total) : '–'}
-                      </td>
-                    );
-                  })}
-                </tr>
+                    <tr className="border-t-2 border-primary/30 font-bold">
+                      <td className="py-1.5 px-2 text-foreground sticky left-0 bg-card z-10 text-xs">Total Entradas</td>
+                      {years.map(y => {
+                        const total = entradaRows.reduce((s, r) => s + (r[String(y)] || 0), 0);
+                        return (
+                          <td key={y} className="py-1.5 px-2 text-right tabular-nums text-foreground text-xs whitespace-nowrap">
+                            {total > 0 ? formatBRL(total) : '–'}
+                            {entradaYearPercentages[String(y)] && (
+                              <div className="text-[10px] font-normal text-primary">{entradaYearPercentages[String(y)]}</div>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                    <tr>
+                      <td colSpan={years.length + 1} className="py-1 px-2 text-[11px] font-bold text-muted-foreground tracking-wide sticky left-0 bg-muted/40 z-10">SAÍDAS</td>
+                    </tr>
+                    {saidaRows.map((row, idx) => (
+                      <tr key={`s-${idx}`} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                        <td className="py-1 px-2 font-medium text-foreground sticky left-0 bg-card z-10 text-xs">{row.name}</td>
+                        {years.map(y => (
+                          <td key={y} className="py-1 px-2 text-right tabular-nums text-foreground text-xs whitespace-nowrap">
+                            {row[String(y)] > 0 ? formatBRL(row[String(y)]) : '–'}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                    <tr className="border-t-2 border-destructive/30 font-bold">
+                      <td className="py-1.5 px-2 text-foreground sticky left-0 bg-card z-10 text-xs">Total Saídas</td>
+                      {years.map(y => {
+                        const total = saidaRows.reduce((s, r) => s + (r[String(y)] || 0), 0);
+                        return (
+                          <td key={y} className="py-1.5 px-2 text-right tabular-nums text-foreground text-xs whitespace-nowrap">
+                            {total > 0 ? formatBRL(total) : '–'}
+                            {saidaYearPercentages[String(y)] && (
+                              <div className="text-[10px] font-normal text-destructive">{saidaYearPercentages[String(y)]}</div>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  </>
+                ) : (
+                  <>
+                    {rows.map((row, idx) => (
+                      <tr key={idx} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                        <td className="py-1 px-2 font-medium text-foreground sticky left-0 bg-card z-10 text-xs">{row.name}</td>
+                        {years.map(y => (
+                          <td key={y} className="py-1 px-2 text-right tabular-nums text-foreground text-xs whitespace-nowrap">
+                            {row[String(y)] > 0 ? formatBRL(row[String(y)]) : '–'}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                    <tr className="border-t-2 border-primary/30 font-bold">
+                      <td className="py-1.5 px-2 text-foreground sticky left-0 bg-card z-10 text-xs">TOTAL</td>
+                      {years.map(y => {
+                        const total = rows.reduce((s, r) => s + (r[String(y)] || 0), 0);
+                        return (
+                          <td key={y} className="py-1.5 px-2 text-right tabular-nums text-foreground text-xs whitespace-nowrap">
+                            {total > 0 ? formatBRL(total) : '–'}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  </>
+                )}
               </tbody>
             </table>
           )}
         </CardContent>
       </Card>
 
-      {chartKeys.length > 0 && (
+      {(view.splitEntradaSaida ? entradaKeys.length + saidaKeys.length : chartKeys.length) > 0 && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-base">Evolução Anual — {view.label}</CardTitle>
@@ -379,16 +461,44 @@ export function YearlyEvolution() {
                   <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                   <Tooltip formatter={(v: number) => formatBRL(v)} {...CHART_TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  {chartKeys.map((key, i) => (
-                    <Bar key={key} dataKey={key} stackId="yearly" fill={COLORS[i % COLORS.length]} shape={Bar3DShape(COLORS[i % COLORS.length])}>
-                      <LabelList
-                        dataKey={key}
-                        position="inside"
-                        style={{ fontSize: 9, fill: '#fff', fontWeight: 500 }}
-                        formatter={(v: number) => v > 0 ? `${(v / 1000).toFixed(1)}k` : ''}
-                      />
-                    </Bar>
-                  ))}
+                  {view.splitEntradaSaida ? (
+                    <>
+                      {entradaKeys.map((key, i) => (
+                        <Bar key={key} dataKey={key} stackId="entradas" fill={COLORS[i % COLORS.length]} shape={Bar3DShape(COLORS[i % COLORS.length])}>
+                          <LabelList
+                            dataKey={key}
+                            position="inside"
+                            style={{ fontSize: 9, fill: '#fff', fontWeight: 500 }}
+                            formatter={(v: number) => v > 0 ? `${(v / 1000).toFixed(1)}k` : ''}
+                          />
+                        </Bar>
+                      ))}
+                      {saidaKeys.map((key, i) => {
+                        const color = COLORS[(i + entradaKeys.length) % COLORS.length];
+                        return (
+                          <Bar key={key} dataKey={key} stackId="saidas" fill={color} shape={Bar3DShape(color)}>
+                            <LabelList
+                              dataKey={key}
+                              position="inside"
+                              style={{ fontSize: 9, fill: '#fff', fontWeight: 500 }}
+                              formatter={(v: number) => v > 0 ? `${(v / 1000).toFixed(1)}k` : ''}
+                            />
+                          </Bar>
+                        );
+                      })}
+                    </>
+                  ) : (
+                    chartKeys.map((key, i) => (
+                      <Bar key={key} dataKey={key} stackId="yearly" fill={COLORS[i % COLORS.length]} shape={Bar3DShape(COLORS[i % COLORS.length])}>
+                        <LabelList
+                          dataKey={key}
+                          position="inside"
+                          style={{ fontSize: 9, fill: '#fff', fontWeight: 500 }}
+                          formatter={(v: number) => v > 0 ? `${(v / 1000).toFixed(1)}k` : ''}
+                        />
+                      </Bar>
+                    ))
+                  )}
                 </BarChart>
               </ResponsiveContainer>
             </div>
