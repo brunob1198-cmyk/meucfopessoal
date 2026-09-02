@@ -10,7 +10,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { formatBRL } from '@/lib/dre';
+import { formatBRL, isDespesaFinanceira } from '@/lib/dre';
+import { useCategories } from '@/hooks/useCategories';
 import { format, isToday, isYesterday, differenceInDays, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { MonthRangePicker } from '@/components/MonthRangePicker';
@@ -62,6 +63,7 @@ function getDateBadge(dateStr: string): string | null {
 
 export function FinancialTimeline() {
   const { user } = useAuth();
+  const { data: categories } = useCategories();
   const { data: transactions } = useQuery({
     queryKey: ['transactions-recent', user?.id],
     queryFn: async () => {
@@ -153,7 +155,11 @@ export function FinancialTimeline() {
     return events.filter((e) => differenceInDays(new Date(), parseISO(e.date)) <= 7).length;
   }, [events]);
 
-  const isIncome = (dreType?: string) => dreType === 'receita' || dreType === 'outras_receitas';
+  // Resultado Financeiro conta como entrada quando é receita financeira (ex.: rendimento
+  // de CDB) — só é saída quando a categoria-pai é uma despesa financeira (juros, IOF).
+  const isIncome = (dreType: string | undefined, categoryId: string) =>
+    dreType === 'receita' || dreType === 'outras_receitas' ||
+    (dreType === 'resultado_financeiro' && !!categories && !isDespesaFinanceira(categoryId, categories));
 
   return (
     <Card className="glass-card float-card border-border/30 relative overflow-hidden h-full">
@@ -193,7 +199,7 @@ export function FinancialTimeline() {
               const config = DRE_TYPE_CONFIG[dreType] || DRE_TYPE_CONFIG.despesa;
               const catName = event.categories?.name || 'Outros';
               const Icon = getCategoryIcon(catName);
-              const income = isIncome(dreType);
+              const income = isIncome(dreType, event.category_id);
               const badge = getDateBadge(event.date);
               const isSelected = selectedId === event.id;
 
@@ -338,7 +344,7 @@ export function FinancialTimeline() {
                   <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Nenhum lançamento registrado</TableCell></TableRow>
                 )}
                 {allRows.map((t) => {
-                  const income = isIncome(t.categories?.dre_type);
+                  const income = isIncome(t.categories?.dre_type, t.category_id);
                   return (
                     <TableRow key={t.id}>
                       <TableCell className="text-xs tabular-nums">{format(parseISO(t.date), 'dd/MM/yyyy')}</TableCell>
