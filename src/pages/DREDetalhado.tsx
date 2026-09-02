@@ -3,7 +3,7 @@ import { parseLocalDate } from '@/lib/utils';
 import { useTransactions, useUpdateTransaction, useDeleteTransaction, useCreateTransaction } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import { useProjections } from '@/hooks/useProjections';
-import { computeDRE, formatBRL, DRELine } from '@/lib/dre';
+import { computeDRE, formatBRL, DRELine, mergeProjectionsWithInstallments } from '@/lib/dre';
 import { usePersistedFilter } from '@/hooks/usePersistedFilter';
 import { MonthRangePicker } from '@/components/MonthRangePicker';
 import { format, eachMonthOfInterval, startOfMonth, endOfMonth, isAfter, isBefore } from 'date-fns';
@@ -74,7 +74,10 @@ export default function DREDetalhado() {
         const projTx = monthProjections.map((p: any) => ({
           amount: p.amount, category_id: p.category_id, categories: p.categories
         }));
-        return { month: m, lines: computeDRE([...projTx, ...monthTx], categories), isProjected: true };
+        // Uma transação real já lançada para essa categoria/mês substitui a
+        // projeção (dado real prevalece sobre estimativa) em vez de somar com ela.
+        const merged = mergeProjectionsWithInstallments(projTx, monthTx);
+        return { month: m, lines: computeDRE(merged, categories), isProjected: true };
       }
       
       const weeklyTx: any[][] = Array.from({ length: 5 }, () => []);
