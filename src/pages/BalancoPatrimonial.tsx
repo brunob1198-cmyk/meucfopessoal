@@ -35,12 +35,21 @@ import { formatMonthLabel, computeGrowth12m, isConsecutiveMonths, computeGrowthD
 // Explica exatamente como cada "motor de crescimento" é calculado — só a
 // Poupança vem de dado real (DRE); Retorno de Investimentos e Valorização de
 // Ativos são uma proporção fixa (70/30) do que sobra do crescimento do
-// patrimônio depois da Poupança, não um valor medido por ativo.
-const GROWTH_DRIVER_EXPLANATIONS: Record<string, string> = {
-  'Poupança': 'Sua média mensal de (Receita − Despesas) nos meses do DRE que tiveram receita, multiplicada por 12. É o único dos 3 valores baseado em dado real seu.',
-  'Retorno Investimentos': 'Estimativa aproximada: 70% do que sobra do crescimento do seu Patrimônio Líquido depois de descontar a Poupança. Não é o rendimento medido dos seus investimentos — é sempre essa mesma proporção fixa, não um valor por ativo.',
-  'Valorização de Ativos': 'Estimativa aproximada: os 30% restantes do que sobra do crescimento do seu Patrimônio Líquido depois da Poupança. Não é a valorização real de nenhum ativo específico — é sempre essa mesma proporção fixa.',
-};
+// patrimônio depois da Poupança, não um valor medido por ativo. Recebe o
+// número real de meses do período (growthMonths) porque a Poupança é
+// multiplicada por esse valor, não sempre 12.
+function getGrowthDriverExplanation(name: string, months: number): string | null {
+  switch (name) {
+    case 'Poupança':
+      return `Sua média mensal de (Receita − Despesas) nos meses do DRE que tiveram receita, multiplicada por ${months} (o número de meses do período usado acima). É o único dos 3 valores baseado em dado real seu.`;
+    case 'Retorno Investimentos':
+      return 'Estimativa aproximada: 70% do que sobra do crescimento do seu Patrimônio Líquido depois de descontar a Poupança. Não é o rendimento medido dos seus investimentos — é sempre essa mesma proporção fixa, não um valor por ativo.';
+    case 'Valorização de Ativos':
+      return 'Estimativa aproximada: os 30% restantes do que sobra do crescimento do seu Patrimônio Líquido depois da Poupança. Não é a valorização real de nenhum ativo específico — é sempre essa mesma proporção fixa.';
+    default:
+      return null;
+  }
+}
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -387,7 +396,11 @@ export default function BalancoPatrimonial() {
   }, [monthlyProfits]);
 
   // Mapa de Riqueza Merged Logic
-  const growth12m = useMemo(() => computeGrowth12m(history), [history]);
+  const netWorthGrowth = useMemo(() => computeGrowth12m(history), [history]);
+  // Número real de meses cobertos pela comparação acima — nem sempre 12
+  // (ver comentário em computeGrowth12m). Usado para não tratar um período
+  // mais curto como se fosse um ano inteiro.
+  const growthMonths = netWorthGrowth?.months ?? 12;
 
   const compositionData = useMemo(() => {
     return Object.entries(COMPOSITION_GROUPS).map(([label, cats]) => {
@@ -404,9 +417,12 @@ export default function BalancoPatrimonial() {
     return profits.reduce((s, p) => s + (p.receita - p.despesas), 0) / profits.length;
   }, [monthlyProfits]);
 
-  const annualSavings = avgMonthlySavings * 12;
-  const totalGrowth = growth12m || 0;
-  const { poupanca, investmentReturns, assetAppreciation } = computeGrowthDrivers(totalGrowth, annualSavings);
+  // Poupança do MESMO período comparado no crescimento do patrimônio (não
+  // sempre 12 meses) — antes comparava um crescimento possivelmente mais
+  // curto contra uma poupança sempre anualizada, distorcendo a proporção.
+  const periodSavings = avgMonthlySavings * growthMonths;
+  const totalGrowth = netWorthGrowth?.delta ?? 0;
+  const { poupanca, investmentReturns, assetAppreciation } = computeGrowthDrivers(totalGrowth, periodSavings);
 
   const growthDrivers = [
     { name: 'Poupança', value: poupanca, color: 'hsl(160, 50%, 40%)' },
@@ -422,19 +438,22 @@ export default function BalancoPatrimonial() {
   const savingsRate = avgMonthlyIncome > 0 ? (avgMonthlySavings / avgMonthlyIncome) * 100 : 0;
   const wealthToIncomeYears = avgMonthlyIncome > 0 ? netWorth / (avgMonthlyIncome * 12) : 0;
   // Mesma guarda de divisão por zero já usada em monthlyTrend (linha acima) —
-  // antes, netWorth - growth12m === 0 gerava Infinity/-Infinity exibido na tela.
-  const netWorthYearAgo = growth12m !== null ? netWorth - growth12m : null;
-  const growthRate = growth12m !== null && netWorth > 0 && netWorthYearAgo !== 0
-    ? (growth12m / netWorthYearAgo!) * 100
+  // antes, netWorth - totalGrowth === 0 gerava Infinity/-Infinity exibido na tela.
+  const netWorthPeriodStart = netWorthGrowth !== null ? netWorth - totalGrowth : null;
+  const growthRate = netWorthGrowth !== null && netWorth > 0 && netWorthPeriodStart !== 0
+    ? (totalGrowth / netWorthPeriodStart!) * 100
     : 0;
 
   const riquezaInsights = useMemo(() => {
     const msgs: string[] = [];
-    if (growth12m !== null && growth12m > 0 && netWorth > 0) {
-      msgs.push(`Seu patrimônio cresceu ${growthRate.toFixed(0)}% no último ano.`);
+    if (netWorthGrowth !== null && totalGrowth > 0 && netWorth > 0) {
+      const periodoLabel = growthMonths === 12 ? 'no último ano' : `nos últimos ${growthMonths} meses`;
+      msgs.push(`Seu patrimônio cresceu ${growthRate.toFixed(0)}% ${periodoLabel}.`);
     }
-    if (annualSavings > 0 && totalGrowth > 0) {
-      const poupancaPct = (annualSavings / totalGrowth) * 100;
+    if (periodSavings > totalGrowth && totalGrowth > 0) {
+      msgs.push('Você poupou mais do que seu patrimônio cresceu nesse período — algo deve ter reduzido seu patrimônio (uma dívida pode ter aumentado, ou um ativo perdeu valor).');
+    } else if (periodSavings > 0 && totalGrowth > 0) {
+      const poupancaPct = (periodSavings / totalGrowth) * 100;
       msgs.push(`${Math.min(100, poupancaPct).toFixed(0)}% do crescimento veio da sua poupança.`);
     }
     const investPct = totalAssets > 0
@@ -450,7 +469,7 @@ export default function BalancoPatrimonial() {
       msgs.push(`Sua taxa de poupança é ${savingsRate.toFixed(0)}%. Tente aumentar para 20%+..`);
     }
     return msgs;
-  }, [growth12m, growthRate, annualSavings, totalGrowth, totalAssets, assets, savingsRate, netWorth]);
+  }, [netWorthGrowth, growthMonths, growthRate, periodSavings, totalGrowth, totalAssets, assets, savingsRate, netWorth]);
 
 
 
@@ -765,7 +784,7 @@ export default function BalancoPatrimonial() {
           {/* Mapa de Riqueza Integrated Content */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
-              { label: 'Taxa de Crescimento', value: `${growthRate.toFixed(1)}%`, icon: TrendingUp },
+              { label: growthMonths === 12 ? 'Taxa de Crescimento' : `Taxa de Crescimento (${growthMonths}m)`, value: `${growthRate.toFixed(1)}%`, icon: TrendingUp },
               { label: 'Taxa de Poupança', value: `${savingsRate.toFixed(0)}%`, icon: PiggyBankIcon },
               { label: 'Patrimônio / Renda', value: `${wealthToIncomeYears.toFixed(1)} anos`, icon: BarChart3 },
             ].map((kpi, i) => (
@@ -845,7 +864,7 @@ export default function BalancoPatrimonial() {
                         </button>
                       </TooltipTrigger>
                       <TooltipContent className="max-w-[280px] text-xs">
-                        Divide o crescimento do seu Patrimônio Líquido nos últimos 12 meses (ou desde o primeiro registro salvo, se ainda não houver 12 meses de histórico) em 3 partes. Passe o mouse sobre cada uma abaixo para ver como é calculada.
+                        Divide o crescimento do seu Patrimônio Líquido {growthMonths === 12 ? 'no último ano' : `nos últimos ${growthMonths} meses`} (o maior período com histórico de patrimônio salvo) em 3 partes. Passe o mouse sobre cada uma abaixo para ver como é calculada.
                       </TooltipContent>
                     </InfoTooltip>
                   </CardTitle>
@@ -874,7 +893,7 @@ export default function BalancoPatrimonial() {
                             <div className="flex items-center gap-2">
                               <span className="h-3 w-3 rounded-full" style={{ backgroundColor: d.color }} />
                               <span className="text-xs font-medium">{d.name}</span>
-                              {GROWTH_DRIVER_EXPLANATIONS[d.name] && (
+                              {getGrowthDriverExplanation(d.name, growthMonths) && (
                                 <InfoTooltip>
                                   <TooltipTrigger asChild>
                                     <button type="button" className="text-muted-foreground hover:text-foreground" aria-label={`Como ${d.name} é calculado`}>
@@ -882,7 +901,7 @@ export default function BalancoPatrimonial() {
                                     </button>
                                   </TooltipTrigger>
                                   <TooltipContent className="max-w-[280px] text-xs">
-                                    {GROWTH_DRIVER_EXPLANATIONS[d.name]}
+                                    {getGrowthDriverExplanation(d.name, growthMonths)}
                                   </TooltipContent>
                                 </InfoTooltip>
                               )}

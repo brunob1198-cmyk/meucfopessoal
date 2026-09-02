@@ -25,7 +25,16 @@ export interface NetWorthSnapshotLike {
   net_worth: number | string;
 }
 
-export function computeGrowth12m(history: NetWorthSnapshotLike[]): number | null {
+export interface NetWorthGrowth {
+  delta: number;
+  // Meses entre os dois snapshots comparados — sempre 12 quando um snapshot
+  // de 12 meses atrás existe de fato; o número real de meses quando cai no
+  // fallback abaixo (histórico ainda com menos de 1 ano). Quem consome esse
+  // valor não deve assumir "12 meses" sem checar este campo.
+  months: number;
+}
+
+export function computeGrowth12m(history: NetWorthSnapshotLike[]): NetWorthGrowth | null {
   if (history.length < 2) return null;
   const sorted = [...history].sort((a, b) => a.month.localeCompare(b.month));
   const latest = sorted[sorted.length - 1];
@@ -37,7 +46,13 @@ export function computeGrowth12m(history: NetWorthSnapshotLike[]): number | null
         return ym !== null && latestYm.year - ym.year === 1 && latestYm.month === ym.month;
       })) ||
     sorted[0];
-  return Number(latest.net_worth) - Number(yearAgo.net_worth);
+  const yearAgoYm = parseYearMonth(yearAgo.month);
+  const months =
+    latestYm && yearAgoYm ? (latestYm.year - yearAgoYm.year) * 12 + (latestYm.month - yearAgoYm.month) : 12;
+  return {
+    delta: Number(latest.net_worth) - Number(yearAgo.net_worth),
+    months: Math.max(1, months),
+  };
 }
 
 // Confirma que os meses (já em ordem cronológica) são consecutivos, sem gaps —
@@ -60,17 +75,18 @@ export interface GrowthDrivers {
   assetAppreciation: number;
 }
 
-// O clamp de `annualSavings` é aplicado uma única vez, antes de qualquer
+// O clamp de `periodSavings` é aplicado uma única vez, antes de qualquer
 // subtração, para os 3 valores sempre somarem exatamente `totalGrowth` (quando
 // ≥ 0) — antes, poupança negativa era zerada só na exibição, mas continuava
 // entrando (como valor negativo subtraído) nas contas de investimento/valorização,
 // inflando os dois acima do crescimento real.
-// Caso residual (não corrigido aqui): se a poupança sozinha for maior que o
-// crescimento total (ex.: parte do patrimônio se desvalorizou no período), a
-// soma dos 3 valores pode superar `totalGrowth` — não há uma 4ª categoria de
-// "perdas" para absorver essa diferença.
-export function computeGrowthDrivers(totalGrowth: number, annualSavings: number): GrowthDrivers {
-  const poupanca = Math.max(0, annualSavings);
+// Também limitado por cima a `totalGrowth`: se a poupança sozinha for maior
+// que o crescimento total (ex.: uma dívida aumentou ou um ativo desvalorizou
+// no período), ela é limitada ao crescimento total em vez de ultrapassá-lo —
+// os outros dois motores zeram nesse caso, e os 3 continuam somando
+// exatamente `totalGrowth`, nunca mais que isso.
+export function computeGrowthDrivers(totalGrowth: number, periodSavings: number): GrowthDrivers {
+  const poupanca = Math.min(Math.max(0, periodSavings), Math.max(0, totalGrowth));
   const investmentReturns = Math.max(0, totalGrowth - poupanca) * 0.7;
   const assetAppreciation = Math.max(0, totalGrowth - poupanca - investmentReturns);
   return { poupanca, investmentReturns, assetAppreciation };

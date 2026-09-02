@@ -42,15 +42,19 @@ describe('computeGrowth12m', () => {
       { month: '2026-01-01', net_worth: 1200 },
       { month: '2026-08-01', net_worth: 1500 },
     ];
-    expect(computeGrowth12m(history)).toBe(500); // 1500 - 1000
+    const result = computeGrowth12m(history);
+    expect(result?.delta).toBe(500); // 1500 - 1000
+    expect(result?.months).toBe(12);
   });
 
-  it('usa o registro mais antigo como fallback quando não há um de 12 meses atrás', () => {
+  it('usa o registro mais antigo como fallback quando não há um de 12 meses atrás, e informa o período real', () => {
     const history = [
       { month: '2026-06-01', net_worth: 900 },
       { month: '2026-08-01', net_worth: 1500 },
     ];
-    expect(computeGrowth12m(history)).toBe(600); // 1500 - 900
+    const result = computeGrowth12m(history);
+    expect(result?.delta).toBe(600); // 1500 - 900
+    expect(result?.months).toBe(2); // não são 12 meses de verdade — bug corrigido
   });
 });
 
@@ -87,5 +91,13 @@ describe('computeGrowthDrivers', () => {
     expect(poupanca).toBe(0);
     expect(investmentReturns).toBe(0);
     expect(assetAppreciation).toBe(0);
+  });
+
+  it('poupança maior que o crescimento total é limitada ao crescimento total (bug corrigido)', () => {
+    const { poupanca, investmentReturns, assetAppreciation } = computeGrowthDrivers(1000, 5000);
+    expect(poupanca).toBe(1000); // não 5000
+    expect(investmentReturns).toBe(0);
+    expect(assetAppreciation).toBe(0);
+    expect(poupanca + investmentReturns + assetAppreciation).toBe(1000);
   });
 });
