@@ -3,7 +3,7 @@ import { parseLocalDate } from '@/lib/utils';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import { useProjections } from '@/hooks/useProjections';
-import { computeDREAjustado, formatBRL, DRELine } from '@/lib/dre';
+import { computeDREAjustado, formatBRL, DRELine, mergeProjectionsWithInstallments } from '@/lib/dre';
 import { usePersistedFilter } from '@/hooks/usePersistedFilter';
 import { MonthRangePicker } from '@/components/MonthRangePicker';
 import { format, eachMonthOfInterval, startOfMonth, endOfMonth, isAfter, isBefore } from 'date-fns';
@@ -51,7 +51,10 @@ export default function DREAjustado() {
         const projTx = monthProjections.map((p: any) => ({
           amount: p.amount, category_id: p.category_id, categories: p.categories,
         }));
-        return { month: m, lines: computeDREAjustado([...projTx, ...monthTx], categories), isProjected: true };
+        // Uma transação real já lançada para essa categoria/mês substitui a
+        // projeção (dado real prevalece sobre estimativa) em vez de somar com ela.
+        const merged = mergeProjectionsWithInstallments(projTx, monthTx);
+        return { month: m, lines: computeDREAjustado(merged, categories), isProjected: true };
       }
       return { month: m, lines: computeDREAjustado(monthTx as any, categories), isProjected: false };
     });

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   computeNetProfit, isDespesaFinanceira, classifyCashFlowBucket, computeCashFlowTotals,
-  computeDRELucroLiquido, computeDRE, computeDRETotals, mergeProjectionsWithInstallments,
+  computeDRELucroLiquido, computeDRE, computeDRETotals, computeDREAjustado, mergeProjectionsWithInstallments,
 } from './dre';
 
 function tx(amount: number, dre_type: string, category_id = 'c1') {
@@ -176,6 +176,30 @@ describe('computeDRETotals', () => {
     const totals = computeDRETotals(transactions, categories);
     // juros-pagos (100) é despesa financeira, juros-recebidos (80) é receita financeira
     expect(totals.resultadoFinanceiro).toBe(-20); // 80 - 100, não 180
+  });
+});
+
+describe('computeDREAjustado', () => {
+  const categories = [
+    { id: 'receita-1', name: 'Vendas', dre_type: 'receita', parent_id: null, sort_order: 0, is_default: false },
+    { id: 'desconto-1', name: 'Descontos', dre_type: 'desconto', parent_id: null, sort_order: 0, is_default: false },
+    { id: 'despesa-1', name: 'Despesas Gerais', dre_type: 'despesa', parent_id: null, sort_order: 0, is_default: false },
+    { id: 'invest-1', name: 'Investimentos', dre_type: 'investimento', parent_id: null, sort_order: 0, is_default: false },
+  ];
+
+  it('a linha "(-) Descontos" mostra o valor de desconto — rótulo corrigido (antes dizia "Impostos incidentes")', () => {
+    const txs = [tx(1000, 'receita', 'receita-1'), tx(50, 'desconto', 'desconto-1')];
+    const lines = computeDREAjustado(txs, categories);
+    const descontoLine = lines.find((l) => l.label === '(-) Descontos');
+    expect(descontoLine?.value).toBe(50);
+    expect(lines.some((l) => l.label === '(-) Impostos incidentes')).toBe(false);
+  });
+
+  it('inclui investimento dentro de despesas — mesmo critério de computeDRE, bug corrigido', () => {
+    const txs = [tx(1000, 'receita', 'receita-1'), tx(200, 'investimento', 'invest-1')];
+    const lines = computeDREAjustado(txs, categories);
+    const despesasLine = lines.find((l) => l.label === '(-) Despesas Fixas');
+    expect(despesasLine?.value).toBe(200);
   });
 });
 

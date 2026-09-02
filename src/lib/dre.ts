@@ -265,7 +265,7 @@ export function computeDREAjustado(
   const receitaLiquida = receitaBruta - descontos;
   const custos = sumByType('custo');
   const lucroBruto = receitaLiquida - custos;
-  const despesas = sumByType('despesa');
+  const despesas = sumByType('despesa') + sumByType('investimento');
   const ebitda = lucroBruto - despesas;
   const depreciacao = sumByType('depreciacao');
   const ebit = ebitda - depreciacao;
@@ -286,7 +286,7 @@ export function computeDREAjustado(
 
   return [
     { label: 'Receita Bruta', value: receitaBruta, percent: 100, isTotal: false, indent: 0 },
-    { label: '(-) Impostos incidentes', value: descontos, percent: pct(descontos), isTotal: false, indent: 0 },
+    { label: '(-) Descontos', value: descontos, percent: pct(descontos), isTotal: false, indent: 0 },
     { label: '(=) Receita Líquida', value: receitaLiquida, percent: pct(receitaLiquida), isTotal: true, indent: 0 },
     { label: '(-) Custos', value: custos, percent: pct(custos), isTotal: false, indent: 0 },
     { label: '(=) Lucro Bruto', value: lucroBruto, percent: pct(lucroBruto), isTotal: true, indent: 0 },
