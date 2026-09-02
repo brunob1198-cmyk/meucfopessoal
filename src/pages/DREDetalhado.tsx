@@ -44,6 +44,8 @@ export default function DREDetalhado() {
   const [newAmount, setNewAmount] = useState('');
   const [newDate, setNewDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [newComment, setNewComment] = useState('');
+  const [showNewPaymentDate, setShowNewPaymentDate] = useState(false);
+  const [newPaymentDate, setNewPaymentDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [newIsInstallment, setNewIsInstallment] = useState(false);
   const [newInstallments, setNewInstallments] = useState('2');
   const currentMonthEnd = endOfMonth(now);
@@ -483,6 +485,16 @@ export default function DREDetalhado() {
               </div>
               <Input placeholder="Comentário (opcional)" value={newComment} onChange={(e) => setNewComment(e.target.value)} className="h-8 text-xs" />
               <div className="flex items-center gap-2">
+                <Switch checked={showNewPaymentDate} onCheckedChange={setShowNewPaymentDate} />
+                <span className="text-xs text-muted-foreground">Data de pagamento diferente</span>
+              </div>
+              {showNewPaymentDate &&
+              <div className="flex gap-2 items-center">
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">Pagamento:</span>
+                  <Input type="date" value={newPaymentDate} onChange={(e) => setNewPaymentDate(e.target.value)} className="w-32 h-8 text-xs" />
+                </div>
+              }
+              <div className="flex items-center gap-2">
                 <Switch checked={newIsInstallment} onCheckedChange={setNewIsInstallment} />
                 <span className="text-xs text-muted-foreground">Parcelado</span>
                 {newIsInstallment &&
@@ -500,26 +512,28 @@ export default function DREDetalhado() {
                     category_id: auditCategory.id,
                     amount: Number(newAmount),
                     date: newDate,
+                    payment_date: showNewPaymentDate ? newPaymentDate : newDate,
                     comment: newComment || undefined,
                     is_installment: newIsInstallment,
                     total_installments: newIsInstallment ? Number(newInstallments) : undefined
                   });
                   setNewAmount('');
                   setNewComment('');
+                  setShowNewPaymentDate(false);
                   setNewIsInstallment(false);
                   setNewInstallments('2');
                   setShowNewTx(false);
                 }}>
-                
+
                   {createTransaction.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Salvar'}
                 </Button>
-                <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => {setShowNewTx(false);setNewAmount('');setNewComment('');setNewIsInstallment(false);}}>
+                <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => {setShowNewTx(false);setNewAmount('');setNewComment('');setShowNewPaymentDate(false);setNewIsInstallment(false);}}>
                   Cancelar
                 </Button>
               </div>
             </div> :
 
-          <Button variant="outline" size="sm" className="w-full mt-2 gap-1 text-xs" onClick={() => {setShowNewTx(true);setNewDate(format(new Date(), 'yyyy-MM-dd'));}}>
+          <Button variant="outline" size="sm" className="w-full mt-2 gap-1 text-xs" onClick={() => {setShowNewTx(true);setNewDate(format(new Date(), 'yyyy-MM-dd'));setNewPaymentDate(format(new Date(), 'yyyy-MM-dd'));}}>
               <Plus className="h-3.5 w-3.5" /> Novo Lançamento
             </Button>
           }
