@@ -7,7 +7,7 @@ import { useCategories } from '@/hooks/useCategories';
 import { useProjections } from '@/hooks/useProjections';
 import { usePersistedFilter } from '@/hooks/usePersistedFilter';
 import { MonthRangePicker } from '@/components/MonthRangePicker';
-import { formatBRL, computeDRETotals } from '@/lib/dre';
+import { formatBRL, computeDRETotals, mergeProjectionsWithInstallments } from '@/lib/dre';
 import { format, eachMonthOfInterval, startOfMonth, endOfMonth, isAfter } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -68,12 +68,13 @@ export default function Dashboard() {
       txByMonth.get(m)!.push(t);
     });
 
+    const projByMonth = new Map<string, any[]>();
     (projections || []).forEach((p: any) => {
       const m = typeof p.month === 'string' ? p.month.substring(0, 7) : '';
       const monthDate = new Date(Number(m.split('-')[0]), Number(m.split('-')[1]) - 1, 1);
       if (isAfter(startOfMonth(monthDate), currentMonthEnd)) {
-        if (!txByMonth.has(m)) txByMonth.set(m, []);
-        txByMonth.get(m)!.push({
+        if (!projByMonth.has(m)) projByMonth.set(m, []);
+        projByMonth.get(m)!.push({
           amount: p.amount,
           category_id: p.category_id,
           categories: p.categories,
@@ -81,6 +82,12 @@ export default function Dashboard() {
           _projected: true
         });
       }
+    });
+
+    // Uma transação real já lançada para essa categoria/mês substitui a
+    // projeção (dado real prevalece sobre estimativa) em vez de somar com ela.
+    projByMonth.forEach((projList, m) => {
+      txByMonth.set(m, mergeProjectionsWithInstallments(projList, txByMonth.get(m) || []));
     });
 
     return { txByMonth };
