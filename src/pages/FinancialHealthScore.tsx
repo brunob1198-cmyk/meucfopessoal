@@ -1,14 +1,14 @@
-import { useState } from 'react';
-import { useFinancialHealthScore } from '@/hooks/useFinancialHealthScore';
+import { useEffect } from 'react';
+import { useFinancialHealthScore, useFinancialHealthScoreHistory } from '@/hooks/useFinancialHealthScore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, TrendingUp, AlertCircle, CheckCircle, Info, ChevronRight } from 'lucide-react';
-import { formatBRL } from '@/lib/dre';
+import { Loader2, TrendingUp, AlertCircle, Info, ChevronRight } from 'lucide-react';
 import { getClassification } from '@/lib/financialHealthScore';
-import { Button } from '@/components/ui/button';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { format, startOfMonth } from 'date-fns';
+import { formatMonthLabel } from '@/lib/balanceSheet';
 
 const PILLAR_ICONS = {
   'Liquidez': '💧',
@@ -103,6 +103,26 @@ function PillarCard({ pillar }: { pillar: any }) {
 
 export default function FinancialHealthScore() {
   const { total, classification, classificationColor, pillars, recommendations, isLoading } = useFinancialHealthScore();
+  const { data: scoreHistory = [], saveSnapshot } = useFinancialHealthScoreHistory();
+
+  // Salva um retrato do score do mês atual sempre que ele é recalculado —
+  // mesmo mecanismo de auto-snapshot já usado para o Patrimônio Líquido em
+  // BalancoPatrimonial.tsx. O histórico começa a partir de agora: não dá para
+  // reconstruir meses passados (3 dos 5 pilares dependem do saldo atual de
+  // ativos/passivos, que nunca foi guardado categoria a categoria no passado).
+  useEffect(() => {
+    if (isLoading) return;
+    const pillarScore = (name: string) => pillars.find((p) => p.name === name)?.score ?? 0;
+    saveSnapshot.mutate({
+      month: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
+      total_score: total,
+      liquidez_score: pillarScore('Liquidez'),
+      controle_gastos_score: pillarScore('Controle de Gastos'),
+      endividamento_score: pillarScore('Endividamento'),
+      reserva_emergencia_score: pillarScore('Reserva de Emergência'),
+      capacidade_poupanca_score: pillarScore('Capacidade de Poupança'),
+    });
+  }, [isLoading, total, pillars]);
 
   if (isLoading) {
     return (
@@ -112,12 +132,9 @@ export default function FinancialHealthScore() {
     );
   }
 
-  const chartData = pillars.map(p => ({
-    name: p.name,
-    score: p.score,
-    max: p.max,
-    percentage: (p.score / p.max) * 100,
-    color: p.color,
+  const evolutionData = scoreHistory.map((h) => ({
+    mes: formatMonthLabel(h.month),
+    score: h.total_score,
   }));
 
   return (
@@ -192,7 +209,7 @@ export default function FinancialHealthScore() {
         <TabsList>
           <TabsTrigger value="pillars">Detalhamento dos Pilares</TabsTrigger>
           <TabsTrigger value="recommendations">Recomendações</TabsTrigger>
-          <TabsTrigger value="evolution">Evolução (Em breve)</TabsTrigger>
+          <TabsTrigger value="evolution">Evolução</TabsTrigger>
         </TabsList>
 
         <TabsContent value="pillars" className="space-y-4">
@@ -229,35 +246,6 @@ export default function FinancialHealthScore() {
               </div>
             </CardContent>
           </Card>
-
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Ações Rápidas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button variant="outline" className="justify-start h-auto p-4">
-                  <div className="text-left">
-                    <div className="font-medium">Revisar Lançamentos</div>
-                    <div className="text-xs text-muted-foreground">Analise seus gastos recentes</div>
-                  </div>
-                </Button>
-                <Button variant="outline" className="justify-start h-auto p-4">
-                  <div className="text-left">
-                    <div className="font-medium">Atualizar Patrimônio</div>
-                    <div className="text-xs text-muted-foreground">Mantenha seu balanço atualizado</div>
-                  </div>
-                </Button>
-                <Button variant="outline" className="justify-start h-auto p-4">
-                  <div className="text-left">
-                    <div className="font-medium">Planejar Metas</div>
-                    <div className="text-xs text-muted-foreground">Configure objetivos financeiros</div>
-                  </div>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
 
         <TabsContent value="evolution">
@@ -265,14 +253,27 @@ export default function FinancialHealthScore() {
             <CardHeader>
               <CardTitle className="text-lg">Histórico de Evolução</CardTitle>
             </CardHeader>
-            <CardContent className="py-8">
-              <div className="text-center text-muted-foreground">
-                <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-medium">Em desenvolvimento</p>
-                <p className="text-sm">
-                  Em breve você poderá acompanhar a evolução do seu Score de Saúde Financeira ao longo do tempo.
-                </p>
-              </div>
+            <CardContent className={evolutionData.length < 2 ? 'py-8' : undefined}>
+              {evolutionData.length < 2 ? (
+                <div className="text-center text-muted-foreground">
+                  <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium">Construindo seu histórico</p>
+                  <p className="text-sm">
+                    A partir de agora, seu score é registrado automaticamente todo mês. Volte aqui daqui a algumas
+                    semanas para acompanhar a evolução ao longo do tempo.
+                  </p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={280}>
+                  <LineChart data={evolutionData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
+                    <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
+                    <Tooltip formatter={(v: number) => [`${v}/100`, 'Score']} />
+                    <Line type="monotone" dataKey="score" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 4 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

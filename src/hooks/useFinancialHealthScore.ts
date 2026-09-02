@@ -1,4 +1,7 @@
 import { useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import { useAssets, useLiabilities } from '@/hooks/useBalanceSheet';
@@ -9,6 +12,55 @@ import {
 } from '@/lib/financialHealthScore';
 
 export type { PillarScore };
+
+export interface ScoreHistorySnapshot {
+  id: string;
+  user_id: string;
+  month: string;
+  total_score: number;
+  liquidez_score: number;
+  controle_gastos_score: number;
+  endividamento_score: number;
+  reserva_emergencia_score: number;
+  capacidade_poupanca_score: number;
+  created_at: string;
+}
+
+// Snapshot mensal do score, mesmo padrão de useNetWorthHistory
+// (src/hooks/useBalanceSheet.ts) — alimenta o gráfico de evolução.
+// `financial_health_score_history` ainda não está nos tipos gerados do
+// Supabase (migration nova, pendente de aplicação e de `supabase gen
+// types`) — usa `as any` no client até a tabela existir de fato e os tipos
+// serem regenerados.
+export function useFinancialHealthScoreHistory() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ['financial-health-score-history', user?.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('financial_health_score_history')
+        .select('*')
+        .order('month', { ascending: true });
+      if (error) throw error;
+      return data as ScoreHistorySnapshot[];
+    },
+    enabled: !!user,
+  });
+
+  const saveSnapshot = useMutation({
+    mutationFn: async (snapshot: Omit<ScoreHistorySnapshot, 'id' | 'user_id' | 'created_at'>) => {
+      const { error } = await (supabase as any)
+        .from('financial_health_score_history')
+        .upsert({ ...snapshot, user_id: user!.id }, { onConflict: 'user_id,month' });
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['financial-health-score-history'] }),
+  });
+
+  return { ...query, saveSnapshot };
+}
 
 export interface FinancialHealthScore {
   total: number;
