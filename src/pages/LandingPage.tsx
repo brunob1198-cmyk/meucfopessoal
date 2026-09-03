@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import {
-  BarChart3, Target, Star, Brain, FileUp, Link2, Map,
+  BarChart3, Target, Star, Brain, Map,
   TrendingUp, Eye, Wallet, ShieldCheck, ArrowRight,
   CheckCircle2, ChevronRight, ChevronDown, Users, Clock, Zap,
   Instagram, Linkedin, Youtube, Twitter, Building2, X,
@@ -436,14 +436,14 @@ function AIHighlight() {
               Inteligência Artificial que <span className="text-primary">entende suas finanças</span>
             </motion.h2>
             <motion.p variants={fadeUp} custom={2} className="text-muted-foreground text-lg mb-6">
-              Nosso Consultor Financeiro IA analisa automaticamente todos os seus dados financeiros e gera recomendações personalizadas — como um consultor financeiro que conhece cada detalhe dos seus gastos.
+              Nosso Consultor Financeiro IA analisa automaticamente todos os seus dados financeiros e gera recomendações personalizadas — como um consultor financeiro que conhece cada detalhe dos seus gastos. Na mesma tela, o Radar Econômico traduz Selic, CDI e inflação para o impacto real no seu bolso.
             </motion.p>
             <motion.div variants={fadeUp} custom={3} className="space-y-3 mb-8">
               {[
                 "Insights com números concretos dos seus dados reais",
                 "Alertas automáticos quando algo requer atenção",
                 "Sugestões acionáveis e específicas para sua realidade",
-                "Previsão dos próximos 3 meses baseada no histórico"
+                "Radar Econômico: CDI comparado com a inflação para mostrar seu juro real"
               ].map((item, i) => (
                 <div key={i} className="flex gap-2 items-start text-sm">
                   <Sparkles size={16} className="text-primary shrink-0 mt-0.5" />
@@ -464,6 +464,56 @@ function AIHighlight() {
               loading="lazy"
               className="rounded-2xl border border-border shadow-2xl w-full h-auto" 
             />
+          </motion.div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ───── BIG B HIGHLIGHT ───── */
+function BigBHighlight() {
+  const navigate = useNavigate();
+  return (
+    <section className="py-24">
+      <div className="max-w-6xl mx-auto px-6">
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <motion.div initial={{ opacity: 0, x: -40 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="hidden lg:block order-2 lg:order-1">
+            <img
+              src={imgAI}
+              alt="Big B, o assistente financeiro sempre disponível no sistema"
+              width={600}
+              height={400}
+              loading="lazy"
+              className="rounded-2xl border border-border shadow-2xl w-full h-auto"
+            />
+          </motion.div>
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger} className="order-1 lg:order-2">
+            <motion.div variants={fadeUp} custom={0} className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-sm text-primary mb-6">
+              <Bot size={14} /> Sempre com você
+            </motion.div>
+            <motion.h2 variants={fadeUp} custom={1} className="text-3xl md:text-4xl font-bold font-['Space_Grotesk'] text-foreground mb-6">
+              Conheça o <span className="text-primary">Big B</span>, seu assessor 24/7
+            </motion.h2>
+            <motion.p variants={fadeUp} custom={2} className="text-muted-foreground text-lg mb-6">
+              Diferente de um relatório que você precisa pedir, o Big B fica no seu bolso o tempo todo — observando seus dados e avisando sozinho quando algo pede atenção, com o mesmo nível de análise de um assessor de uma casa de investimentos.
+            </motion.p>
+            <motion.div variants={fadeUp} custom={3} className="space-y-3 mb-8">
+              {[
+                "Alertas automáticos de orçamento estourado e gastos fora do padrão",
+                "Compara seus investimentos com Selic e CDI e aponta seu juro real",
+                "Identifica dinheiro parado sem render e calcula quanto renderia num CDB",
+                "Chat livre para qualquer pergunta sobre suas finanças, a qualquer hora"
+              ].map((item, i) => (
+                <div key={i} className="flex gap-2 items-start text-sm">
+                  <Bot size={16} className="text-primary shrink-0 mt-0.5" />
+                  <span className="text-muted-foreground">{item}</span>
+                </div>
+              ))}
+            </motion.div>
+            <motion.div variants={fadeUp} custom={4}>
+              <Button onClick={() => navigate("/auth")}>Conhecer o Big B <ArrowRight size={14} /></Button>
+            </motion.div>
           </motion.div>
         </div>
       </div>
@@ -518,11 +568,11 @@ function Showcase() {
 /* ───── FEATURES ───── */
 function Features() {
   const features = [
-    { icon: DollarSign, title: "Lançamentos intuitivos", desc: "Registre gastos em segundos com categorização automática e parcelamento inteligente." },
-    { icon: BarChart3, title: "Dashboard financeiro", desc: "Visão completa com gráficos, KPIs e evolução patrimonial." },
+    { icon: DollarSign, title: "Lançamentos intuitivos", desc: "Registre gastos em segundos, ou importe de uma vez via Excel ou direto do extrato do seu banco, com categorização automática." },
+    { icon: BarChart3, title: "Dashboard financeiro", desc: "Visão completa com KPIs (Receita Líquida, EBITDA, Lucro Líquido), gráficos e evolução patrimonial." },
     { icon: Target, title: "Planejador de futuro", desc: "Crie orçamentos mensais e compare planejado vs realizado." },
-    { icon: Brain, title: "Consultor IA", desc: "Análises automáticas com insights, alertas e recomendações personalizadas." },
-    { icon: FileUp, title: "Importação via Excel", desc: "Importe seus extratos bancários de forma rápida e segura através de planilhas Excel." },
+    { icon: Brain, title: "Consultor IA + Radar Econômico", desc: "Análises automáticas com insights e alertas, mais Selic, CDI e inflação traduzidos para o seu bolso." },
+    { icon: Bot, title: "Big B — Assessor 24/7", desc: "Assistente sempre disponível: alertas proativos e comparação com CDI, direto na tela." },
     { icon: Star, title: "Mapa de Sonhos", desc: "Transforme objetivos de vida em metas acompanháveis." },
     { icon: Map, title: "Mapa de riqueza", desc: "Visualize patrimônio, dívidas e evolução completa." },
     { icon: Activity, title: "Score de saúde financeira", desc: "Nota de 0 a 100 baseada em 5 pilares fundamentais." },
@@ -564,7 +614,7 @@ function HowItWorks() {
   const steps = [
     { num: "01", title: "Lance seus gastos", desc: "Registre seus gastos de forma rápida e manual ou via importação de Excel." },
     { num: "02", title: "Planeje o futuro", desc: "Use o Planejador para definir orçamentos e metas por categoria." },
-    { num: "03", title: "Receba análises da IA", desc: "O Consultor Financeiro IA analisa seus dados e gera recomendações personalizadas." },
+    { num: "03", title: "Receba análises da IA", desc: "O Consultor Financeiro IA gera relatórios sob demanda, e o Big B fica de olho o tempo todo, avisando sozinho quando algo precisa da sua atenção." },
   ];
   return (
     <section id="como-funciona" className="py-24">
@@ -732,6 +782,7 @@ export default function LandingPage() {
       <Navbar />
       <Hero />
       <AIHighlight />
+      <BigBHighlight />
       <Showcase />
       <Features />
       <HowItWorks />
