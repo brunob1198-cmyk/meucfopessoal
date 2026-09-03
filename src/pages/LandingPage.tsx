@@ -16,13 +16,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle
 } from "@/components/ui/dialog";
-import dashboardMockup from "@/assets/dashboard-mockup.png";
-import imgDashboard from "@/assets/landing-dashboard.jpg";
-import imgAI from "@/assets/landing-ai-consultant.jpg";
-import imgPatrimonio from "@/assets/landing-patrimonio.jpg";
-import imgHealthScore from "@/assets/landing-health-score.jpg";
-import imgWealthMap from "@/assets/landing-wealth-map.jpg";
-import imgTimeline from "@/assets/landing-timeline.jpg";
+import imgDashboard from "@/assets/landing-dashboard-real.png";
+import imgAI from "@/assets/landing-consultor-ia-real.png";
+import imgBigB from "@/assets/landing-radar-economico-real.png";
+import imgDRE from "@/assets/landing-dre-real.png";
+import imgBalanco from "@/assets/landing-balanco-real.png";
+import imgScore from "@/assets/landing-score-real.png";
+import imgSonhos from "@/assets/landing-sonhos-real.png";
+import imgDREAjustado from "@/assets/landing-dre-ajustado-real.png";
+import imgEvolucao from "@/assets/landing-evolucao-real.png";
 import DiagnosticTools from "@/components/landing/DiagnosticTools";
 
 const fadeUp = {
@@ -407,12 +409,12 @@ function Hero() {
         <motion.div initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8, delay: 0.3 }} className="hidden lg:block">
           <div className="relative">
             <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 to-primary/5 rounded-2xl blur-xl" />
-            <img 
-              src={dashboardMockup} 
-              alt="Interface do dashboard financeiro Meu CFO Pessoal" 
+            <img
+              src={imgDashboard}
+              alt="Print real do Dashboard do Meu CFO Pessoal, com KPIs de Receita Líquida, Despesas, EBITDA e Lucro Líquido"
               width={800}
               height={500}
-              className="relative rounded-2xl border border-border shadow-2xl shadow-primary/10 w-full h-auto" 
+              className="relative rounded-2xl border border-border shadow-2xl shadow-primary/10 w-full h-auto"
             />
           </div>
         </motion.div>
@@ -457,8 +459,8 @@ function AIHighlight() {
           </motion.div>
           <motion.div initial={{ opacity: 0, x: 40 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
             <img 
-              src={imgAI} 
-              alt="Interface do consultor financeiro com inteligência artificial" 
+              src={imgAI}
+              alt="Print real do Consultor Financeiro IA com Insights e Alertas Financeiros gerados automaticamente"
               width={600}
               height={400}
               loading="lazy"
@@ -480,8 +482,8 @@ function BigBHighlight() {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <motion.div initial={{ opacity: 0, x: -40 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="hidden lg:block order-2 lg:order-1">
             <img
-              src={imgAI}
-              alt="Big B, o assistente financeiro sempre disponível no sistema"
+              src={imgBigB}
+              alt="Radar Econômico com CDI, Selic e inflação — a mesma inteligência que o Big B usa para comparar seus investimentos"
               width={600}
               height={400}
               loading="lazy"
@@ -524,11 +526,12 @@ function BigBHighlight() {
 /* ───── SHOWCASE GALLERY ───── */
 function Showcase() {
   const images = [
-    { src: imgDashboard, title: "Dashboard Financeiro", desc: "Visão completa com gráficos e KPIs" },
-    { src: imgPatrimonio, title: "Gráfico de Patrimônio", desc: "Evolução patrimonial ao longo do tempo" },
-    { src: imgHealthScore, title: "Score de Saúde Financeira", desc: "Nota de 0 a 100 com 5 pilares" },
-    { src: imgWealthMap, title: "Mapa da Riqueza", desc: "Acompanhe a valorização do seu patrimônio." },
-    { src: imgTimeline, title: "Timeline de Gastos", desc: "Todas as atividades em ordem cronológica" },
+    { src: imgDRE, title: "DRE Detalhado", desc: "Receita, custos, EBITDA e lucro líquido, mês a mês" },
+    { src: imgDREAjustado, title: "DRE Ajustado", desc: "Visão executiva com margens percentuais automáticas" },
+    { src: imgBalanco, title: "Balanço Patrimonial", desc: "Ativos, passivos e patrimônio líquido, com lucros retidos do DRE" },
+    { src: imgScore, title: "Score de Saúde Financeira", desc: "Nota de 0 a 100 com 5 pilares" },
+    { src: imgEvolucao, title: "Evolução Anual por Categoria", desc: "Entradas e saídas comparadas ano a ano" },
+    { src: imgSonhos, title: "Mapa de Sonhos Financeiros", desc: "Transforme disciplina em conquistas de vida" },
   ];
 
   return (
