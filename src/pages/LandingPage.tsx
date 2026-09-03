@@ -8,7 +8,7 @@ import {
   CheckCircle2, ChevronRight, ChevronDown, Users, Clock, Zap,
   Instagram, Linkedin, Youtube, Twitter, Building2, X,
   DollarSign, FileText, FileBarChart, CalendarRange, Scale,
-  Calculator, UserCircle, Activity, Heart, Sparkles,
+  Calculator, UserCircle, Activity, Banknote, Sparkles, Bot,
   Menu, HelpCircle, LayoutDashboard
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -44,7 +44,7 @@ const featureDescriptions: Record<string, { title: string; icon: any; content: s
 **Recursos principais:**
 - Categorias e subcategorias organizadas por tipo DRE (receita, despesa, custo, etc.)
 - Lançamentos parcelados com divisão automática
-- Importação em massa via Excel com modelo pronto
+- Importe de duas formas: planilha Excel com modelo pronto, ou o extrato original do seu banco (CSV/OFX) — com categorização automática por IA e detecção de duplicatas
 - Edição inline, movimentação entre categorias e exclusão com um clique
 - Limite mensal no plano gratuito com contador visual
 
@@ -62,7 +62,7 @@ const featureDescriptions: Record<string, { title: string; icon: any; content: s
   dreAjustado: {
     title: "DRE Ajustado",
     icon: FileBarChart,
-    content: `Versão **resumida e executiva** do DRE Detalhado. Mostra apenas linhas totais com **margens percentuais** em relação à Receita Bruta e comparativo Realizado vs Projetado lado a lado.
+    content: `Versão **resumida e executiva** do DRE Detalhado. Mostra apenas linhas totais com **margens percentuais** em relação à Receita Bruta — meses futuros aparecem com o valor já sinalizado como projetado.
 
 Ideal para quem quer uma visão rápida da saúde financeira sem se perder nos detalhes.`
   },
@@ -80,16 +80,18 @@ Ideal para quem quer uma visão rápida da saúde financeira sem se perder nos d
     icon: LayoutDashboard,
     content: `Painel de controle visual com **gráficos e indicadores** que permitem entender sua situação financeira em segundos.
 
-**KPIs:** Receita Total, Despesa Total, Resultado Líquido, Taxa de Economia. **Gráficos:** Evolução mensal, distribuição de gastos por categoria, comparativo realizado vs projetado.
+**KPIs:** Receita Líquida, Despesas, EBITDA e Lucro Líquido — os mesmos números do seu DRE, em tempo real. **Gráficos:** evolução mensal, distribuição de gastos por categoria e evolução anual comparando entradas e saídas ano a ano.
 
-**Meta ideal:** Taxa de economia de pelo menos 20% da receita líquida.`
+**Também na tela:** alertas automáticos do Big B, seu Score de Saúde Financeira embutido e a Linha do Tempo com os últimos lançamentos.`
   },
   inteligencia: {
     title: "Consultor Financeiro IA",
     icon: Brain,
     content: `Usa **inteligência artificial** para analisar automaticamente todos os seus dados financeiros e gerar recomendações personalizadas.
 
-**4 seções da análise:** Insights (tendências e padrões), Alertas (situações que requerem atenção), Sugestões (recomendações acionáveis), Previsão (projeção dos próximos 3 meses).
+**4 seções da análise:** Insights (tendências e padrões), Alertas (situações que requerem atenção), Sugestões (recomendações acionáveis), Previsão (tendência e economia potencial).
+
+Na mesma tela, o **Radar Econômico** traduz o cenário macroeconômico brasileiro (Inflação, Selic, CDI, Dólar) para o impacto no seu bolso — inclusive comparando o CDI com a inflação para mostrar o juro real de quem investe em CDB.
 
 O histórico de análises é salvo automaticamente para acompanhar evolução ao longo do tempo.`
   },
@@ -103,9 +105,9 @@ Para cada compromisso: subcategoria, valor da parcela, número da parcela e come
   balanco: {
     title: "Balanço Patrimonial",
     icon: Scale,
-    content: `"Fotografia" do seu patrimônio: tudo que você **possui** (ativos), tudo que você **deve** (passivos) e o **patrimônio líquido**.
+    content: `"Fotografia" do seu patrimônio: tudo que você **possui** (ativos), tudo que você **deve** (passivos) e o **patrimônio líquido** — que soma ainda os lucros retidos de todo o seu histórico no DRE, não só Ativos menos Passivos.
 
-**Ativos:** Contas, investimentos, imóveis, veículos. **Passivos:** Cartão de crédito, empréstimos, financiamentos. Gráfico de evolução histórica com snapshot mensal automático.`
+**Ativos:** Contas, investimentos, imóveis, veículos. **Passivos:** Cartão de crédito, empréstimos, financiamentos. Gráfico de evolução histórica com snapshot mensal automático, e uma aba **Mapa de Riqueza** com taxa de crescimento, composição do patrimônio e os motores por trás da sua evolução.`
   },
   simulador: {
     title: "Simulador Financeiro",
@@ -117,9 +119,9 @@ Configure cenários de receita, despesas, investimentos e período. O sistema ge
   healthScore: {
     title: "Score de Saúde Financeira",
     icon: Activity,
-    content: `Nota de **0 a 100** para sua situação financeira baseada em 5 pilares: Capacidade de Poupança, Controle de Despesas, Liquidez, Endividamento e Reserva de Emergência.
+    content: `Nota de **0 a 100** para sua situação financeira baseada em 5 pilares: Liquidez, Controle de Gastos, Endividamento, Reserva de Emergência e Capacidade de Poupança.
 
-Calculado automaticamente com dados do DRE e Balanço Patrimonial. Histórico mensal para acompanhar evolução.`
+Calculado automaticamente com dados do DRE e Balanço Patrimonial. O score é salvo todo mês para você acompanhar a evolução ao longo do tempo.`
   },
   mapaSonhos: {
     title: "Mapa de Sonhos Financeiros",
@@ -140,8 +142,23 @@ Calculado automaticamente com dados do DRE e Balanço Patrimonial. Histórico me
   },
   fluxoCaixa: {
     title: "Fluxo de Caixa",
-    icon: Heart,
-    content: `Visão consolidada das entradas e saídas financeiras ao longo do tempo, complementando o DRE com foco na movimentação real de dinheiro.`
+    icon: Banknote,
+    content: `Mostra o dinheiro **entrando e saindo de verdade** — diferente do DRE, que usa a data da compra, o Fluxo de Caixa usa a data de pagamento. Uma compra parcelada em 12x aparece de uma vez no DRE, mas uma parcela por mês aqui.
+
+Inclui um comparativo automático entre Lucro Líquido (DRE) e Geração de Caixa, para você entender por que "ter lucro no papel" nem sempre significa "ter dinheiro sobrando na conta".`
+  },
+  bigB: {
+    title: "Big B — Assessor 24/7",
+    icon: Bot,
+    content: `Seu assessor financeiro **sempre disponível**, direto na tela, em qualquer parte do sistema. Diferente do Consultor Financeiro IA (que você aciona quando quer um relatório), o Big B observa seus dados o tempo todo e avisa sozinho quando algo precisa da sua atenção.
+
+**O que ele faz:**
+- Alertas automáticos de orçamento estourado e categorias com tendência de gasto crescente
+- Compara seus investimentos com o cenário econômico atual (Selic, CDI, inflação) e aponta juro real
+- Identifica dinheiro parado sem render e calcula quanto renderia num CDB simples
+- Responde perguntas livres sobre suas finanças, no estilo de um analista de uma casa de investimentos
+
+**Exemplo real:** "Você tem R$X parado em conta corrente — a 100% do CDI isso renderia ~R$Y/mês."`
   },
 };
 
@@ -156,7 +173,11 @@ const faqItems = [
   },
   {
     q: "De que forma funciona o Consultor Financeiro IA?",
-    a: "Acesse **Inteligência** no menu, selecione o período desejado (recomendado: últimos 6-12 meses) e clique em 'Gerar Análise'. A IA analisa seus lançamentos e gera insights, alertas, sugestões e previsões personalizadas com números concretos dos seus dados."
+    a: "Acesse **Inteligência** no menu, selecione o período desejado (recomendado: últimos 6-12 meses) e clique em 'Gerar Análise'. A IA analisa seus lançamentos e gera insights, alertas, sugestões e previsões personalizadas com números concretos dos seus dados. Na mesma tela, o Radar Econômico traduz Selic, CDI e inflação para o impacto no seu bolso."
+  },
+  {
+    q: "Qual a diferença entre o Consultor Financeiro IA e o Big B?",
+    a: "O **Consultor Financeiro IA** é um relatório sob demanda — você escolhe o período e clica em 'Gerar Análise'. O **Big B** é o assistente flutuante que fica disponível em qualquer tela do sistema, o tempo todo: ele avisa sozinho sobre orçamento estourado ou dinheiro parado sem render, e responde perguntas livres sobre suas finanças a qualquer momento, sem você precisar pedir um relatório."
   },
   {
     q: "Como é possível criar metas financeiras?",
@@ -164,7 +185,7 @@ const faqItems = [
   },
   {
     q: "Como acompanhar o score de saúde financeira?",
-    a: "O **Score de Saúde Financeira** calcula uma nota de 0 a 100 baseada em 5 pilares: poupança, controle de despesas, liquidez, endividamento e reserva de emergência. Acesse pelo menu lateral e acompanhe a evolução mensal."
+    a: "O **Score de Saúde Financeira** calcula uma nota de 0 a 100 baseada em 5 pilares: liquidez, controle de gastos, endividamento, reserva de emergência e capacidade de poupança. Acesse pelo menu lateral e acompanhe a evolução mensal."
   },
   {
     q: "Como compartilhar dados com um contador?",
