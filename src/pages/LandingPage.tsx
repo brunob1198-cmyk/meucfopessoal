@@ -776,11 +776,18 @@ export default function LandingPage() {
     <div className="min-h-screen bg-background text-foreground">
       <Helmet>
         <title>Meu CFO Pessoal — Gestão Financeira com IA e DRE</title>
-        <meta name="description" content="Controle suas finanças com DRE, Consultor IA e Score de Saúde Financeira. Planeje, acompanhe e conquiste a liberdade financeira." />
+        <meta name="description" content="Controle suas finanças com DRE, Consultor Financeiro IA, Big B (seu assessor 24/7) e Score de Saúde Financeira. Planeje, acompanhe e conquiste a liberdade financeira." />
         <link rel="canonical" href="https://meucfopessoal.bssassessoria.com.br/" />
+        <meta property="og:type" content="website" />
+        <meta property="og:locale" content="pt_BR" />
         <meta property="og:title" content="Meu CFO Pessoal — Gestão Financeira com IA e DRE" />
-        <meta property="og:description" content="Controle suas finanças com DRE, Consultor IA e Score de Saúde Financeira." />
+        <meta property="og:description" content="Controle suas finanças com DRE, Consultor IA, Big B e Score de Saúde Financeira." />
         <meta property="og:url" content="https://meucfopessoal.bssassessoria.com.br/" />
+        <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/GRrC52OWhue7R47FpTPtHiZvQPq1/social-images/social-1772914617468-Monograma_Dourado.webp" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Meu CFO Pessoal — Gestão Financeira com IA e DRE" />
+        <meta name="twitter:description" content="Controle suas finanças com DRE, Consultor IA, Big B e Score de Saúde Financeira." />
+        <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/GRrC52OWhue7R47FpTPtHiZvQPq1/social-images/social-1772914617468-Monograma_Dourado.webp" />
       </Helmet>
       <Navbar />
       <Hero />
