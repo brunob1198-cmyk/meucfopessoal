@@ -357,7 +357,7 @@ export function BigBAssistant() {
           {/* Quick actions when chat has messages */}
           {messages.length > 0 && !isLoading && (
             <div className="px-3 pb-1 flex gap-1 overflow-x-auto">
-              {QUICK_ACTIONS.slice(0, 2).map((qa, i) => (
+              {QUICK_ACTIONS.map((qa, i) => (
                 <button
                   key={i}
                   onClick={() => sendMessage(qa.prompt)}
