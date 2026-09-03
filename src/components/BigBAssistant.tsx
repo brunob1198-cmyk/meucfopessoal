@@ -79,6 +79,7 @@ const QUICK_ACTIONS = [
   { label: '📈 Tendências', prompt: 'Quais categorias estão com tendência crescente? Devo me preocupar?' },
   { label: '💰 Economia', prompt: 'Onde posso economizar com base nos meus gastos recentes?' },
   { label: '🎯 Metas', prompt: 'Como estão minhas metas financeiras? Estou no caminho certo?' },
+  { label: '🌍 Cenário Econômico', prompt: 'Como o cenário econômico atual (Selic, CDI, inflação) afeta minhas finanças e meus investimentos?' },
 ];
 
 export function BigBAssistant() {
