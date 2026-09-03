@@ -38,7 +38,7 @@ serve(async (req) => {
     const endOfMonth = `${currentMonth}-${String(lastDayOfMonth).padStart(2, "0")}`;
 
     // Fetch user financial data in parallel
-    const [txRes, catRes, projRes, dreamsRes, profileRes, assetsRes, liabilitiesRes, healthRes] = await Promise.all([
+    const [txRes, catRes, projRes, dreamsRes, profileRes, assetsRes, liabilitiesRes, healthRes, econRes] = await Promise.all([
       supabase.from("transactions").select("*, categories(name, dre_type, parent_id)")
         .gte("date", twelveMonthsAgo).lte("date", endOfMonth).order("date"),
       supabase.from("categories").select("*").order("sort_order"),
@@ -48,7 +48,17 @@ serve(async (req) => {
       supabase.from("profiles").select("display_name, profession, birth_date, gender").eq("user_id", user.id).single(),
       supabase.from("balance_sheet_assets").select("*"),
       supabase.from("balance_sheet_liabilities").select("*"),
-      supabase.from("financial_health_history").select("*").order("month", { ascending: false }).limit(6),
+      // financial_health_score_history — snapshot mensal do Score de Saúde
+      // Financeira (src/pages/FinancialHealthScore.tsx). Antes lia de
+      // "financial_health_history", uma tabela que nunca recebeu um INSERT
+      // em lugar nenhum do sistema — esse bloco do contexto sempre chegava
+      // vazio na IA.
+      supabase.from("financial_health_score_history").select("*").order("month", { ascending: false }).limit(6),
+      // Último cenário econômico gerado pelo Radar Econômico (Consultor
+      // Financeiro IA) — uma linha por usuário, com IPCA/Selic/CDI/dólar
+      // salvos como JSON em `data`. Pode não existir se o usuário nunca
+      // gerou um Radar.
+      supabase.from("economic_snapshots").select("data, created_at").order("created_at", { ascending: false }).limit(1),
     ]);
 
     const transactions = txRes.data || [];
@@ -60,6 +70,12 @@ serve(async (req) => {
     const assets = assetsRes.data || [];
     const liabilities = liabilitiesRes.data || [];
     const healthHistory = healthRes.data || [];
+    const economicSnapshot = econRes.data?.[0]?.data as Record<string, any> | undefined;
+    // Calculado aqui (fora do bloco "chat mode") porque o modo "alerts"
+    // também precisa dele para o alerta de oportunidade de rendimento.
+    const liquidIdle = assets
+      .filter((a: any) => a.category === "conta_corrente" || a.category === "dinheiro_caixa")
+      .reduce((s: number, a: any) => s + Number(a.current_value), 0);
 
     // Build monthly summaries
     const monthlyData: Record<string, { receita: number; despesa: number; custo: number; desconto: number }> = {};
@@ -240,6 +256,20 @@ serve(async (req) => {
         }
       }
 
+      // Oportunidade de rendimento: dinheiro parado em conta corrente/caixa
+      // acima de ~1 mês de despesas médias, com CDI disponível para comparar.
+      const avgGastosGeral = historicalMonthsForAvg.length > 0
+        ? historicalMonthsForAvg.reduce((s, m) => s + (monthlyData[m]?.despesa || 0) + (monthlyData[m]?.custo || 0), 0) / historicalMonthsForAvg.length
+        : 0;
+      if (liquidIdle > avgGastosGeral && avgGastosGeral > 0 && economicSnapshot?.cdi) {
+        const potentialMonthly = liquidIdle * (Number(economicSnapshot.cdi) / 100 / 12);
+        alerts.push({
+          type: "opportunity",
+          message: `💰 Você tem R$${liquidIdle.toFixed(0)} parado em conta corrente/caixa — a 100% do CDI isso renderia ~R$${potentialMonthly.toFixed(0)}/mês.`,
+          severity: "info",
+        });
+      }
+
       return new Response(JSON.stringify({ alerts }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -418,14 +448,55 @@ serve(async (req) => {
       debtRiskContext += `Alavancagem: ${(leverageRatio * 100).toFixed(0)}% (passivos/ativos)\n`;
     }
 
+    // Cenário macroeconômico — último snapshot gerado pelo Radar Econômico
+    // (Consultor Financeiro IA). Reaproveita os números já buscados/calculados
+    // por lá em vez de o Big B tentar buscar/estimar de novo.
+    let economicContext = "\n═══ CENÁRIO ECONÔMICO ATUAL ═══\n";
+    if (economicSnapshot) {
+      economicContext += `IPCA mensal: ${economicSnapshot.ipca ?? "n/d"}%\n`;
+      economicContext += `Selic meta: ${economicSnapshot.selic ?? "n/d"}%\n`;
+      economicContext += `CDI (acumulado no mês, anualizado): ${economicSnapshot.cdi ?? "n/d"}%\n`;
+      economicContext += `Dólar (PTAX): R$${economicSnapshot.dolar ?? "n/d"}\n`;
+      economicContext += `IGP-M: ${economicSnapshot.igpm ?? "n/d"}%\n`;
+      economicContext += `Combustível (variação mensal do IPCA): ${economicSnapshot.fuelVariacaoMensal ?? "n/d"}%\n`;
+      const snapshotAgeDays = econRes.data?.[0]?.created_at
+        ? Math.floor((now.getTime() - new Date(econRes.data[0].created_at).getTime()) / (1000 * 60 * 60 * 24))
+        : null;
+      economicContext += `Dado gerado há: ${snapshotAgeDays ?? "?"} dia(s)`;
+      if (snapshotAgeDays !== null && snapshotAgeDays > 30) {
+        economicContext += ` ⚠️ DADO ANTIGO — sugira ao usuário gerar um novo Radar Econômico na tela Consultor Financeiro IA\n`;
+      } else {
+        economicContext += `\n`;
+      }
+    } else {
+      economicContext += "Usuário ainda não gerou um Radar Econômico — sem dado de IPCA/Selic/CDI/dólar disponível. Sugira gerar um na tela Consultor Financeiro IA se a pergunta for sobre cenário econômico ou investimentos.\n";
+    }
+
+    // Oportunidade de rendimento: dinheiro parado em conta corrente/caixa
+    // (sem render) comparado ao que renderia a 100% do CDI — pré-calculado
+    // para a IA citar em vez de estimar (mesmo princípio das outras seções
+    // pré-calculadas: previsão, score, desvios).
+    let opportunityContext = "\n═══ OPORTUNIDADE DE RENDIMENTO (PRÉ-CALCULADO) ═══\n";
+    if (liquidIdle > 0 && economicSnapshot?.cdi) {
+      const cdiAnual = Number(economicSnapshot.cdi) / 100;
+      const potentialMonthly = liquidIdle * (cdiAnual / 12);
+      const potentialAnnual = liquidIdle * cdiAnual;
+      opportunityContext += `Dinheiro parado em conta corrente/caixa (sem render): R$${liquidIdle.toFixed(2)}\n`;
+      opportunityContext += `Se rendesse 100% do CDI (${economicSnapshot.cdi}% a.a.): ~R$${potentialMonthly.toFixed(2)}/mês, ~R$${potentialAnnual.toFixed(2)}/ano\n`;
+    } else if (liquidIdle > 0) {
+      opportunityContext += `Dinheiro parado em conta corrente/caixa (sem render): R$${liquidIdle.toFixed(2)}. Sem dado de CDI disponível para comparar o rendimento potencial.\n`;
+    } else {
+      opportunityContext += "Sem dinheiro parado identificado em conta corrente/caixa.\n";
+    }
+
     // Health score history
     let healthContext = "\n═══ HISTÓRICO DE SAÚDE FINANCEIRA ═══\n";
     if (healthHistory.length > 0) {
       for (const h of healthHistory) {
-        healthContext += `${h.month}: Score ${h.total_score}/100 (Liq:${h.liquidity_score} Gastos:${h.expense_control_score} Dív:${h.indebtedness_score} Res:${h.emergency_reserve_score} Poup:${h.savings_capacity_score})\n`;
+        healthContext += `${h.month}: Score ${h.total_score}/100 (Liq:${h.liquidez_score} Gastos:${h.controle_gastos_score} Dív:${h.endividamento_score} Res:${h.reserva_emergencia_score} Poup:${h.capacidade_poupanca_score})\n`;
       }
     } else {
-      healthContext += "Sem histórico registrado.\n";
+      healthContext += "Sem histórico registrado ainda (o snapshot mensal começou a ser salvo recentemente — vai aparecer aqui a partir do próximo mês).\n";
     }
 
     // Profile context for benchmarks
@@ -526,6 +597,8 @@ ${scoreContext}
 ${behaviorContext}
 ${balanceContext}
 ${debtRiskContext}
+${economicContext}
+${opportunityContext}
 ${healthContext}
 ${profileContext}
 ${momContext}
@@ -583,7 +656,16 @@ ${priorityContext}
    - Sugira caminho: estabilizar → reserva → investir → liberdade
    - Use dados reais das metas/sonhos
 
-9. PROATIVIDADE MÁXIMA:
+9. QUALIDADE DE ALOCAÇÃO E CENÁRIO MACRO:
+   - Use o bloco "OPORTUNIDADE DE RENDIMENTO" sempre que houver dinheiro parado em conta corrente/caixa — é uma das análises mais valiosas de um assessor de verdade
+   - Compare a rentabilidade dos investimentos do usuário com o CDI/Selic do bloco "CENÁRIO ECONÔMICO ATUAL"; juro real aproximado = CDI − IPCA
+   - Se o cenário econômico estiver ausente ou marcado como antigo, diga isso ao usuário em vez de fingir que tem o dado
+
+10. PERSONALIZAÇÃO POR PERFIL:
+   - Use idade e profissão (quando disponíveis em "PERFIL DO USUÁRIO") para contextualizar recomendações: horizonte de tempo até aposentadoria, perfil de risco adequado à idade, sazonalidade/volatilidade de renda por profissão
+   - Não invente idade/profissão se não estiverem no contexto
+
+11. PROATIVIDADE MÁXIMA:
    - Destaque desvios claramente com 🔴
    - Celebre melhorias com 🟢
    - Sinalize riscos com ⚠️
@@ -608,6 +690,8 @@ FORMATO DE RESPOSTA:
 - Para a média histórica, use APENAS o valor em "MÉDIA HISTÓRICA" — nunca invente outro número.
 - Para citar valores de meses específicos, use APENAS os valores em "RESUMO MENSAL". NUNCA cite valores que não estejam literalmente no contexto.
 - Se um número não estiver no contexto fornecido, diga "não tenho esse dado" — NUNCA invente.
+- Para IPCA/Selic/CDI/dólar, use APENAS os valores em "CENÁRIO ECONÔMICO ATUAL" — se esse bloco disser que não há dado, NÃO estime nem use conhecimento antigo de treinamento.
+- Para a oportunidade de rendimento de dinheiro parado, use APENAS os valores já calculados em "OPORTUNIDADE DE RENDIMENTO" — NÃO refaça essa conta.
 - Antes de citar qualquer R$, verifique se ele aparece literalmente nos dados acima.
 
 ❌ NUNCA responda sem: diagnóstico histórico + detecção de desvios + ações priorizadas
