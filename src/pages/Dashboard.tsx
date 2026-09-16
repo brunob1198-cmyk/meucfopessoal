@@ -2,6 +2,7 @@ import { useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { FinancialHealthScoreCard } from '@/components/FinancialHealthScoreCard';
 import { YearlyEvolution } from '@/components/YearlyEvolution';
+import { AnnualResultCard } from '@/components/AnnualResultCard';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import { useProjections } from '@/hooks/useProjections';
@@ -112,6 +113,20 @@ export default function Dashboard() {
     }).filter((d) => d.value > 0).sort((a, b) => b.value - a.value);
   }, [categories, allData]);
 
+  // Média mensal por categoria de despesa no período selecionado (mesmo filtro
+  // do topo da página) — total da categoria dividido pela quantidade de meses.
+  const expenseAverages = useMemo(() => {
+    const monthCount = Math.max(1, months.length);
+    const rows = pieData.map((d) => ({ name: d.name, avg: d.value / monthCount }));
+    const totalAvg = rows.reduce((s, r) => s + r.avg, 0);
+    const maxAvg = rows[0]?.avg || 0;
+    return rows.map((r) => ({
+      ...r,
+      pct: totalAvg > 0 ? (r.avg / totalAvg) * 100 : 0,
+      widthPct: maxAvg > 0 ? (r.avg / maxAvg) * 100 : 0
+    }));
+  }, [pieData, months]);
+
   const stackedBarData = useMemo(() => {
     if (!categories) return { data: [] as any[], keys: [] as string[] };
     const parentCats = categories.filter((c) => !c.parent_id && c.dre_type === 'despesa');
@@ -199,6 +214,12 @@ export default function Dashboard() {
   { label: 'EBITDA', value: ebitda, icon: Wallet, glowClass: 'glow-border-blue' },
   { label: 'Lucro Líquido', value: lucroLiquido, icon: TrendingUp, glowClass: 'glow-border' }];
 
+
+  const expenseTierColor = (pct: number) => {
+    if (pct >= 40) return 'hsl(0, 65%, 55%)';
+    if (pct >= 8) return 'hsl(38, 75%, 55%)';
+    return 'hsl(160, 45%, 42%)';
+  };
 
   const tooltipStyle = {
     contentStyle: {
@@ -328,9 +349,15 @@ export default function Dashboard() {
                       <YAxis tick={{ fontSize: 11, fill: 'hsl(207 25% 60%)' }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                       <Tooltip formatter={(v: number) => formatBRL(v)} {...tooltipStyle} />
                       <Legend />
-                      <Line type="monotone" dataKey="Receita Bruta" stroke="hsl(160, 78%, 49%)" strokeWidth={2.5} dot={false} />
-                      <Line type="monotone" dataKey="Despesas + Custos" stroke="hsl(0, 72%, 51%)" strokeWidth={2.5} dot={false} />
-                      <Line type="monotone" dataKey="Lucro Líquido" stroke="hsl(210, 60%, 50%)" strokeWidth={2.5} dot={false} />
+                      <Line type="monotone" dataKey="Receita Bruta" stroke="hsl(160, 78%, 49%)" strokeWidth={2.5} dot={false}>
+                        <LabelList dataKey="Receita Bruta" position="top" formatter={(v: number) => `${(v / 1000).toFixed(0)}k`} style={{ fontSize: 10, fill: 'hsl(160, 78%, 49%)' }} />
+                      </Line>
+                      <Line type="monotone" dataKey="Despesas + Custos" stroke="hsl(0, 72%, 51%)" strokeWidth={2.5} dot={false}>
+                        <LabelList dataKey="Despesas + Custos" position="bottom" formatter={(v: number) => `${(v / 1000).toFixed(0)}k`} style={{ fontSize: 10, fill: 'hsl(0, 72%, 51%)' }} />
+                      </Line>
+                      <Line type="monotone" dataKey="Lucro Líquido" stroke="hsl(210, 60%, 50%)" strokeWidth={2.5} dot={false}>
+                        <LabelList dataKey="Lucro Líquido" position="top" formatter={(v: number) => `${(v / 1000).toFixed(0)}k`} style={{ fontSize: 10, fill: 'hsl(210, 60%, 50%)' }} />
+                      </Line>
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -339,6 +366,37 @@ export default function Dashboard() {
           </Card>
         </motion.div>
       </div>
+
+      {/* Para onde foi cada real de despesa */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.47, duration: 0.5 }}>
+        <Card className="glass-card float-card border-border/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-display">Para onde foi cada real de despesa</CardTitle>
+            <p className="text-xs text-muted-foreground capitalize">Média mensal · {periodLabel}</p>
+          </CardHeader>
+          <CardContent>
+            {expenseAverages.length === 0 ?
+            <p className="text-sm text-muted-foreground text-center py-8">Sem dados para o período</p> :
+
+            <div className="space-y-3">
+                {expenseAverages.map((row) =>
+                <div key={row.name} className="flex items-center gap-3">
+                    <span className="w-24 sm:w-36 shrink-0 text-sm text-foreground truncate">{row.name}</span>
+                    <div className="flex-1 h-6 rounded-md bg-muted/30 overflow-hidden">
+                      <div
+                      className="h-full rounded-md"
+                      style={{ width: `${Math.max(row.widthPct, 2)}%`, background: expenseTierColor(row.pct) }} />
+
+                    </div>
+                    <span className="w-24 sm:w-28 shrink-0 text-right text-sm tabular-nums text-foreground">{formatBRL(row.avg)}</span>
+                    <span className="w-12 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{row.pct.toFixed(1)}%</span>
+                  </div>
+                )}
+              </div>
+            }
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Stacked bar */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.5 }}>
@@ -417,8 +475,13 @@ export default function Dashboard() {
         </Card>
       </motion.div>
 
-      {/* Yearly Evolution */}
+      {/* Resultado Líquido por Exercício */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55, duration: 0.5 }}>
+        <AnnualResultCard />
+      </motion.div>
+
+      {/* Yearly Evolution */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6, duration: 0.5 }}>
         <YearlyEvolution />
       </motion.div>
     </div>);
