@@ -163,6 +163,21 @@ export default function Auth() {
         >
           Tecnologia financeira de alto padrão
         </motion.p>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.55 }}
+          className="flex items-center justify-center gap-3 text-xs text-muted-foreground"
+        >
+          <a href="/politica-de-privacidade.html" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
+            Política de privacidade
+          </a>
+          <span aria-hidden="true">·</span>
+          <a href="/exclusao-de-conta.html" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
+            Exclusão de conta e dados
+          </a>
+        </motion.div>
       </motion.div>
     </div>
   );
