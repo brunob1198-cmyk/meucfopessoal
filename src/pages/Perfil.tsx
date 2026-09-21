@@ -9,8 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
+} from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, UserPlus, Trash2, Check, X, Crown, User, Save } from 'lucide-react';
+import { Loader2, UserPlus, Trash2, Check, X, Crown, User, Save, AlertTriangle } from 'lucide-react';
 import { AvatarUpload } from '@/components/AvatarUpload';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -25,8 +29,10 @@ const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | '
   rejected: 'destructive',
 };
 
+const DELETE_ACCOUNT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-account`;
+
 export default function Perfil() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { toast } = useToast();
   const { plan, isPremium, isLoading: planLoading } = useUserPlan();
   const { data: myShares, isLoading: sharesLoading } = useMyShares();
@@ -45,6 +51,9 @@ export default function Perfil() {
   const [profession, setProfession] = useState('');
   const [profileLoading, setProfileLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -89,6 +98,36 @@ export default function Perfil() {
     if (!email.trim()) return;
     invite.mutate({ email: email.trim(), permission });
     setEmail('');
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('Sessão expirada. Faça login novamente.');
+
+      const resp = await fetch(DELETE_ACCOUNT_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+      });
+      const body = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(body.error || 'Erro ao excluir a conta.');
+
+      toast({ title: 'Conta excluída com sucesso.' });
+      await signOut();
+    } catch (err) {
+      toast({
+        title: 'Erro ao excluir conta',
+        description: err instanceof Error ? err.message : undefined,
+        variant: 'destructive',
+      });
+      setDeletingAccount(false);
+    }
   };
 
   return (
@@ -281,6 +320,62 @@ export default function Perfil() {
           ) : (
             <p className="text-sm text-muted-foreground text-center py-4">Nenhum convite recebido</p>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Danger zone */}
+      <Card className="border-destructive/40">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2 text-destructive">
+            <AlertTriangle className="h-4 w-4" /> Zona de perigo
+          </CardTitle>
+          <CardDescription>Ações irreversíveis relacionadas à sua conta</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <p className="text-sm font-medium">Excluir minha conta</p>
+              <p className="text-xs text-muted-foreground max-w-md">
+                Apaga imediata e definitivamente seu login, lançamentos, categorias, orçamentos, balanço patrimonial, metas e todo o restante dos seus dados. Não há como desfazer.
+              </p>
+            </div>
+            <AlertDialog onOpenChange={(open) => !open && setDeleteConfirmText('')}>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive">Excluir minha conta</Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Tem certeza que quer excluir sua conta?</AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div className="space-y-3">
+                      <p>
+                        Essa ação é <strong>imediata e definitiva</strong>. Todos os seus lançamentos, categorias, orçamentos, balanço patrimonial, metas e o próprio login serão apagados — não há período de recuperação.
+                      </p>
+                      <p>
+                        Para confirmar, digite <strong>EXCLUIR</strong> abaixo:
+                      </p>
+                      <Input
+                        value={deleteConfirmText}
+                        onChange={(e) => setDeleteConfirmText(e.target.value)}
+                        placeholder="EXCLUIR"
+                        autoFocus
+                      />
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={deletingAccount}>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={(e) => { e.preventDefault(); handleDeleteAccount(); }}
+                    disabled={deleteConfirmText !== 'EXCLUIR' || deletingAccount}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {deletingAccount ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Excluir definitivamente'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </CardContent>
       </Card>
     </div>
