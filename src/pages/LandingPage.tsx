@@ -294,7 +294,7 @@ function Navbar() {
               </button>
               {activeDropdown === "legal" && (
                 <div className="absolute top-full left-0 mt-1 bg-card border border-border rounded-xl shadow-2xl py-2 min-w-[200px]" onMouseEnter={keepOpen} onMouseLeave={closeDropdown}>
-                  <button className="w-full text-left px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">Política de privacidade</button>
+                  <a href="/politica-de-privacidade.html" target="_blank" rel="noopener noreferrer" className="block w-full text-left px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">Política de privacidade</a>
                   <button className="w-full text-left px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">Termos de uso</button>
                 </div>
               )}
