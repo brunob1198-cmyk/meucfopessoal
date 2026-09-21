@@ -168,10 +168,14 @@ export default function Auth() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.55 }}
-          className="flex items-center justify-center gap-3 text-xs text-muted-foreground"
+          className="flex items-center justify-center flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground"
         >
           <a href="/politica-de-privacidade.html" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
             Política de privacidade
+          </a>
+          <span aria-hidden="true">·</span>
+          <a href="/termos-de-uso.html" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
+            Termos de uso
           </a>
           <span aria-hidden="true">·</span>
           <a href="/exclusao-de-conta.html" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
