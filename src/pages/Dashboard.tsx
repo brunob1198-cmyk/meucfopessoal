@@ -113,6 +113,8 @@ export default function Dashboard() {
     }).filter((d) => d.value > 0).sort((a, b) => b.value - a.value);
   }, [categories, allData]);
 
+  const pieTotal = useMemo(() => pieData.reduce((s, d) => s + d.value, 0), [pieData]);
+
   // Média mensal por categoria de despesa no período selecionado (mesmo filtro
   // do topo da página) — total da categoria dividido pela quantidade de meses.
   const expenseAverages = useMemo(() => {
@@ -313,16 +315,27 @@ export default function Dashboard() {
               <p className="text-sm text-muted-foreground text-center py-8">Sem dados para o período</p> :
 
               <div ref={pieChartRef}>
-                  <ResponsiveContainer width="100%" height={280}>
+                  <ResponsiveContainer width="100%" height={240}>
                     <PieChart>
-                      <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={2} dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}
+                      <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={95} paddingAngle={2} dataKey="value"
                     stroke="hsl(200 35% 12%)" strokeWidth={2}>
                         {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                       </Pie>
                       <Tooltip formatter={(v: number) => formatBRL(v)} {...tooltipStyle} />
                     </PieChart>
                   </ResponsiveContainer>
+                  <div className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 mt-3 px-2">
+                    {pieData.map((d, i) => {
+                      const pct = pieTotal > 0 ? (d.value / pieTotal) * 100 : 0;
+                      return (
+                        <div key={d.name} className="flex items-center gap-1.5 text-xs">
+                          <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
+                          <span className="text-muted-foreground">{d.name}</span>
+                          <span className="text-foreground font-medium tabular-nums">{pct.toFixed(0)}%</span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               }
             </CardContent>
